@@ -100,7 +100,7 @@
   async function apiPost(ep) { try { return await V.apiPost(ep, {}); } catch (e) { toast('请求失败: ' + e); return {}; } }
 
   async function refreshStatus() {
-    const d = await apiGet('douyin_dm_mover/status');
+    const d = await apiGet('status');
     $('status').innerHTML =
       kv('登录态', statePill(d.auth_state)) +
       kv('self_uid', esc(d.self_uid ?? '未设置')) +
@@ -118,7 +118,7 @@
   function kv(k, v) { return '<b>' + esc(k) + '</b><span>' + v + '</span>'; }
 
   async function refreshSenders() {
-    const d = await apiGet('douyin_dm_mover/senders');
+    const d = await apiGet('senders');
     const list = d.senders || [];
     $('senders').innerHTML = list.length ? list.map(s =>
       '<li>' + esc(fmtTs(s.ts)) + ' · ' + esc(s.peer_name || s.peer_id || '未知') +
@@ -128,7 +128,7 @@
   }
 
   async function refreshRecords() {
-    const d = await apiGet('douyin_dm_mover/records');
+    const d = await apiGet('records');
     const list = d.records || [];
     $('records').innerHTML = list.length ? list.map(r =>
       '<li>' + esc(fmtTs(r.ts)) + ' · [' + esc(r.type) + '] ' + esc(r.peer) +
@@ -138,7 +138,7 @@
   }
 
   async function refreshQr() {
-    const d = await apiGet('douyin_dm_mover/qrcode');
+    const d = await apiGet('qrcode');
     $('qrDetail').textContent = d.detail || '';
     if (d.qr) { $('qr').innerHTML = '<img src="' + d.qr + '" alt="登录二维码">'; }
     else { $('qr').innerHTML = '<div class="ph">' + esc(d.detail || '暂无二维码') + '</div>'; }
@@ -148,13 +148,13 @@
 
   $('btnRefresh').onclick = refreshAll;
   $('btnQrRefresh').onclick = async () => {
-    const d = await apiPost('douyin_dm_mover/qrcode/refresh');
+    const d = await apiPost('qrcode/refresh');
     toast(d.detail || (d.ok ? '已触发' : '请稍候'));
     if (d.ok) { await refreshQr(); }
   };
-  $('btnLogin').onclick = async () => { const d = await apiPost('douyin_dm_mover/login'); toast(d.detail || '已触发'); };
-  $('btnLogout').onclick = async () => { const d = await apiPost('douyin_dm_mover/logout'); toast(d.detail || '已登出'); await refreshAll(); };
-  $('btnClear').onclick = async () => { const d = await apiPost('douyin_dm_mover/records/clear'); toast(d.detail || '已清空'); await refreshRecords(); };
+  $('btnLogin').onclick = async () => { const d = await apiPost('login'); toast(d.detail || '已触发'); };
+  $('btnLogout').onclick = async () => { const d = await apiPost('logout'); toast(d.detail || '已登出'); await refreshAll(); };
+  $('btnClear').onclick = async () => { const d = await apiPost('records/clear'); toast(d.detail || '已清空'); await refreshRecords(); };
 
   V.ready().then(() => {
     refreshAll();
