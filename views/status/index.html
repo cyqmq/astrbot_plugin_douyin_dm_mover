@@ -37,6 +37,11 @@
   .qr img { max-width:220px; width:100%; border:1px solid var(--border); border-radius:6px; }
   .qr .ph { width:220px; height:220px; display:flex; align-items:center; justify-content:center;
             border:1px dashed var(--border); border-radius:6px; color:var(--muted); font-size:12px; }
+  .logs { max-height:280px; overflow:auto; margin:0; padding:8px 10px; background:var(--bg);
+          border:1px solid var(--border); border-radius:6px;
+          font:12px/1.6 ui-monospace,SFMono-Regular,Consolas,monospace; white-space:pre-wrap;
+          word-break:break-all; }
+  .lvl-error { color:var(--bad); } .lvl-warning { color:var(--warn); } .lvl-info { color:var(--muted); }
   #toast { position:fixed; bottom:18px; left:50%; transform:translateX(-50%);
            background:var(--text); color:var(--bg); padding:7px 14px; border-radius:6px;
            font-size:13px; opacity:0; transition:opacity .3s; pointer-events:none; }
@@ -72,6 +77,15 @@
       <h2>最近搬运记录</h2>
       <ul class="list" id="records"></ul>
     </div>
+  </div>
+
+  <div class="card" style="margin-top:12px">
+    <h2>运行日志 <span class="muted" id="logCount"></span></h2>
+    <div class="bar" style="margin-bottom:8px">
+      <button id="btnLogRefresh">刷新日志</button>
+      <button id="btnLogClear">清空日志</button>
+    </div>
+    <pre class="logs" id="logs"></pre>
   </div>
 </div>
 <div id="toast"></div>
@@ -144,7 +158,17 @@
     else { $('qr').innerHTML = '<div class="ph">' + esc(d.detail || '暂无二维码') + '</div>'; }
   }
 
-  async function refreshAll() { await Promise.all([refreshStatus(), refreshSenders(), refreshRecords(), refreshQr()]); }
+  async function refreshLogs() {
+    const d = await apiGet('logs');
+    const list = d.logs || [];
+    $('logCount').textContent = list.length ? (list.length + ' 条') : '';
+    $('logs').innerHTML = list.length ? list.map(l => {
+      const cls = l.level === 'error' ? 'lvl-error' : (l.level === 'warning' ? 'lvl-warning' : 'lvl-info');
+      return '<div class="' + cls + '">' + esc(fmtTs(l.ts)) + ' [' + esc(l.level) + '] ' + esc(l.msg) + '</div>';
+    }).join('') : '<span class="empty">暂无日志</span>';
+  }
+
+  async function refreshAll() { await Promise.all([refreshStatus(), refreshSenders(), refreshRecords(), refreshQr(), refreshLogs()]); }
 
   $('btnRefresh').onclick = refreshAll;
   $('btnQrRefresh').onclick = async () => {
@@ -155,6 +179,8 @@
   $('btnLogin').onclick = async () => { const d = await apiPost('login'); toast(d.detail || '已触发'); };
   $('btnLogout').onclick = async () => { const d = await apiPost('logout'); toast(d.detail || '已登出'); await refreshAll(); };
   $('btnClear').onclick = async () => { const d = await apiPost('records/clear'); toast(d.detail || '已清空'); await refreshRecords(); };
+  $('btnLogRefresh').onclick = refreshLogs;
+  $('btnLogClear').onclick = async () => { const d = await apiPost('logs/clear'); toast(d.detail || '已清空'); await refreshLogs(); };
 
   V.ready().then(() => {
     refreshAll();

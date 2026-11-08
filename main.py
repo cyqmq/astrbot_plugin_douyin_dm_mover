@@ -21,6 +21,7 @@ from config import DEFAULT_DATA_DIR, DEFAULT_SOURCES
 from core.dashboard import DashboardApi
 from core.forward_manager import ForwardManager
 from core.listener import MessageListener
+from core.logs import LogRing
 from gateway import build_gateway
 
 
@@ -43,12 +44,14 @@ class DouyinForwardPlugin(Star):
         self.gateway = build_gateway(cfg)
         self.forward_manager = ForwardManager(context, cfg)
         self.listener = MessageListener(self.gateway, self.forward_manager)
-        self.dashboard = DashboardApi(context, self.gateway, self.forward_manager)
+        self.logring = LogRing()
+        self.dashboard = DashboardApi(context, self.gateway, self.forward_manager, self.logring)
         self.dashboard.register()
         self._tasks: list[asyncio.Task] = []
 
     # ---- 生命周期 ----
     async def initialize(self) -> None:
+        self.logring.attach()
         try:
             await self.gateway.start()
         except Exception as e:
@@ -65,6 +68,7 @@ class DouyinForwardPlugin(Star):
         for t in self._tasks:
             t.cancel()
         self._tasks.clear()
+        self.logring.detach()
         try:
             await self.gateway.stop()
         except Exception as e:

@@ -17,6 +17,8 @@ import time
 
 import qrcode
 
+from core.logs import LogRing
+
 
 def _qr_data_url(content: str) -> str | None:
     """把二维码内容渲染成 PNG data URL；失败返回 None。"""
@@ -31,10 +33,11 @@ def _qr_data_url(content: str) -> str | None:
 
 
 class DashboardApi:
-    def __init__(self, context, gateway, forward_manager):
+    def __init__(self, context, gateway, forward_manager, logring: LogRing | None = None):
         self.context = context
         self.gateway = gateway
         self.fm = forward_manager
+        self.logring = logring or LogRing()
         self._last_refresh_ts = 0.0
 
     # ---- 注册 ----
@@ -48,6 +51,8 @@ class DashboardApi:
         reg("douyin_dm_mover/login", self.login, ["POST"], "dyf 开始登录")
         reg("douyin_dm_mover/logout", self.logout, ["POST"], "dyf 登出")
         reg("douyin_dm_mover/records/clear", self.clear_records, ["POST"], "dyf 清空搬运记录")
+        reg("douyin_dm_mover/logs", self.logs, ["GET"], "dyf 运行日志")
+        reg("douyin_dm_mover/logs/clear", self.clear_logs, ["POST"], "dyf 清空日志")
 
     # ---- 接口实现 ----
     async def status(self):
@@ -104,6 +109,13 @@ class DashboardApi:
 
     async def clear_records(self):
         self.fm.tracker.clear()
+        return {"ok": True, "detail": "已清空"}
+
+    async def logs(self):
+        return {"logs": self.logring.entries()}
+
+    async def clear_logs(self):
+        self.logring.clear()
         return {"ok": True, "detail": "已清空"}
 
     def _kick_login(self) -> None:
