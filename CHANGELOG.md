@@ -4,6 +4,15 @@
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-08
+
+### Added
+- WebUI 视图新增「运行日志」页：展示最近 200 条 `[dyf]` 日志（时间/级别/内容，最新在前），按级别着色，支持刷新/清空，纳入自动刷新；经 `core/logs.py` LogRing 环形缓冲 + loguru sink 捕获插件自身日志。
+- 插件 Web API 新增 `logs`(GET) 与 `logs/clear`(POST)，供日志页调用。
+
+### Fixed
+- `DouyinForwardPlugin.__init__` 的 `config` 参数可缺省：AstrBot 某些加载路径仅传 `context` 实例化时不再因缺少 `config` 崩溃。
+
 ## [0.2.1] - 2026-11-08
 
 ### Fixed
