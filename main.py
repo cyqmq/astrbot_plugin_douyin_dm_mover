@@ -27,7 +27,7 @@ from gateway import build_gateway
     "astrbot_plugin_douyin_dm_mover",
     "cyqmq",
     "把抖音 Bot 账号收到的私信视频/分享卡片，自动搬进指定 QQ 群。",
-    "0.1.0",
+    "0.2.0",
     "https://github.com/cyqmq/astrbot_plugin_douyin_dm_mover",
 )
 class DouyinForwardPlugin(Star):
