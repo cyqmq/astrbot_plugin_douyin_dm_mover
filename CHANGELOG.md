@@ -4,6 +4,13 @@
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-11-08
+
+### Fixed
+- WebUI 视图接口 404：bridge 调用 endpoint 不再含插件名前缀，Python 侧路由注册保留前缀。
+- `status` 与 `/dyf status` 对非 dict `sources` 配置的防护（原 `AttributeError` 导致 WebUI 接口 500）。
+- 扫码登录 `ModuleNotFoundError: utils.bd_ticket`：补齐 vendored 登录 utils 依赖闭包（12 个模块 + 资源 + `acrawler_runtime/`），登录二维码恢复生成。
+
 ## [0.2.0] - 2026-11-08
 
 ### Added
