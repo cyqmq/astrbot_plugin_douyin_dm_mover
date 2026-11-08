@@ -53,7 +53,10 @@ class DashboardApi:
     async def status(self):
         fm = self.fm
         cfg = fm.config
-        src = (cfg.get("sources") or {}).get("douyin", {})
+        sources = cfg.get("sources") or {}
+        src = sources.get("douyin", {}) if isinstance(sources, dict) else {}
+        if not isinstance(src, dict):
+            src = {}
         return {
             "auth_state": self.gateway.auth_state.value,
             "self_uid": self.gateway.self_uid,

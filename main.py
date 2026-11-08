@@ -81,7 +81,10 @@ class DouyinForwardPlugin(Star):
         event.should_call_llm(False)
         st = self.gateway.auth_state.value
         uid = getattr(self.gateway, "self_uid", None)
-        src = (self._cfg.get("sources") or {}).get("douyin", {})
+        sources = self._cfg.get("sources") or {}
+        src = sources.get("douyin", {}) if isinstance(sources, dict) else {}
+        if not isinstance(src, dict):
+            src = {}
         enabled = src.get("enabled", True)
         types = src.get("types", {})
         text = (
