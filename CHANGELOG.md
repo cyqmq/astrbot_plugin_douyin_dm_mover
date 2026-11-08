@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+## [0.3.2] - 2026-11-08
+
+### Fixed
+- 唯一名化 `core`/`gateway` 包（→ `dyf_core`/`dyf_gateway`）：`main.py` 的 `from core.dashboard import` 此前可能解析到其它插件同名 `core` 包或残留缓存，导致加载旧签名 `DashboardApi`（`takes 4 positional arguments but 5 were given`）；唯一命名空间彻底隔离，`worker` 启动模块名同步更新。
+- `DashboardApi` 业务参数现为 `['context','gateway','forward_manager','logring']`，与 `main.py` 调用匹配。
+
 ## [0.3.1] - 2026-11-08
 
 ### Changed
