@@ -5,7 +5,7 @@ Douyin msg_type → 自有 MessageType（与 douyin_recv_msg.py 一致）：
 """
 from __future__ import annotations
 
-from core.model import InboundMessage, MessageType
+from dyf_core.model import InboundMessage, MessageType
 
 from .peer import is_outgoing, resolve_peer
 

@@ -5,10 +5,10 @@ import asyncio
 
 from astrbot.api import logger
 
-from core.cache_manager import CacheManager
-from core.message_builder import MessageBuilder
-from core.message_sender import MessageSender
-from core.model import InboundMessage
+from dyf_core.cache_manager import CacheManager
+from dyf_core.message_builder import MessageBuilder
+from dyf_core.message_sender import MessageSender
+from dyf_core.model import InboundMessage
 
 
 class RetryManager:

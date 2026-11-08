@@ -6,16 +6,16 @@ import time
 
 from astrbot.api import logger
 
-from core.alert import AlertService
-from core.cache_manager import CacheManager
-from core.message_builder import MessageBuilder
-from core.message_sender import MessageSender
-from core.model import InboundMessage
-from core.ratelimit import RateLimiter
-from core.retry_manager import RetryManager
-from core.router import RouteResolver
-from core.rules import ComposeRule, KeywordFilterRule, SenderFilterRule
-from core.tracker import RecentStore
+from dyf_core.alert import AlertService
+from dyf_core.cache_manager import CacheManager
+from dyf_core.message_builder import MessageBuilder
+from dyf_core.message_sender import MessageSender
+from dyf_core.model import InboundMessage
+from dyf_core.ratelimit import RateLimiter
+from dyf_core.retry_manager import RetryManager
+from dyf_core.router import RouteResolver
+from dyf_core.rules import ComposeRule, KeywordFilterRule, SenderFilterRule
+from dyf_core.tracker import RecentStore
 
 
 def _csv(value) -> list[str]:

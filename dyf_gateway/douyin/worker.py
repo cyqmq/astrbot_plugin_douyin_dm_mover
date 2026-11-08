@@ -23,12 +23,12 @@ import sys
 import threading
 import time
 
-from gateway.douyin.converter import DouyinConverter
-from gateway.douyin.detector import AuthFailureDetector
-from gateway.douyin.device import resolve_device_id
-from gateway.douyin.self_uid import SelfIdentityResolver
-from gateway.douyin.vendored.auth import DouyinAuth
-from gateway.douyin.vendored.receiver import DouyinReceiver
+from dyf_gateway.douyin.converter import DouyinConverter
+from dyf_gateway.douyin.detector import AuthFailureDetector
+from dyf_gateway.douyin.device import resolve_device_id
+from dyf_gateway.douyin.self_uid import SelfIdentityResolver
+from dyf_gateway.douyin.vendored.auth import DouyinAuth
+from dyf_gateway.douyin.vendored.receiver import DouyinReceiver
 
 _log = logging.getLogger("dyf.worker")
 

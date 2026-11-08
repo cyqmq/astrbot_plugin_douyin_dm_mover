@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from core.model import InboundMessage, MessageType
+from dyf_core.model import InboundMessage, MessageType
 
 
 @dataclass

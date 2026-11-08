@@ -5,7 +5,7 @@ from astrbot.api import logger
 from astrbot.api.event import MessageChain
 from astrbot.api.message_components import Image, Plain
 
-from core.model import GatewayEvent
+from dyf_core.model import GatewayEvent
 
 
 class AlertService:

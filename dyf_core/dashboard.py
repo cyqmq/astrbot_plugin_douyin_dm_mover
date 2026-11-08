@@ -17,7 +17,7 @@ import time
 
 import qrcode
 
-from core.logs import LogRing
+from dyf_core.logs import LogRing
 
 
 def _qr_data_url(content: str) -> str | None:

@@ -20,7 +20,7 @@ from collections.abc import AsyncIterator
 
 from astrbot.api import logger
 
-from core.model import AuthState, GatewayEvent, InboundMessage
+from dyf_core.model import AuthState, GatewayEvent, InboundMessage
 
 from .base import MessageGateway
 from .douyin.detector import AuthFailureDetector
@@ -105,7 +105,7 @@ class SubprocessGateway(MessageGateway):
         self._proc = await asyncio.create_subprocess_exec(
             sys.executable,
             "-m",
-            "gateway.douyin.worker",
+            "dyf_gateway.douyin.worker",
             self._cfg_path,
             cwd=self._plugin_root,
             env=env,

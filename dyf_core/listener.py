@@ -1,8 +1,8 @@
 """MessageListener：消费 Gateway 消息流/事件流，喂给 ForwardManager。"""
 from __future__ import annotations
 
-from core.forward_manager import ForwardManager
-from gateway.base import MessageGateway
+from dyf_core.forward_manager import ForwardManager
+from dyf_gateway.base import MessageGateway
 
 
 class MessageListener:

@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from core.model import InboundMessage, MessageType
+from dyf_core.model import InboundMessage, MessageType
 
 
 class BaseRule(ABC):

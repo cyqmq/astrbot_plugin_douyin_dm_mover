@@ -9,7 +9,7 @@ from collections.abc import AsyncIterator
 
 from astrbot.api import logger
 
-from core.model import AuthState, GatewayEvent, InboundMessage
+from dyf_core.model import AuthState, GatewayEvent, InboundMessage
 
 from ..base import MessageGateway
 from .converter import DouyinConverter

@@ -8,7 +8,7 @@ from __future__ import annotations
 import time
 from collections import deque
 
-from core.model import InboundMessage
+from dyf_core.model import InboundMessage
 
 
 def _summary(text: str, limit: int = 80) -> str:

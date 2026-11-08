@@ -4,7 +4,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from collections.abc import AsyncIterator
 
-from core.model import AuthState, GatewayEvent, InboundMessage
+from dyf_core.model import AuthState, GatewayEvent, InboundMessage
 
 
 class MessageGateway(ABC):

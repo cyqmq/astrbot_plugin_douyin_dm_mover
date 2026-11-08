@@ -6,7 +6,7 @@ from datetime import datetime
 from astrbot.api.event import MessageChain
 from astrbot.api.message_components import Image, Plain
 
-from core.model import InboundMessage, MessageType
+from dyf_core.model import InboundMessage, MessageType
 
 _SANITIZE_CHARS = ["**", "`", "~~", "*"]
 _SOURCE_LABEL = {"douyin": "抖音"}

@@ -6,7 +6,7 @@ astrbot 依赖仅在 build_gateway 内延迟导入。
 """
 from __future__ import annotations
 
-from core.model import InboundMessage  # noqa: F401  (接口约定)
+from dyf_core.model import InboundMessage  # noqa: F401  (接口约定)
 
 from .base import MessageGateway
 

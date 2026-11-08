@@ -26,12 +26,12 @@ for _key in list(sys.modules):
     if _key.startswith(_PLUGIN_KEY + "."):
         sys.modules.pop(_key, None)
 
-from core.dashboard import DashboardApi
-from core.forward_manager import ForwardManager
-from core.listener import MessageListener
-from core.logs import LogRing
 from dyf_config import DEFAULT_DATA_DIR, DEFAULT_SOURCES
-from gateway import build_gateway
+from dyf_core.dashboard import DashboardApi
+from dyf_core.forward_manager import ForwardManager
+from dyf_core.listener import MessageListener
+from dyf_core.logs import LogRing
+from dyf_gateway import build_gateway
 
 
 @register(
