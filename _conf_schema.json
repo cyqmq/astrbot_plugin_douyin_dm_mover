@@ -1,0 +1,150 @@
+{
+  "douyin_cookies": {
+    "type": "text",
+    "default": "",
+    "description": "抖音登录 cookie 字符串（登录抖音后从浏览器复制），必须含 sessionid",
+    "hint": "格式: k1=v1; k2=v2; ..."
+  },
+  "douyin_web_protect": {
+    "type": "text",
+    "default": "",
+    "description": "抖音 web_protect（可选，暂未用于私信连接）"
+  },
+  "douyin_keys": {
+    "type": "text",
+    "default": "",
+    "description": "抖音 keys（可选，暂未用于私信连接）"
+  },
+  "self_uid": {
+    "type": "string",
+    "default": "",
+    "description": "本账号数字 uid。用于判定私信对端。留空则尝试自动获取/缓存",
+    "hint": "若无法自动获取，用 /dyf uid <uid> 设置"
+  },
+  "device_id": {
+    "type": "string",
+    "default": "",
+    "description": "WebSocket device_id。留空则从 sessionid 派生并缓存"
+  },
+  "gateway_mode": {
+    "type": "string",
+    "default": "inprocess",
+    "description": "网关模式: inprocess（默认，线程）| subprocess（进程隔离，暂回退 inprocess）"
+  },
+  "auth_watchdog_minutes": {
+    "type": "int",
+    "default": 30,
+    "description": "静默看门狗：连续 N 分钟无帧视为连接僵死"
+  },
+  "auth_failure_close_codes": {
+    "type": "string",
+    "default": "4010,4011,4012",
+    "description": "判定登录态失效的 WebSocket 关闭码（逗号分隔）"
+  },
+  "auth_failure_keywords": {
+    "type": "string",
+    "default": "session,token,unauthorized,auth,login",
+    "description": "判定登录态失效的错误文本关键字（逗号分隔）"
+  },
+  "alert_target": {
+    "type": "string",
+    "default": "",
+    "description": "告警目标（管理员 QQ 群/私聊），如 aiocqhttp:GroupMessage:123456；留空则仅日志",
+    "hint": "格式: 适配器:GroupMessage:群号 或 群号"
+  },
+  "alert_only_once": {
+    "type": "bool",
+    "default": true,
+    "description": "登录态失效仅告警一次，避免刷屏"
+  },
+  "qq_adapter_id": {
+    "type": "string",
+    "default": "aiocqhttp",
+    "description": "QQ 适配器实例 id（NapCat 为 aiocqhttp，官方为 qq_official），用于构造发送目标"
+  },
+  "max_message_length": {
+    "type": "int",
+    "default": 1000,
+    "description": "单条转发消息最大长度（QQ 上限内）"
+  },
+  "include_link": {
+    "type": "bool",
+    "default": true,
+    "description": "视频卡片附带抖音视频链接"
+  },
+  "header_template": {
+    "type": "string",
+    "default": "[转发] {source} {peer_name} · {time}",
+    "description": "转发消息头模板。占位符: {source} {peer_name} {time}"
+  },
+  "default_target_group": {
+    "type": "string",
+    "default": "",
+    "description": "默认目标群号（当路由表未命中时使用）；留空则仅按 routes 路由"
+  },
+  "retry_enabled": {
+    "type": "bool",
+    "default": true,
+    "description": "失败发送周期重试"
+  },
+  "retry_interval_seconds": {
+    "type": "int",
+    "default": 1800,
+    "description": "重试间隔（秒）"
+  },
+  "dedup_enabled": {
+    "type": "bool",
+    "default": true,
+    "description": "按消息 id 去重"
+  },
+  "dedup_window_seconds": {
+    "type": "int",
+    "default": 300,
+    "description": "去重窗口（秒）"
+  },
+  "rate_limit_global_enabled": {
+    "type": "bool",
+    "default": true,
+    "description": "全局限流"
+  },
+  "rate_limit_global_max_per_min": {
+    "type": "int",
+    "default": 30,
+    "description": "全局每分钟最多转发"
+  },
+  "rate_limit_sender_enabled": {
+    "type": "bool",
+    "default": true,
+    "description": "按发送者限流"
+  },
+  "rate_limit_sender_max_per_min": {
+    "type": "int",
+    "default": 10,
+    "description": "单发送者每分钟最多转发"
+  },
+  "senders_whitelist": {
+    "type": "string",
+    "default": "",
+    "description": "发送者白名单（逗号分隔 uid），空=不限"
+  },
+  "senders_blacklist": {
+    "type": "string",
+    "default": "",
+    "description": "发送者黑名单（逗号分隔 uid），命中则跳过"
+  },
+  "keyword_filters": {
+    "type": "string",
+    "default": "",
+    "description": "文本命中任一关键词则丢弃（逗号分隔），空=不过滤"
+  },
+  "sources": {
+    "type": "dict",
+    "default": {},
+    "description": "来源与类型开关，如 {\"douyin\": {\"enabled\": true, \"types\": {\"video_card\": true, \"text\": true}}}"
+  },
+  "routes": {
+    "type": "list",
+    "default": [],
+    "description": "路由表，按序匹配支持多命中。每项: {\"name\":\"\", \"match\":{\"types\":[],\"senders_include\":[],\"senders_exclude\":[]}, \"target\":\"aiocqhttp:GroupMessage:123\"}"
+  }
+}

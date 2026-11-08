@@ -1,0 +1,22 @@
+# 开发期静态检查配置（AstrBot 插件不会在运行时执行 ruff）
+[lint]
+# 有意保留宽异常捕获：网关网络循环必须吞掉一切异常以维持连接，
+# 生命周期钩子不得因关闭异常而中断。
+extend-ignore = []
+
+[lint.per-file-ignores]
+"gateway/douyin/vendored/*.py" = ["BLE001", "S110"]
+"gateway/douyin/gateway.py" = ["BLE001", "S110"]
+"gateway/douyin/self_uid.py" = ["BLE001", "S110"]
+"gateway/douyin/converter.py" = ["BLE001"]
+"core/alert.py" = ["BLE001"]
+"core/cache_manager.py" = ["BLE001", "S110"]
+"core/listener.py" = ["BLE001"]
+"core/message_builder.py" = ["BLE001"]
+"core/message_sender.py" = ["BLE001"]
+"core/retry_manager.py" = ["BLE001"]
+"gateway/douyin/device.py" = ["BLE001", "S110"]
+"gateway/douyin/worker.py" = ["BLE001"]
+"gateway/subprocess_gateway.py" = ["BLE001", "S110"]
+"gateway/__init__.py" = ["BLE001"]
+"main.py" = ["BLE001"]

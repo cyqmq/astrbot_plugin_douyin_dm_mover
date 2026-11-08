@@ -1,0 +1,270 @@
+"""SubprocessGateway：MessageGateway 的 subprocess 实现。
+
+用独立子进程跑 vendored 接收（见 gateway/douyin/worker.py），进程级硬隔离：
+崩溃/内存泄漏不拖垮 AstrBot；更新 vendored/ 后重启 worker 即可。协议见 worker.py。
+
+父进程职责：
+- 拉起/重启 worker（崩溃 → 指数退避，登录态失效则不重启）
+- 解析 stdout JSON 行（frame/message/status），转成统一事件流
+- stdin 控制通道（uid 更新 / stop）
+- 看门狗：静默检测（复用 AuthFailureDetector）
+"""
+from __future__ import annotations
+
+import asyncio
+import json
+import os
+import sys
+import time
+from collections.abc import AsyncIterator
+
+from astrbot.api import logger
+
+from core.model import AuthState, GatewayEvent, InboundMessage
+
+from .base import MessageGateway
+from .douyin.detector import AuthFailureDetector
+
+
+class SubprocessGateway(MessageGateway):
+    def __init__(self, config: dict):
+        self._config = config
+        self._data_dir = config.get("_data_dir") or os.path.join("data", "dyf")
+        os.makedirs(self._data_dir, exist_ok=True)
+        self._detector = AuthFailureDetector(
+            close_codes=self._parse_int_list(config.get("auth_failure_close_codes")),
+            keywords=self._parse_list(config.get("auth_failure_keywords")),
+            watchdog_minutes=config.get("auth_watchdog_minutes", 30),
+        )
+        self._msg_queue: asyncio.Queue = asyncio.Queue()
+        self._event_queue: asyncio.Queue = asyncio.Queue()
+        self._state = AuthState.UNKNOWN
+        self._self_uid: int | None = self._norm(config.get("self_uid"))
+        self._proc = None
+        self._stopping = False
+        self._last_frame_ts: float | None = None
+        self._restart_delay = 2.0
+        self._plugin_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        self._cfg_path = os.path.join(self._data_dir, "worker_config.json")
+        self._tasks: list[asyncio.Task] = []
+        self._reader_tasks: list[asyncio.Task] = []
+
+    @staticmethod
+    def _norm(value) -> int | None:
+        if value is None or value == "":
+            return None
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            return None
+
+    @staticmethod
+    def _parse_list(value) -> list[str]:
+        if isinstance(value, list):
+            return [str(x) for x in value if str(x).strip()]
+        if isinstance(value, str):
+            return [x.strip() for x in value.split(",") if x.strip()]
+        return []
+
+    @staticmethod
+    def _parse_int_list(value) -> list[int]:
+        out = []
+        for x in SubprocessGateway._parse_list(value):
+            try:
+                out.append(int(x))
+            except ValueError:
+                pass
+        return out
+
+    # ---- 启动/停止 ----
+    def _write_config(self) -> None:
+        cfg = dict(self._config)
+        cfg["_data_dir"] = self._data_dir
+        with open(self._cfg_path, "w", encoding="utf-8") as f:
+            json.dump(cfg, f, ensure_ascii=False)
+
+    async def _spawn(self) -> None:
+        env = dict(os.environ)
+        env["PYTHONPATH"] = self._plugin_root + os.pathsep + env.get("PYTHONPATH", "")
+        self._proc = await asyncio.create_subprocess_exec(
+            sys.executable,
+            "-m",
+            "gateway.douyin.worker",
+            self._cfg_path,
+            cwd=self._plugin_root,
+            env=env,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+            stdin=asyncio.subprocess.PIPE,
+        )
+        self._reader_tasks = [
+            asyncio.create_task(self._read_stdout(self._proc)),
+            asyncio.create_task(self._read_stderr(self._proc)),
+        ]
+        logger.info(f"[dyf] worker 已拉起 pid={self._proc.pid}")
+
+    async def start(self) -> None:
+        self._write_config()
+        await self._spawn()
+        self._tasks = [
+            asyncio.create_task(self._watch_process()),
+            asyncio.create_task(self._watchdog()),
+        ]
+        self._emit_event(GatewayEvent("started", "Subprocess gateway started"))
+
+    async def stop(self) -> None:
+        self._stopping = True
+        for t in self._tasks + self._reader_tasks:
+            t.cancel()
+        self._tasks.clear()
+        self._reader_tasks.clear()
+        if self._proc:
+            if self._proc.stdin:
+                try:
+                    self._proc.stdin.write(b"stop\n")
+                    await self._proc.stdin.drain()
+                except Exception:
+                    pass
+            try:
+                await asyncio.wait_for(self._proc.wait(), timeout=5)
+            except Exception:
+                try:
+                    self._proc.kill()
+                    await self._proc.wait()
+                except Exception:
+                    pass
+            self._proc = None
+        self._emit_event(GatewayEvent("stopped", "Subprocess gateway stopped"))
+        logger.info("[dyf] SubprocessGateway 已停止")
+
+    # ---- worker 输出解析 ----
+    async def _read_stdout(self, proc) -> None:
+        while not self._stopping and proc.stdout:
+            line = await proc.stdout.readline()
+            if not line:
+                break
+            self._handle_line(line.decode("utf-8", "replace").strip())
+
+    async def _read_stderr(self, proc) -> None:
+        while not self._stopping and proc.stderr:
+            line = await proc.stderr.readline()
+            if not line:
+                break
+            logger.debug(f"[dyf][worker] {line.decode('utf-8', 'replace').rstrip()}")
+
+    def _handle_line(self, line: str) -> None:
+        if not line:
+            return
+        try:
+            obj = json.loads(line)
+        except Exception:
+            return
+        kind = obj.get("kind")
+        if kind == "message":
+            try:
+                msg = InboundMessage.from_dict(obj.get("data") or {})
+            except Exception:
+                return
+            self._last_frame_ts = time.time()
+            self._msg_queue.put_nowait(msg)
+        elif kind == "frame":
+            self._last_frame_ts = time.time()
+        elif kind == "status":
+            d = obj.get("data") or {}
+            self._on_status(d.get("kind", ""), d.get("detail", ""))
+
+    def _on_status(self, kind: str, detail: str) -> None:
+        if kind == "auth_failure":
+            if self._state != AuthState.EXPIRED:
+                self._state = AuthState.EXPIRED
+                self._emit_event(GatewayEvent("auth_failure", detail))
+                logger.error(f"[dyf] 检测到登录态失效: {detail}")
+            return
+        if kind == "started":
+            self._restart_delay = 2.0
+            if self._self_uid is None and "self_uid=" in detail:
+                try:
+                    self._self_uid = int(detail.split("self_uid=", 1)[1].split()[0])
+                except Exception:
+                    pass
+            self._emit_event(GatewayEvent("started", detail))
+        elif kind == "reconnect":
+            self._emit_event(GatewayEvent("reconnect", detail))
+        elif kind == "disconnect":
+            self._emit_event(GatewayEvent("disconnect", detail))
+        elif kind == "error":
+            self._emit_event(GatewayEvent("error", detail))
+
+    def _emit_event(self, ev: GatewayEvent) -> None:
+        try:
+            self._event_queue.put_nowait(ev)
+        except Exception:
+            pass
+
+    # ---- 进程守护 ----
+    async def _watch_process(self) -> None:
+        while not self._stopping and self._proc:
+            rc = await self._proc.wait()
+            if self._stopping:
+                break
+            if self._state == AuthState.EXPIRED:
+                self._emit_event(GatewayEvent("error", f"worker 退出(rc={rc})，登录态失效不再重启"))
+                break
+            self._emit_event(
+                GatewayEvent("disconnect", f"worker 退出 rc={rc}，{self._restart_delay:.0f}s 后重启")
+            )
+            await asyncio.sleep(self._restart_delay)
+            if self._stopping:
+                break
+            self._restart_delay = min(self._restart_delay * 2, 60)
+            try:
+                await self._spawn()
+            except Exception as e:
+                self._emit_event(GatewayEvent("error", f"重启 worker 失败: {e}"))
+
+    async def _watchdog(self) -> None:
+        while not self._stopping:
+            await asyncio.sleep(60)
+            if self._state == AuthState.EXPIRED:
+                continue
+            if self._detector.check_silence(self._last_frame_ts):
+                self._emit_event(
+                    GatewayEvent(
+                        "error",
+                        f"静默 {self._detector.watchdog_seconds // 60} 分钟无帧，疑似连接僵死",
+                    )
+                )
+
+    # ---- MessageGateway 接口 ----
+    def stream(self) -> AsyncIterator[InboundMessage]:
+        async def _gen():
+            while not self._stopping:
+                msg = await self._msg_queue.get()
+                yield msg
+
+        return _gen()
+
+    def events(self) -> AsyncIterator[GatewayEvent]:
+        async def _gen():
+            while True:
+                ev = await self._event_queue.get()
+                yield ev
+
+        return _gen()
+
+    @property
+    def auth_state(self) -> AuthState:
+        return self._state
+
+    @property
+    def self_uid(self) -> int | None:
+        return self._self_uid
+
+    def set_self_uid(self, uid: int | None) -> None:
+        self._self_uid = uid
+        self._config["self_uid"] = uid
+        if self._proc and self._proc.stdin:
+            try:
+                self._proc.stdin.write(f"uid {int(uid)}\n".encode())
+            except Exception:
+                pass
