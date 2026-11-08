@@ -6,10 +6,16 @@
 from __future__ import annotations
 
 import asyncio
+import os
+import sys
 
 from astrbot.api import AstrBotConfig, logger
 from astrbot.api.event import AstrMessageEvent, filter
 from astrbot.api.star import Context, Star, register
+
+_PLUGIN_ROOT = os.path.dirname(os.path.abspath(__file__))
+if _PLUGIN_ROOT not in sys.path:
+    sys.path.insert(0, _PLUGIN_ROOT)
 
 from config import DEFAULT_DATA_DIR, DEFAULT_SOURCES
 from core.forward_manager import ForwardManager

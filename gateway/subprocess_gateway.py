@@ -222,6 +222,13 @@ class SubprocessGateway(MessageGateway):
             rc = await self._proc.wait()
             if self._stopping:
                 break
+            # worker 退出前可能已在 stdout 写出 auth_failure 等状态行；先排空 reader，
+            # 避免 _on_status 与进程退出检测竞态导致鉴权失效被误判为普通崩溃。
+            for t in self._reader_tasks:
+                try:
+                    await asyncio.wait_for(t, timeout=2)
+                except Exception:
+                    pass
             if self._state == AuthState.EXPIRED:
                 self._emit_event(GatewayEvent("error", f"worker 退出(rc={rc})，登录态失效不再重启"))
                 break
