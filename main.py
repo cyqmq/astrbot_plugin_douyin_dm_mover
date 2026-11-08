@@ -14,14 +14,23 @@ from astrbot.api.event import AstrMessageEvent, filter
 from astrbot.api.star import Context, Star, register
 
 _PLUGIN_ROOT = os.path.dirname(os.path.abspath(__file__))
-if _PLUGIN_ROOT not in sys.path:
-    sys.path.insert(0, _PLUGIN_ROOT)
+if _PLUGIN_ROOT in sys.path:
+    sys.path.remove(_PLUGIN_ROOT)
+sys.path.insert(0, _PLUGIN_ROOT)
 
-from config import DEFAULT_DATA_DIR, DEFAULT_SOURCES
+# 重载兜底：AstrBot 清理 sys.modules 可能不彻底，主动清理本插件名前缀的
+# 残留模块缓存，确保加载的是新代码而非旧缓存。只清本插件前缀，避免误伤
+# 其它插件共享的裸名模块（config/core/utils 等）。
+_PLUGIN_KEY = os.path.basename(_PLUGIN_ROOT)
+for _key in list(sys.modules):
+    if _key.startswith(_PLUGIN_KEY + "."):
+        sys.modules.pop(_key, None)
+
 from core.dashboard import DashboardApi
 from core.forward_manager import ForwardManager
 from core.listener import MessageListener
 from core.logs import LogRing
+from dyf_config import DEFAULT_DATA_DIR, DEFAULT_SOURCES
 from gateway import build_gateway
 
 
@@ -35,6 +44,7 @@ from gateway import build_gateway
 class DouyinForwardPlugin(Star):
     def __init__(self, context: Context, config: AstrBotConfig = None):
         super().__init__(context)
+        self._purge_own_modules()
         self.config = config if config is not None else {}
         cfg = dict(config or {})
         cfg.setdefault("_data_dir", DEFAULT_DATA_DIR)
@@ -48,6 +58,17 @@ class DouyinForwardPlugin(Star):
         self.dashboard = DashboardApi(context, self.gateway, self.forward_manager, self.logring)
         self.dashboard.register()
         self._tasks: list[asyncio.Task] = []
+
+    def _purge_own_modules(self) -> None:
+        """清理本插件可能残留的模块缓存，确保重载时加载的是新代码。
+
+        只清理 ``douyin_dm_mover.`` 前缀的子模块，不动裸名模块，
+        避免误伤其它插件（其 config/core/utils 等可能与裸名冲突）。
+        """
+        key = "douyin_dm_mover"
+        for _k in list(sys.modules):
+            if _k.startswith(key + "."):
+                sys.modules.pop(_k, None)
 
     # ---- 生命周期 ----
     async def initialize(self) -> None:
