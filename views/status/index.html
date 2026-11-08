@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>抖音私信搬运 · 状态</title>
+<script src="/api/plugin/page/bridge-sdk.js"></script>
+<style>
+  :root { --bg:#f5f6f8; --card:#fff; --text:#1f2328; --muted:#6a737d; --border:#e1e4e8;
+          --ok:#2da44e; --bad:#cf222e; --warn:#9a6700; --accent:#0969da; }
+  html[data-theme="dark"] { --bg:#0d1117; --card:#161b22; --text:#e6edf3; --muted:#8b949e;
+          --border:#30363d; --ok:#3fb950; --bad:#f85149; --warn:#d29922; --accent:#58a6ff; }
+  * { box-sizing:border-box; }
+  body { margin:0; padding:16px; background:var(--bg); color:var(--text);
+         font:14px/1.5 -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif; }
+  .wrap { max-width:960px; margin:0 auto; }
+  h1 { font-size:18px; margin:0 0 12px; }
+  .bar { display:flex; gap:8px; align-items:center; margin-bottom:14px; flex-wrap:wrap; }
+  button { border:1px solid var(--border); background:var(--card); color:var(--text);
+           padding:6px 12px; border-radius:6px; cursor:pointer; font-size:13px; }
+  button:hover { border-color:var(--accent); color:var(--accent); }
+  button.primary { background:var(--accent); border-color:var(--accent); color:#fff; }
+  button.danger:hover { border-color:var(--bad); color:var(--bad); }
+  .grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  @media (max-width:720px){ .grid{ grid-template-columns:1fr; } }
+  .card { background:var(--card); border:1px solid var(--border); border-radius:8px; padding:12px 14px; }
+  .card h2 { font-size:14px; margin:0 0 8px; }
+  .kv { display:grid; grid-template-columns:auto 1fr; gap:4px 10px; font-size:13px; }
+  .kv b { color:var(--muted); font-weight:500; }
+  .pill { display:inline-block; padding:1px 8px; border-radius:999px; font-size:12px; color:#fff; }
+  .ok { background:var(--ok); } .bad { background:var(--bad); } .warn { background:var(--warn); }
+  .list { list-style:none; margin:0; padding:0; font-size:13px; }
+  .list li { padding:5px 0; border-bottom:1px dashed var(--border); }
+  .list li:last-child { border-bottom:none; }
+  .muted { color:var(--muted); font-size:12px; }
+  .empty { color:var(--muted); padding:8px 0; }
+  .qr img { max-width:220px; width:100%; border:1px solid var(--border); border-radius:6px; }
+  .qr .ph { width:220px; height:220px; display:flex; align-items:center; justify-content:center;
+            border:1px dashed var(--border); border-radius:6px; color:var(--muted); font-size:12px; }
+  #toast { position:fixed; bottom:18px; left:50%; transform:translateX(-50%);
+           background:var(--text); color:var(--bg); padding:7px 14px; border-radius:6px;
+           font-size:13px; opacity:0; transition:opacity .3s; pointer-events:none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>抖音私信搬运 · 状态</h1>
+  <div class="bar">
+    <button id="btnRefresh" class="primary">刷新</button>
+    <label class="muted"><input type="checkbox" id="auto" checked> 自动刷新</label>
+    <button id="btnQrRefresh">刷新登录二维码</button>
+    <button id="btnLogin">登录</button>
+    <button id="btnLogout" class="danger">登出</button>
+    <button id="btnClear">清空搬运记录</button>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <h2>连接状态</h2>
+      <div class="kv" id="status"></div>
+    </div>
+    <div class="card qr">
+      <h2>登录二维码</h2>
+      <div id="qr"><div class="ph">暂无二维码</div></div>
+      <div class="muted" id="qrDetail"></div>
+    </div>
+    <div class="card">
+      <h2>最近发石者</h2>
+      <ul class="list" id="senders"></ul>
+    </div>
+    <div class="card">
+      <h2>最近搬运记录</h2>
+      <ul class="list" id="records"></ul>
+    </div>
+  </div>
+</div>
+<div id="toast"></div>
+
+<script>
+(function () {
+  const V = window.AstrBotPluginView || window.AstrBotPluginPage;
+  if (!V) { document.getElementById('status').innerHTML = '<b>bridge SDK 未加载</b>'; return; }
+
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const fmtTs = ts => ts ? new Date(ts * 1000).toLocaleString('zh-CN', {hour12:false}) : '—';
+
+  function toast(msg) {
+    const t = $('toast'); t.textContent = msg; t.style.opacity = 1;
+    setTimeout(() => { t.style.opacity = 0; }, 2200);
+  }
+
+  function statePill(state) {
+    const map = { ok:['ok','已连接'], expired:['bad','登录态失效'], unknown:['warn','未知'] };
+    const [cls, label] = map[state] || ['warn', state || '未知'];
+    return '<span class="pill ' + cls + '">' + esc(label) + '</span>';
+  }
+
+  async function apiGet(ep) { try { return await V.apiGet(ep); } catch (e) { toast('请求失败: ' + e); return {}; } }
+  async function apiPost(ep) { try { return await V.apiPost(ep, {}); } catch (e) { toast('请求失败: ' + e); return {}; } }
+
+  async function refreshStatus() {
+    const d = await apiGet('douyin_dm_mover/status');
+    $('status').innerHTML =
+      kv('登录态', statePill(d.auth_state)) +
+      kv('self_uid', esc(d.self_uid ?? '未设置')) +
+      kv('网关模式', esc(d.gateway_mode)) +
+      kv('抖音来源', d.douyin_enabled ? '启用' : '停用') +
+      kv('路由数', esc(d.routes)) +
+      kv('默认目标', esc(d.default_target_group || '未配置')) +
+      kv('去重/限流', (d.dedup ? '开' : '关') + ' / ' + (d.rate_limit_global ? '开' : '关')) +
+      kv('重试', d.retry_enabled ? '开' : '关') +
+      kv('失败缓存', esc(d.failed_cache)) +
+      kv('告警目标', esc(d.alert_target || '未配置')) +
+      kv('MFA 模式', esc(d.mfa_mode)) +
+      kv('记录数', esc(d.senders_count) + ' 发石者 / ' + esc(d.records_count) + ' 搬运');
+  }
+  function kv(k, v) { return '<b>' + esc(k) + '</b><span>' + v + '</span>'; }
+
+  async function refreshSenders() {
+    const d = await apiGet('douyin_dm_mover/senders');
+    const list = d.senders || [];
+    $('senders').innerHTML = list.length ? list.map(s =>
+      '<li>' + esc(fmtTs(s.ts)) + ' · ' + esc(s.peer_name || s.peer_id || '未知') +
+      ' <span class="muted">[' + esc(s.type) + ']</span>' +
+      (s.text ? '<br><span class="muted">' + esc(s.text) + '</span>' : '') + '</li>'
+    ).join('') : '<li class="empty">暂无</li>';
+  }
+
+  async function refreshRecords() {
+    const d = await apiGet('douyin_dm_mover/records');
+    const list = d.records || [];
+    $('records').innerHTML = list.length ? list.map(r =>
+      '<li>' + esc(fmtTs(r.ts)) + ' · [' + esc(r.type) + '] ' + esc(r.peer) +
+      ' → ' + esc(r.target) +
+      ' <span class="muted">' + (r.ok ? '<span style="color:var(--ok)">成功</span>' : '<span style="color:var(--bad)">失败</span> ' + esc(r.error)) + '</span></li>'
+    ).join('') : '<li class="empty">暂无</li>';
+  }
+
+  async function refreshQr() {
+    const d = await apiGet('douyin_dm_mover/qrcode');
+    $('qrDetail').textContent = d.detail || '';
+    if (d.qr) { $('qr').innerHTML = '<img src="' + d.qr + '" alt="登录二维码">'; }
+    else { $('qr').innerHTML = '<div class="ph">' + esc(d.detail || '暂无二维码') + '</div>'; }
+  }
+
+  async function refreshAll() { await Promise.all([refreshStatus(), refreshSenders(), refreshRecords(), refreshQr()]); }
+
+  $('btnRefresh').onclick = refreshAll;
+  $('btnQrRefresh').onclick = async () => {
+    const d = await apiPost('douyin_dm_mover/qrcode/refresh');
+    toast(d.detail || (d.ok ? '已触发' : '请稍候'));
+    if (d.ok) { await refreshQr(); }
+  };
+  $('btnLogin').onclick = async () => { const d = await apiPost('douyin_dm_mover/login'); toast(d.detail || '已触发'); };
+  $('btnLogout').onclick = async () => { const d = await apiPost('douyin_dm_mover/logout'); toast(d.detail || '已登出'); await refreshAll(); };
+  $('btnClear').onclick = async () => { const d = await apiPost('douyin_dm_mover/records/clear'); toast(d.detail || '已清空'); await refreshRecords(); };
+
+  V.ready().then(() => {
+    refreshAll();
+    setInterval(() => { if ($('auto').checked) refreshAll(); }, 5000);
+  });
+})();
+</script>
+</body>
+</html>

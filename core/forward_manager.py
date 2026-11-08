@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import hashlib
+import time
 
 from astrbot.api import logger
 
@@ -14,6 +15,7 @@ from core.ratelimit import RateLimiter
 from core.retry_manager import RetryManager
 from core.router import RouteResolver
 from core.rules import ComposeRule, KeywordFilterRule, SenderFilterRule
+from core.tracker import RecentStore
 
 
 def _csv(value) -> list[str]:
@@ -72,6 +74,7 @@ class ForwardManager:
             ]
         )
         self._in_flight: set[str] = set()
+        self.tracker = RecentStore()
 
     # ---- 来源/类型开关 ----
     def _source_enabled(self, platform: str) -> bool:
@@ -108,6 +111,7 @@ class ForwardManager:
     async def handle(self, msg: InboundMessage) -> None:
         if msg.is_outgoing:
             return
+        self.tracker.add_sender(msg)
         if not self._source_enabled(msg.source_platform):
             return
         if not self._type_enabled(msg):
@@ -140,6 +144,14 @@ class ForwardManager:
             self._in_flight.add(target)
             try:
                 ok, err = await self.sender.send(target, chain)
+                self.tracker.add_record(
+                    ts=int(time.time()),
+                    msg_type=msg.type.value,
+                    peer=msg.peer_id,
+                    target=target,
+                    ok=ok,
+                    error=err,
+                )
                 if ok:
                     logger.info(f"[dyf] 转发成功 -> {target} ({msg.type.value})")
                 else:

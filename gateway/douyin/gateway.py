@@ -54,6 +54,7 @@ class DouyinGateway(MessageGateway):
         self._msg_queue: asyncio.Queue = asyncio.Queue()
         self._event_queue: asyncio.Queue = asyncio.Queue()
         self._state = AuthState.UNKNOWN
+        self._last_qr_content: str | None = None
         self._last_frame_ts: float | None = None
         self._stopping = False
         self._watchdog_task: asyncio.Task | None = None
@@ -215,7 +216,13 @@ class DouyinGateway(MessageGateway):
         self._code_waiter.submit(code)
 
     def _on_qr(self, url: str) -> None:
+        self._last_qr_content = url
         self._emit_event(GatewayEvent("qr", url))
+
+    @property
+    def last_qr_content(self) -> str | None:
+        """最近一次登录二维码内容（扫码字符串）。"""
+        return self._last_qr_content
 
     def _mfa_alert(self, text: str) -> None:
         self._emit_event(GatewayEvent("mfa", text))

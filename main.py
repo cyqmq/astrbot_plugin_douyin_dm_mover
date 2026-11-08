@@ -18,6 +18,7 @@ if _PLUGIN_ROOT not in sys.path:
     sys.path.insert(0, _PLUGIN_ROOT)
 
 from config import DEFAULT_DATA_DIR, DEFAULT_SOURCES
+from core.dashboard import DashboardApi
 from core.forward_manager import ForwardManager
 from core.listener import MessageListener
 from gateway import build_gateway
@@ -42,6 +43,8 @@ class DouyinForwardPlugin(Star):
         self.gateway = build_gateway(cfg)
         self.forward_manager = ForwardManager(context, cfg)
         self.listener = MessageListener(self.gateway, self.forward_manager)
+        self.dashboard = DashboardApi(context, self.gateway, self.forward_manager)
+        self.dashboard.register()
         self._tasks: list[asyncio.Task] = []
 
     # ---- 生命周期 ----
