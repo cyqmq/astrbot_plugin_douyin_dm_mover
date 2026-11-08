@@ -48,6 +48,17 @@ class SubprocessGateway(MessageGateway):
         self._cfg_path = os.path.join(self._data_dir, "worker_config.json")
         self._tasks: list[asyncio.Task] = []
         self._reader_tasks: list[asyncio.Task] = []
+        # ---- 登录（父进程编排，登录后会话 cookie 注入 worker 配置）----
+        from .douyin.login.flow import LoginFlow
+        from .douyin.login.mfa import MfaHandler
+        from .douyin.login.waiter import CodeWaiter
+
+        self._mfa_mode = config.get("mfa_mode") or "auto_sms"
+        self._code_waiter = CodeWaiter(self._mfa_mode, config.get("login_mfa_timeout", 300))
+        self._mfa = MfaHandler(self._mfa_mode, alert=self._mfa_alert, code_source=self._code_waiter.code_source)
+        self._login_flow = LoginFlow(
+            self._data_dir, mfa_handler=self._mfa, on_qrcode=self._on_qr, on_log=lambda m: None
+        )
 
     @staticmethod
     def _norm(value) -> int | None:
@@ -80,6 +91,10 @@ class SubprocessGateway(MessageGateway):
     def _write_config(self) -> None:
         cfg = dict(self._config)
         cfg["_data_dir"] = self._data_dir
+        # 登录会话优先：worker 直接拿已保存会话的 cookie，保证与登录同源
+        sess = self._login_flow.session
+        if sess.has_valid() and not cfg.get("douyin_cookies"):
+            cfg["douyin_cookies"] = sess.cookie_str()
         with open(self._cfg_path, "w", encoding="utf-8") as f:
             json.dump(cfg, f, ensure_ascii=False)
 
@@ -234,6 +249,65 @@ class SubprocessGateway(MessageGateway):
                         f"静默 {self._detector.watchdog_seconds // 60} 分钟无帧，疑似连接僵死",
                     )
                 )
+
+    # ---- 登录 / 登出 / MFA（父进程编排，会话 cookie 经 _write_config 注入 worker）----
+    async def login(self, timeout: int = 300) -> None:
+        loop = asyncio.get_running_loop()
+        self._emit_event(GatewayEvent("login_started", "开始扫码登录"))
+
+        def _run():
+            return self._login_flow.qrcode_login(timeout=timeout)
+
+        try:
+            auth = await loop.run_in_executor(None, _run)
+            self._login_flow.session.save(auth)
+            self._state = AuthState.OK
+            self._emit_event(GatewayEvent("login_ok", "登录成功，会话已保存"))
+            await self._restart_worker()
+        except Exception as e:
+            self._emit_event(GatewayEvent("error", f"登录失败: {e}"))
+            logger.error(f"[dyf] 登录失败: {e}")
+
+    async def logout(self) -> None:
+        self._stopping = True
+        for t in self._reader_tasks:
+            t.cancel()
+        self._reader_tasks.clear()
+        if self._proc:
+            try:
+                self._proc.kill()
+                await self._proc.wait()
+            except Exception:
+                pass
+            self._proc = None
+        self._login_flow.session.clear()
+        self._state = AuthState.UNKNOWN
+        self._emit_event(GatewayEvent("logout", "已登出并清除会话"))
+
+    async def _restart_worker(self) -> None:
+        self._stopping = False
+        if self._proc:
+            try:
+                self._proc.kill()
+                await self._proc.wait()
+            except Exception:
+                pass
+            self._proc = None
+        self._write_config()
+        await self._spawn()
+
+    def trigger_mfa_send(self) -> None:
+        self._code_waiter.trigger_send()
+
+    def submit_mfa_code(self, code: str) -> None:
+        self._code_waiter.submit(code)
+
+    def _on_qr(self, url: str) -> None:
+        self._emit_event(GatewayEvent("qr", url))
+
+    def _mfa_alert(self, text: str) -> None:
+        self._emit_event(GatewayEvent("mfa", text))
+        logger.warning(f"[dyf] {text}")
 
     # ---- MessageGateway 接口 ----
     def stream(self) -> AsyncIterator[InboundMessage]:

@@ -101,6 +101,32 @@ class DouyinForwardPlugin(Star):
         self.gateway.set_self_uid(v)
         yield event.plain_result(f"已设置并缓存 self_uid = {v}").stop_event()
 
+    @dyf_group.command("login")
+    async def dyf_login(self, event: AstrMessageEvent):
+        event.stop_event()
+        event.should_call_llm(False)
+        timeout = int(self._cfg.get("login_timeout", 300))
+        asyncio.create_task(self.gateway.login(timeout))
+        yield event.plain_result("开始扫码登录，二维码将推送到告警目标（alert_target）").stop_event()
+
+    @dyf_group.command("logout")
+    async def dyf_logout(self, event: AstrMessageEvent):
+        event.stop_event()
+        event.should_call_llm(False)
+        await self.gateway.logout()
+        yield event.plain_result("已登出并清除会话").stop_event()
+
+    @dyf_group.command("mfa")
+    async def dyf_mfa(self, event: AstrMessageEvent, code: str = ""):
+        event.stop_event()
+        event.should_call_llm(False)
+        if code:
+            self.gateway.submit_mfa_code(code)
+            yield event.plain_result("已提交验证码，等待登录放行").stop_event()
+            return
+        self.gateway.trigger_mfa_send()
+        yield event.plain_result("已触发发送二次验证码；收到后请回复 /dyf mfa <验证码>").stop_event()
+
     @dyf_group.command("test")
     async def dyf_test(self, event: AstrMessageEvent, target: str = ""):
         event.stop_event()

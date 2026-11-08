@@ -29,7 +29,22 @@
   "gateway_mode": {
     "type": "string",
     "default": "inprocess",
-    "description": "网关模式: inprocess（默认，线程）| subprocess（进程隔离，暂回退 inprocess）"
+    "description": "网关模式: inprocess（默认，线程）| subprocess（进程隔离）"
+  },
+  "mfa_mode": {
+    "type": "string",
+    "default": "auto_sms",
+    "description": "2046 二次验证模式: auto_sms（自动短信）/ manual_command（手动指令）/ alert_wait（仅告警等 App）"
+  },
+  "login_timeout": {
+    "type": "int",
+    "default": 300,
+    "description": "扫码登录总超时（秒）"
+  },
+  "login_mfa_timeout": {
+    "type": "int",
+    "default": 300,
+    "description": "二次验证码等待超时（秒）"
   },
   "auth_watchdog_minutes": {
     "type": "int",

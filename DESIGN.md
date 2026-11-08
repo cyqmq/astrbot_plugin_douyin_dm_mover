@@ -360,3 +360,47 @@ class DouyinForwardPlugin(Star):
 | `astrbot_plugin_discord_qq_bridge` | 最小发送链路 `context.send_message(f"aiocqhttp:GroupMessage:{gid}", MessageChain)`；多目标循环；长度截断；markdown 剥除 + mention 转换；`[转发]` 模板 | `core/message_sender.py`、`formatter` 净化与截断 |
 | `astrbot_sowing_discord` | 抽象 `Rule.evaluate()->bool` 基类 + 具体规则独立封装；`storage/` 缓存与规则评估分离 | `core/rules.py`、`cache_manager.py` + `data/` |
 | `qzone Message Sender`（GitHub 未检索到，以用户描述为准） | 按接收方类型条件路由；`[转发]` 前缀格式化模板 | `router.py`（目标类型条件）、`formatter.header` 前缀模板 |
+
+---
+
+## 13. 登录健壮化（复用 DouYin_Spider login_api.py）
+
+### 13.1 目标
+- 不依赖用户手动复制 cookie：扫码登录（QR）产出会话，自动持久化到插件 data 目录。
+- 会话持久化：`data/dyf/session.json`（cookie/ticket/ts_sign/client_cert/private_key/dtrait_blob/uid/device_id），
+  参考 douyin-im 的 dataDir 与 douyin-chat-mcp-server 的卷映射——便于备份与容器化部署。
+- 登录与私信接收共享同一份 cookie：登录成功 → 会话落盘 → 接收端直接读会话 cookie，无两套登录态。
+- 2046 二次验证独立支路，登录失败不静默重连。
+
+### 13.2 复用与注入（不重写）
+- **vendored/login/**：逐字节拷贝 DouYin_Spider 的 `dy_apis/login_api.py`、`builder/{auth,header,params}.py`、
+  `utils/{http_client,dy_util,fingerprint,passport,dtrait_profile,dtrait_features}.py`。保留其 P-256 密钥对
+  （`utils/passport.py` 的 `generate_ec_keypair`）与 Cookie 域过滤（`login_api.py` 的 `WWW_ONLY_COOKIES`/
+  `LOGIN_EXCLUDED_COOKIES` + `dy_util.CookieDict` + `scoped_cookies`）。依赖：`curl_cffi`、`loguru`、`ecdsa`、`cryptography`。
+- **dy_apis/douyin_api.py = 最小 shim**：仅提供 `builder/auth.py` 用到的 `DouyinAPI.get_device_id/get_my_uid`，
+  避免整包引入 google-protobuf/lxml/builder.proto（登录链路不需要 IM/HTTP 全量实现）。
+- **2046 注入（login/loader.py）**：不修改 login_api.py，patch `DYLoginApi.check_qrcode` 记录当前
+  `(auth, token)`，patch `DYLoginApi._raise_if_blocked`（保留 staticmethod 语义）拦截 `error_code=2046`：
+  转交注入的 MFA 处理器并吞掉异常 → qrcode_login 继续轮询同一 token 等放行。按 token 去重（哨兵初值）。
+
+### 13.3 MFA 模式（配置 `mfa_mode`）
+| 模式 | 行为 |
+|---|---|
+| `auto_sms` | 自动调 `send_code/` 发码，验证码经 `code_source` 获取（默认 stdin；QQ 下由 `/dyf mfa <code>` 喂入） |
+| `manual_command` | 不自动发码，等待管理员 `/dyf mfa` 触发发码后再取码 |
+| `alert_wait` | 仅告警，等待用户在抖音 App 完成验证（不发短信） |
+
+请求形状参考 catbus `second-verify.ts`：`POST login.douyin.com/passport/web/{send_code,validate_code}/`，
+body=`encrypt_uid, verify_ticket, std_verify_way=mobile_sms_verify, [std_verify_scene], [std_verify_flow_id],
+type=22, aid=6383, verify_type=300|301(按 is_safe_mobile)[, code]`；签名/Cookie 复用 DouYin_Spider
+（`_sdk_params`+`with_a_bogus`+`_passport_headers`+`scoped_cookies`+`auth.request`）。
+交互参考 karin `login.ts`：登录期全局裸消息消费（同一管理会话）喂码，超时 5 分钟。
+
+### 13.4 命令
+- `/dyf login`：扫码登录（QR 推送到 `alert_target`），成功保存会话并重启接收端。
+- `/dyf logout`：登出并清除会话。
+- `/dyf mfa [code]`：无参=触发发码（manual_command）；带码=提交验证码。
+
+### 13.5 文件
+`gateway/douyin/login/{loader,session,mfa,waiter,flow}.py`；网关新增 `login/logout/trigger_mfa_send/submit_mfa_code`，
+`start()` 会话优先（`_apply_session_or_config`）；`AlertService` 处理 `qr/mfa/login_*` 事件。

@@ -5,6 +5,8 @@
 extend-ignore = []
 
 [lint.per-file-ignores]
+"gateway/douyin/login/*.py" = ["BLE001", "S110"]
+"gateway/douyin/vendored/login/**" = ["ALL"]
 "gateway/douyin/vendored/*.py" = ["BLE001", "S110"]
 "gateway/douyin/gateway.py" = ["BLE001", "S110"]
 "gateway/douyin/self_uid.py" = ["BLE001", "S110"]
