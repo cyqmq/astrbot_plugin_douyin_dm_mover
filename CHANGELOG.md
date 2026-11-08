@@ -4,6 +4,13 @@
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-11-08
+
+### Changed
+- 插件入口自清洁：`main.py` 顶部强制插件目录置 `sys.path` 最前，并清理本插件前缀残留模块缓存，确保 AstrBot 重载时加载新代码而非旧缓存。
+- 模块唯一命名：`config.py` 重命名为 `dyf_config.py`，避免与其它插件顶层裸名冲突。
+- `DouyinForwardPlugin.__init__` 增加 `_purge_own_modules()`，仅清理 `douyin_dm_mover.` 前缀子模块，不动裸名模块以免误伤其它插件。
+
 ## [0.3.0] - 2026-11-08
 
 ### Added
