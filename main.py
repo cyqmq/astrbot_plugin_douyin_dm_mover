@@ -33,9 +33,9 @@ from gateway import build_gateway
     "https://github.com/cyqmq/astrbot_plugin_douyin_dm_mover",
 )
 class DouyinForwardPlugin(Star):
-    def __init__(self, context: Context, config: AstrBotConfig):
+    def __init__(self, context: Context, config: AstrBotConfig = None):
         super().__init__(context)
-        self.config = config
+        self.config = config if config is not None else {}
         cfg = dict(config or {})
         cfg.setdefault("_data_dir", DEFAULT_DATA_DIR)
         if not cfg.get("sources"):
