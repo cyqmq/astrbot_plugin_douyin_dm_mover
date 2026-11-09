@@ -100,6 +100,7 @@ export const umoSplit = val => {
 // ---- 全局单例状态 ----
 export const store = reactive({
   ready: false,
+  isMobile: false,
   tab: 'overview',
   authState: 'idle',
   authUid: '',

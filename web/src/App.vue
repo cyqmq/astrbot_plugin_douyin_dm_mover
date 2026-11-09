@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { store, TITLES, toastMsg } from './composables/store.js'
 import Sidebar from './components/Sidebar.vue'
+import MobileNav from './components/MobileNav.vue'
 import LoginModal from './components/LoginModal.vue'
 import OverviewTab from './components/tabs/OverviewTab.vue'
 import RoutesTab from './components/tabs/RoutesTab.vue'
@@ -35,6 +36,7 @@ const sub = computed(() => TITLES[store.tab]?.[1] || '')
       <LogsTab v-else-if="store.tab === 'logs'" />
       <SettingsTab v-else-if="store.tab === 'settings'" />
     </main>
+    <MobileNav />
   </div>
   <LoginModal />
   <div id="toast" :style="{ opacity: toastMsg.on ? 1 : 0 }">{{ toastMsg.text }}</div>

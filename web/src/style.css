@@ -157,3 +157,43 @@ label.f .hint { grid-column:2; color:var(--muted); font-size:11px; line-height:1
 .modal-actions { flex:1; display:flex; flex-direction:column; gap:10px; min-width:0; }
 .modal-actions .note { font-size:12px; color:var(--muted); word-break:break-all; }
 .modal-foot { margin-top:16px; display:flex; gap:8px; align-items:center; }
+/* ---- 底部移动导航 ---- */
+.mobile-nav { display:none; }
+/* ---- 响应式：手机（<=768px）---- */
+@media (max-width:768px) {
+  aside { display:none; }
+  main { padding:12px 12px 76px; }
+  .top { flex-direction:column; align-items:stretch; }
+  .top .bar { justify-content:space-between; }
+  .grid2 { grid-template-columns:1fr; }
+  .stats { grid-template-columns:repeat(2,1fr); }
+  .card { padding:12px; }
+  /* 移动底部导航 */
+  .mobile-nav { position:fixed; left:0; right:0; bottom:0; z-index:40;
+    display:flex; background:var(--card); border-top:1px solid var(--border);
+    padding:6px 4px calc(6px + env(safe-area-inset-bottom)); }
+  .mnav-item { flex:1; display:flex; flex-direction:column; align-items:center; gap:2px;
+    font-size:10px; color:var(--muted); cursor:pointer; padding:4px 2px; border-radius:8px; }
+  .mnav-item .ic { width:18px; height:18px; }
+  .mnav-item.active { color:var(--accent); font-weight:600; }
+  /* 拓扑三列 → 单列（手机） */
+  .td-cols { grid-template-columns:1fr; }
+  .topo.tall { min-height:0; }
+  /* 弹窗：手机近全屏 + 二维码自适应 */
+  .modal { width:100vw; max-width:100vw; height:100dvh; max-height:100dvh;
+    border-radius:0; padding:16px; overflow:auto; }
+  .modal-body { flex-direction:column; align-items:center; }
+  #mQr { width:min(210px, 62vw); height:min(210px, 62vw); }
+  #mQr img { width:100%; height:100%; }
+  #mQr .ph { width:100%; height:100%; }
+  .modal-actions { width:100%; }
+  .modal-foot { flex-direction:column; align-items:stretch; }
+  .modal-foot input { width:100%; }
+  /* 配置标签网格改单列 */
+  label.f { grid-template-columns:1fr; gap:4px; }
+  label.f .hint { grid-column:1; }
+  .logs { max-height:50vh; }
+}
+@media (min-width:769px) {
+  .mobile-nav { display:none; }
+}

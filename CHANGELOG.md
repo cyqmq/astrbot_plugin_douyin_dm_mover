@@ -4,6 +4,13 @@
 
 ## [Unreleased]
 
+## [0.21.0] - 2026-11-10
+
+### Changed
+- 响应式（手机/电脑识别）：`useMediaQuery`/`store.isMobile` 监听 `(max-width:768px)`；手机端隐藏侧栏、启用底部导航 `MobileNav`，主区全宽。
+- 排布交给 CSS `@media`：手机端 `grid2`/`stats`/`label.f` 单列、拓扑三列→单列、弹窗近全屏（`100dvh`+滚动）、二维码 `min(210px,62vw)` 不再撑爆、日志 `50vh`、`safe-area-inset-bottom`。
+- `vite.config` `base:'./'` 校验：产物引用相对 `./assets/`，可嵌入任意路径的 AstrBot WebUI。
+
 ## [0.20.0] - 2026-11-10
 
 ### Added
