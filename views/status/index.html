@@ -20,6 +20,8 @@
   .side-head { display:flex; align-items:center; gap:9px; padding:0 14px; height:52px;
                border-bottom:1px solid rgba(255,255,255,.09); }
   .side-logo { width:28px; height:28px; border-radius:8px; background:#06b6d4; display:flex;
+    align-items:center; justify-content:center; overflow:hidden; }
+  .side-logo img { width:100%; height:100%; object-fit:cover; }
                align-items:center; justify-content:center; color:#0b0d12; font-weight:800; font-size:13px; }
   .side-title { font-weight:700; font-size:14px; color:#fff; letter-spacing:-.2px; }
   nav.side-nav { flex:1; padding:12px 10px; }
@@ -99,23 +101,38 @@
   label.f .hint { grid-column:2; color:var(--muted); font-size:11px; line-height:1.4;
                   margin-top:-3px; }
   /* 路由卡片编辑器 */
-  .rcard { border:1px solid var(--border); border-radius:12px; padding:12px 14px; margin-bottom:10px; background:var(--card); }
-  .rcard .rhead { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
-  .rcard .rhead input { flex:1; min-width:0; }
-  .rcard .rrow { display:flex; align-items:center; gap:6px; margin-bottom:7px; flex-wrap:wrap; }
-  .rcard .rrow > span { color:var(--muted); font-size:12px; flex:none; width:86px; }
-  .rcard .rrow .umo-row { flex:1; min-width:200px; }
+  .topo .tnd:hover rect { stroke:var(--accent); }
   .type-chips { display:flex; flex-wrap:wrap; gap:5px; }
   .type-chips .tc { padding:3px 10px; border:1px solid var(--border); border-radius:999px;
                     font-size:12px; color:var(--muted); cursor:pointer; user-select:none; transition:.1s; }
   .type-chips .tc:hover { border-color:var(--accent); color:var(--accent); }
   .type-chips .tc.on { background:var(--accent); border-color:var(--accent); color:#fff; }
-  .rcard .senders-inline { flex:1; display:flex; flex-wrap:wrap; gap:5px; align-items:center; min-width:200px; }
-  .rcard .senders-inline input { width:100px; }
   /* 拓扑图 */
   .topo { background:var(--bg); border:1px solid var(--border); border-radius:10px; padding:6px; }
   .topo.tall { min-height:440px; }
   .topo.tall .x6-graph { min-height:440px; }
+  /* 图上卡片编辑（X6 html 节点） */
+  .route-card, .target-card { font-size:12px; color:var(--text);
+    background:var(--card); border:1px solid var(--border2); border-radius:10px;
+    padding:8px 10px; height:100%; box-sizing:border-box; overflow:hidden;
+    display:flex; flex-direction:column; gap:5px; }
+  .route-card:hover, .target-card:hover { border-color:var(--accent); }
+  .route-card input, .route-card select { font-size:12px; padding:2px 5px;
+    background:var(--bg); border:1px solid var(--border); border-radius:5px;
+    color:var(--text); width:100%; box-sizing:border-box; min-width:0; }
+  .route-card input:focus, .route-card select:focus { border-color:var(--accent); outline:none; }
+  .rc-head { display:flex; gap:5px; align-items:center; }
+  .rc-head input { flex:1; font-weight:600; }
+  .rc-btns { display:flex; gap:3px; }
+  .rc-btns button { padding:1px 6px; font-size:12px; border-radius:5px; line-height:1.4; }
+  .rc-row { display:flex; gap:5px; align-items:center; }
+  .rc-row > span { flex:0 0 64px; color:var(--muted); }
+  .rc-row .umo-row { flex:1; }
+  .route-card .type-chips { flex:1; }
+  .route-card .type-chips .tc { font-size:11px; padding:1px 6px; border-radius:6px; }
+  .target-card .tc-head { font-weight:600; }
+  .target-card .tc-sub { color:var(--muted); font-size:11px; }
+  .target-card .tc-n { color:var(--accent); }
   .topo svg { display:block; width:100%; height:auto; }
   .topo .tnd { cursor:pointer; }
   .topo .tnd rect { fill:var(--card); stroke:var(--border2); stroke-width:1.2; rx:8; }
@@ -163,16 +180,13 @@
   .modal-actions { flex:1; display:flex; flex-direction:column; gap:10px; min-width:0; }
   .modal-actions .note { font-size:12px; color:var(--muted); word-break:break-all; }
   .modal-foot { margin-top:16px; display:flex; gap:8px; align-items:center; }
-  /* 路由编辑弹窗 */
-  #routeEditor label.f { margin-bottom:12px; }
-  #reTypes .tc { font-size:12.5px; }
 </style>
 </head>
 <body>
 <div class="app">
   <aside>
     <div class="side-head">
-      <div class="side-logo">搬</div>
+      <div class="side-logo"><img src="./assets/logo.png" alt="logo"></div>
       <span class="side-title">抖音私信搬运</span>
     </div>
     <nav class="side-nav">
@@ -306,28 +320,6 @@
     <div class="modal-foot">
       <input id="mfaCode" placeholder="短信验证码" style="flex:1">
       <button id="btnMfa">提交</button>
-    </div>
-  </div>
-</div>
-<!-- 路由编辑弹窗 -->
-<div class="modal-mask" id="routeEditor">
-  <div class="modal">
-    <button class="modal-x" id="reClose" title="关闭">×</button>
-    <h2>编辑路由</h2>
-    <div id="reBody">
-      <label class="f"><span>名称</span><input id="reName" placeholder="路由名称"></label>
-      <label class="f"><span>目标</span><div class="umo-row">
-        <select id="reAdapter"></select><input id="reGroup" placeholder="群号">
-      </div></label>
-      <label class="f"><span>类型</span><div class="type-chips" id="reTypes"></div></label>
-      <label class="f"><span>发送者包含</span><input id="reInc" placeholder="逗号分隔 uid"></label>
-      <label class="f"><span>发送者排除</span><input id="reExc" placeholder="逗号分隔 uid"></label>
-    </div>
-    <div class="modal-foot">
-      <button id="reUp">上移</button><button id="reDown">下移</button>
-      <button id="reDel" class="danger">删除</button>
-      <span style="flex:1"></span>
-      <button id="reSave" class="primary">保存</button>
     </div>
   </div>
 </div>
@@ -607,44 +599,28 @@
     await loadConfig();
   }
 
-  // ---- 路由编辑态：JS 数组 + 弹窗（编辑并入拓扑画布） ----
+  // ---- 路由编辑态：JS 数组 + 图上卡片编辑（拓扑节点即编辑表单） ----
   const ROUTE_TYPES = [['text','文本'],['video_card','视频卡片'],['image','图片'],['emoji','表情'],['voice','语音'],['other','其他']];
   let _routes = [];
-  let _reIdx = -1;
   const clone = o => JSON.parse(JSON.stringify(o || {}));
   function renderRoutes(routes) { _routes = clone(routes) || []; renderTopo(true);
     const h = $('routeHint'); if (h) h.textContent = _routes.length + ' 条路由'; }
   function collectRoutes() { return clone(_routes); }
   function splitLst(v) { return String(v || '').split(',').map(s => s.trim()).filter(Boolean); }
-  function openRouteEditor(i) {
-    const r = _routes[i]; if (!r) return;
-    _reIdx = i;
-    $('reName').value = r.name || '';
-    // 适配器下拉
-    const u = umoSplit(r.target);
-    $('reAdapter').innerHTML = (SELECTS.qq_adapter_id || []).map(([v, l]) =>
-      '<option value="' + esc(v) + '"' + (v === u.adapter ? ' selected' : '') + '>' + esc(l) + '</option>').join('');
-    $('reGroup').value = u.group;
-    // 类型 chips
-    const types = (r.match && r.match.types) || [];
-    $('reTypes').innerHTML = ROUTE_TYPES.map(([v, l]) =>
-      '<span class="tc' + (types.includes(v) ? ' on' : '') + '" data-rt="' + esc(v) + '">' + esc(l) + '</span>').join('');
-    $('reTypes').querySelectorAll('[data-rt]').forEach(tc => tc.onclick = () => tc.classList.toggle('on'));
-    $('reInc').value = ((r.match && r.match.senders_include) || []).join(',');
-    $('reExc').value = ((r.match && r.match.senders_exclude) || []).join(',');
-    $('routeEditor').classList.add('open');
+  function umoOf(sel) { // 读图上卡片下拉+输入拼 UMO
+    const ad = sel ? sel.querySelector('[data-e="adapter"]') : null;
+    const gr = sel ? sel.querySelector('[data-e="group"]') : null;
+    const g = (gr && gr.value.trim()) || '';
+    return g ? ((ad ? ad.value : 'aiocqhttp') + ':GroupMessage:' + g) : '';
   }
-  function closeRouteEditor() { $('routeEditor').classList.remove('open'); _reIdx = -1; }
-  function readEditor() {
-    const r = _routes[_reIdx]; if (!r) return;
-    const g = $('reGroup').value.trim();
-    r.name = $('reName').value.trim() || 'route';
-    r.target = g ? ($('reAdapter').value + ':GroupMessage:' + g) : '';
-    r.match = {
-      types: Array.from($('reTypes').querySelectorAll('[data-rt].on')).map(t => t.dataset.rt),
-      senders_include: splitLst($('reInc').value),
-      senders_exclude: splitLst($('reExc').value)
-    };
+  function commitRoute(i, el) { // 从卡片读回 _routes[i]
+    const r = _routes[i]; if (!r || !el) return;
+    const name = el.querySelector('[data-e="name"]');
+    r.name = (name && name.value.trim()) || ('route' + (i + 1));
+    r.target = umoOf(el);
+    const types = Array.from(el.querySelectorAll('[data-rt].on')).map(t => t.dataset.rt);
+    const inc = el.querySelector('[data-e="inc"]'), exc = el.querySelector('[data-e="exc"]');
+    r.match = { types, senders_include: splitLst(inc && inc.value), senders_exclude: splitLst(exc && exc.value) };
   }
 
   // ---- 拓扑图（来源 → 路由 → 目标）：优先 AntV X6，回退手写 SVG ----
@@ -742,91 +718,69 @@
     });
     s += '</svg>';
     box.innerHTML = s;
-    // 点击路由节点 → 编辑
-    box.querySelectorAll('[data-t="route"]').forEach(g => g.onclick = () => {
-      openRouteEditor(parseInt(g.dataset.i, 10));
-    });
   }
   let _x6 = null;
-  function renderTopoX6(routes) {
-    const box = document.getElementById('topo');
-    if (!box) return;
-    const W = Math.max(560, box.clientWidth || 900);
-    if (!routes) routes = collectRoutes();
-    const sources = _sendersCache.length ? _sendersCache : [{ peer_name: '抖音来源', peer_id: '' }];
-    const targets = [];
-    routes.forEach(r => { const t = r.target; if (t && !targets.includes(t)) targets.push(t); });
-    const colW = 190, colH = 60, rowGap = 26;
-    const colX = [20, W / 2 - colW / 2, W - colW - 20];
-    const n = Math.max(sources.length, routes.length, targets.length, 1);
-    const H = Math.max(210, 50 + n * (colH + rowGap));
-    const yOf = (i, count) => 46 + i * (colH + rowGap) + (n - count) * (colH + rowGap) / 2;
+  function routeCardEl(i) {
+    const r = _routes[i] || { name: '', target: '', match: { types: [], senders_include: [], senders_exclude: [] } };
+    const u = umoSplit(r.target);
+    const types = (r.match && r.match.types) || [];
+    const el = document.createElement('div');
+    el.className = 'route-card';
+    el.innerHTML =
+      '<div class="rc-head"><input data-e="name" placeholder="路由名称" value="' + esc(r.name || '') + '">' +
+      '<span class="rc-btns"><button data-a="up" title="上移">↑</button>' +
+      '<button data-a="down" title="下移">↓</button>' +
+      '<button data-a="del" class="danger" title="删除">×</button></span></div>' +
+      '<div class="rc-row"><span>目标</span><div class="umo-row">' +
+      '<select data-e="adapter">' + (SELECTS.qq_adapter_id || []).map(([v, l]) =>
+        '<option value="' + esc(v) + '"' + (v === u.adapter ? ' selected' : '') + '>' + esc(l) + '</option>').join('') + '</select>' +
+      '<input data-e="group" placeholder="群号" value="' + esc(u.group) + '"></div></div>' +
+      '<div class="rc-row"><span>类型</span><div class="type-chips">' +
+      ROUTE_TYPES.map(([v, l]) => '<span class="tc' + (types.includes(v) ? ' on' : '') + '" data-rt="' + esc(v) + '">' + esc(l) + '</span>').join('') +
+      '</div></div>' +
+      '<div class="rc-row"><span>发送者包含</span><input data-e="inc" placeholder="逗号分隔 uid" value="' + esc((r.match && (r.match.senders_include || [])).join(',')) + '"></div>' +
+      '<div class="rc-row"><span>发送者排除</span><input data-e="exc" placeholder="逗号分隔 uid" value="' + esc((r.match && (r.match.senders_exclude || [])).join(',')) + '"></div>';
+    // 输入类：写回 _routes 并只刷新连线（不重建节点，保持焦点）
+    const onInput = () => { const before = umoOf(el); commitRoute(i, el); if (umoOf(el) !== before) renderTopo(true); else refreshEdgesX6(); };
+    el.querySelectorAll('input, select').forEach(inp => inp.addEventListener('input', onInput));
+    el.querySelectorAll('[data-rt]').forEach(tc => tc.onclick = () => { tc.classList.toggle('on'); commitRoute(i, el); });
+    el.querySelector('[data-a="del"]').onclick = () => { _routes.splice(i, 1); renderTopo(true); };
+    el.querySelector('[data-a="up"]').onclick = () => { if (i > 0) { const t = _routes[i-1]; _routes[i-1] = _routes[i]; _routes[i] = t; renderTopo(true); } };
+    el.querySelector('[data-a="down"]').onclick = () => { if (i < _routes.length - 1) { const t = _routes[i+1]; _routes[i+1] = _routes[i]; _routes[i] = t; renderTopo(true); } };
+    return el;
+  }
+  function targetCardEl(t, i) {
+    const m = String(t).match(/^([^:]*):GroupMessage:(.*)$/);
+    const g = m ? m[2] : t; const ad = m ? m[1] : '';
+    const el = document.createElement('div');
+    el.className = 'target-card';
+    el.innerHTML = '<div class="tc-head">目标群</div>' +
+      '<div class="rc-row"><span>适配器</span><select data-e="adapter">' +
+      (SELECTS.qq_adapter_id || []).map(([v, l]) =>
+        '<option value="' + esc(v) + '"' + (v === ad ? ' selected' : '') + '>' + esc(l) + '</option>').join('') +
+      '</select></div>' +
+      '<div class="rc-row"><span>群号</span><input data-e="group" placeholder="群号" value="' + esc(g) + '"></div>' +
+      '<div class="tc-sub" data-e="n">' + _routes.filter(r => r.target === t).length + ' 条路由指向</div>';
+    // 编辑：更新所有指向该目标的 _routes
+    const apply = () => {
+      const adSel = el.querySelector('[data-e="adapter"]');
+      const gr = el.querySelector('[data-e="group"]');
+      const newT = gr.value.trim() ? (adSel.value + ':GroupMessage:' + gr.value.trim()) : '';
+      _routes.forEach(r => { if (r.target === t) r.target = newT; });
+      renderTopo(true);
+    };
+    el.querySelectorAll('input, select').forEach(inp => inp.addEventListener('change', apply));
+    return el;
+  }
+  function drawEdgesX6() {
     const cs = getComputedStyle(document.documentElement);
-    const fill = cs.getPropertyValue('--card').trim() || '#fff';
-    const stroke = cs.getPropertyValue('--border2').trim() || '#888';
     const accent = cs.getPropertyValue('--accent').trim() || '#0969da';
     const muted = cs.getPropertyValue('--muted').trim() || '#666';
-    const textColor = cs.getPropertyValue('--text').trim() || '#222';
-    if (!_x6) {
-      _x6 = new window.X6.Graph({
-        container: box, width: W, height: H,
-        panning: false,
-        interacting: { nodeMovable: () => false, edgeMovable: () => false,
-          edgeLabelMovable: () => false, arrowheadMovable: () => false,
-          vertexMovable: () => false },
-        mousewheel: { enabled: true, modifiers: ['ctrl', 'meta'] },
-        connecting: { connector: { name: 'smooth', args: { direction: 'H' } } },
-        grid: false, background: { color: 'transparent' },
-      });
-      _x6.on('node:click', ({ node }) => {
-        const id = node && node.id;
-        if (id && id.startsWith('route-')) openRouteEditor(parseInt(id.slice(6), 10));
-      });
-    } else {
-      _x6.resize(W, H);
-    }
-    _x6.clearCells();
-    // 列标题（用无边框 rect 承载文本，避免依赖未注册的 text 形状）
-    TOPO_COLS.forEach((t, i) => {
-      _x6.addNode({ shape: 'rect', x: colX[i], y: 8, width: colW, height: 24, zIndex: 2,
-        attrs: { body: { fill: 'transparent', stroke: 'transparent' },
-                 label: { text: t, fill: muted, fontSize: 11, fontWeight: '600' } } });
-    });
-    // 来源节点
-    sources.forEach((src, i) => {
-      _x6.addNode({ id: 'src-' + i, shape: 'rect', x: colX[0], y: yOf(i, sources.length),
-        width: colW, height: colH,
-        attrs: { body: { fill, stroke, rx: 8, strokeWidth: 1.2 },
-                 label: { text: (src.peer_name || ('用户 ' + src.peer_id)).slice(0, 16),
-                          fill: textColor, fontSize: 12,
-                          textWrap: { width: colW - 16, height: colH - 10, textAnchor: 'middle' } } } });
-    });
-    // 路由节点
-    if (!routes.length) {
-      _x6.addNode({ shape: 'rect', x: colX[1], y: yOf(0, 1), width: colW, height: colH,
-        attrs: { body: { fill: 'transparent', stroke: stroke, strokeDasharray: '4 4', rx: 8 },
-                 label: { text: '暂无路由\n点下方「+ 添加路由」', fill: muted, fontSize: 11,
-                          textWrap: { width: colW - 16, height: colH - 10, textAnchor: 'middle' } } } });
-    }
-    routes.forEach((r, i) => {
-      const types = (r.match && r.match.types) || [];
-      const tlabel = types.length ? types.map(typeName).join('、') : '全部类型';
-      _x6.addNode({ id: 'route-' + i, shape: 'rect', x: colX[1], y: yOf(i, routes.length),
-        width: colW, height: colH,
-        attrs: { body: { fill, stroke, rx: 8, strokeWidth: 1.2 },
-                 label: { text: (r.name || 'route') + '\n' + tlabel, fill: textColor, fontSize: 12,
-                          textWrap: { width: colW - 16, height: colH - 10, textAnchor: 'middle' } } } });
-    });
-    // 目标节点
-    targets.forEach((t, i) => {
-      const m = String(t).match(/^([^:]*):GroupMessage:(.*)$/);
-      const g = m ? m[2] : t; const ad = m ? m[1] : '';
-      _x6.addNode({ id: 'tgt-' + i, shape: 'rect', x: colX[2], y: yOf(i, targets.length),
-        width: colW, height: colH,
-        attrs: { body: { fill, stroke, rx: 8, strokeWidth: 1.2 },
-                 label: { text: '群 ' + g + '\n' + (ad || '—'), fill: textColor, fontSize: 12,
-                          textWrap: { width: colW - 16, height: colH - 10, textAnchor: 'middle' } } } });
-    });
+    const sources = _sendersCache.length ? _sendersCache : [{ peer_name: '抖音来源', peer_id: '' }];
+    const routes = _routes;
+    const targets = [];
+    routes.forEach(r => { const t = r.target; if (t && !targets.includes(t)) targets.push(t); });
+    _x6.getEdges().forEach(e => _x6.removeEdge(e.id));
     // 边：来源→路由
     sources.forEach((src, si) => {
       routes.forEach((r, ri) => {
@@ -852,6 +806,81 @@
         attrs: { line: { stroke: accent, strokeWidth: 1.3,
           targetMarker: { name: 'block', size: 6, fill: accent } } } });
     });
+  }
+  function updateTopoKey() {
+    _topoKey = JSON.stringify({ r: collectRoutes(), s: _sendersCache.map(x => x.peer_id + '|' + x.peer_name) });
+  }
+  function refreshEdgesX6() { if (_x6) { drawEdgesX6(); updateTopoKey(); } }
+  function renderTopoX6(routes) {
+    const box = document.getElementById('topo');
+    if (!box) return;
+    const W = Math.max(560, box.clientWidth || 900);
+    if (!routes) routes = collectRoutes();
+    const sources = _sendersCache.length ? _sendersCache : [{ peer_name: '抖音来源', peer_id: '' }];
+    const targets = [];
+    routes.forEach(r => { const t = r.target; if (t && !targets.includes(t)) targets.push(t); });
+    const colW = 250, rowGap = 34;
+    const colH = 150, tgtH = 64;
+    const colX = [20, W / 2 - colW / 2, W - colW - 20];
+    const n = Math.max(sources.length, routes.length, targets.length, 1);
+    const H = Math.max(230, 50 + n * (Math.max(colH, tgtH) + rowGap));
+    const yOf = (i, count, h) => 46 + i * (Math.max(colH, tgtH) + rowGap) + (n - count) * (Math.max(colH, tgtH) + rowGap) / 2;
+    const cs = getComputedStyle(document.documentElement);
+    const fill = cs.getPropertyValue('--card').trim() || '#fff';
+    const stroke = cs.getPropertyValue('--border2').trim() || '#888';
+    const accent = cs.getPropertyValue('--accent').trim() || '#0969da';
+    const muted = cs.getPropertyValue('--muted').trim() || '#666';
+    const textColor = cs.getPropertyValue('--text').trim() || '#222';
+    if (!_x6) {
+      _x6 = new window.X6.Graph({
+        container: box, width: W, height: H,
+        panning: false,
+        interacting: { nodeMovable: () => false, edgeMovable: () => false,
+          edgeLabelMovable: () => false, arrowheadMovable: () => false,
+          vertexMovable: () => false },
+        mousewheel: { enabled: true, modifiers: ['ctrl', 'meta'] },
+        connecting: { connector: { name: 'smooth', args: { direction: 'H' } } },
+        grid: false, background: { color: 'transparent' },
+      });
+    } else {
+      _x6.resize(W, H);
+    }
+    _x6.clearCells();
+    // 列标题
+    TOPO_COLS.forEach((t, i) => {
+      _x6.addNode({ shape: 'rect', x: colX[i], y: 8, width: colW, height: 24, zIndex: 2,
+        attrs: { body: { fill: 'transparent', stroke: 'transparent' },
+                 label: { text: t, fill: muted, fontSize: 11, fontWeight: '600' } } });
+    });
+    // 来源节点（只读）
+    sources.forEach((src, i) => {
+      _x6.addNode({ id: 'src-' + i, shape: 'rect', x: colX[0], y: yOf(i, sources.length, colH),
+        width: colW, height: colH,
+        attrs: { body: { fill, stroke, rx: 8, strokeWidth: 1.2 },
+                 label: { text: (src.peer_name || ('用户 ' + src.peer_id)).slice(0, 16),
+                          fill: textColor, fontSize: 12,
+                          textWrap: { width: colW - 16, height: colH - 10, textAnchor: 'middle' } } } });
+    });
+    // 空路由占位
+    if (!routes.length) {
+      _x6.addNode({ shape: 'rect', x: colX[1], y: yOf(0, 1, colH), width: colW, height: colH,
+        attrs: { body: { fill: 'transparent', stroke: stroke, strokeDasharray: '4 4', rx: 8 },
+                 label: { text: '暂无路由\n点「+ 添加路由」', fill: muted, fontSize: 11,
+                          textWrap: { width: colW - 16, height: colH - 10, textAnchor: 'middle' } } } });
+    }
+    // 路由节点：HTML 可编辑卡片（真实卡片编辑）
+    routes.forEach((r, i) => {
+      _x6.addNode({ id: 'route-' + i, shape: 'html', x: colX[1], y: yOf(i, routes.length, colH),
+        width: colW, height: colH, zIndex: 3,
+        html: () => routeCardEl(i) });
+    });
+    // 目标节点：HTML 卡片（只读展示，去重后的目标群）
+    targets.forEach((t, i) => {
+      _x6.addNode({ id: 'tgt-' + i, shape: 'html', x: colX[2], y: yOf(i, targets.length, tgtH),
+        width: colW, height: tgtH, zIndex: 3,
+        html: () => targetCardEl(t, i) });
+    });
+    drawEdgesX6();
   }
 
   async function loadConfig() {
@@ -917,18 +946,8 @@
     _routes.push({ name: 'route' + (_routes.length + 1), target: 'aiocqhttp:GroupMessage:',
       match: { types: ['text','video_card'], senders_include: [], senders_exclude: [] } });
     renderTopo(true);
-    openRouteEditor(_routes.length - 1);
   };
   $('btnSaveRoutes').onclick = async () => { await saveConfig({ routes: collectRoutes() }); };
-  $('reClose').onclick = closeRouteEditor;
-  $('routeEditor').addEventListener('click', e => { if (e.target === $('routeEditor')) closeRouteEditor(); });
-  $('reSave').onclick = () => { readEditor(); renderTopo(true); closeRouteEditor(); toast('已更新，点「保存路由」生效'); };
-  $('reDel').onclick = () => {
-    if (_reIdx < 0) return;
-    _routes.splice(_reIdx, 1); renderTopo(true); closeRouteEditor();
-  };
-  $('reUp').onclick = () => { if (_reIdx > 0) { const t = _routes[_reIdx-1]; _routes[_reIdx-1] = _routes[_reIdx]; _routes[_reIdx] = t; renderTopo(true); } };
-  $('reDown').onclick = () => { if (_reIdx < _routes.length - 1) { const t = _routes[_reIdx+1]; _routes[_reIdx+1] = _routes[_reIdx]; _routes[_reIdx] = t; renderTopo(true); } };
   $('btnSavePolicy').onclick = async () => { await saveConfig(collectKeys(POLICY_KEYS)); };
   $('btnSaveSettings').onclick = async () => { await saveConfig(collectKeys(SETTINGS_KEYS)); };
 
