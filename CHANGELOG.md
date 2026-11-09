@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [0.16.0] - 2026-11-09
+
+### Changed
+- AntV X6 改为本地打包：`views/status/assets/x6.js`（UMD 484KB，无外部 CDN 依赖），视图用相对路径 `./assets/x6.js` 引用；消除外部 CDN 被 CSP 拦截风险与在线依赖。
+
 ## [0.15.0] - 2026-11-09
 
 ### Changed
