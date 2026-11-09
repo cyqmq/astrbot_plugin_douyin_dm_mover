@@ -157,6 +157,11 @@ class MfaHandler:
             self.alert(
                 f"2046：请运行 /dyf mfa 发送验证码{f'（发往 {mobile}）' if mobile else ''}"
             )
+        elif self.mode == "auto_sms":
+            self.alert(
+                f"2046：已发送短信验证码{f'（发往 {mobile}）' if mobile else ''}，"
+                "请用 /dyf mfa <验证码> 喂码"
+            )
 
         try:
             code = self.code_source(mobile, send_fn)

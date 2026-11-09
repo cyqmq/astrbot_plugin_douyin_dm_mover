@@ -102,6 +102,10 @@ class DouyinGateway(MessageGateway):
                 )
             )
             self._state = AuthState.EXPIRED
+            # 首次无会话且未配置 cookie 时自动发起扫码登录（自动出码，无需手动点刷新）
+            if not (self._config.get("douyin_cookies") or "").strip():
+                logger.info("[dyf] 无登录会话，自动发起扫码登录")
+                self._login_task = asyncio.create_task(self.login())
             return
         self._start_receiver()
         self._emit_event(GatewayEvent("started", "Douyin gateway started"))
@@ -169,6 +173,7 @@ class DouyinGateway(MessageGateway):
         try:
             self._state = AuthState.UNKNOWN
             self._emit_event(GatewayEvent("login_started", "开始扫码登录"))
+            logger.info("[dyf] 扫码登录已启动，等待二维码")
             loop = asyncio.get_running_loop()
 
             def _run():
@@ -218,6 +223,7 @@ class DouyinGateway(MessageGateway):
     def _on_qr(self, url: str) -> None:
         self._last_qr_content = url
         self._emit_event(GatewayEvent("qr", url))
+        logger.info("[dyf] 登录二维码已生成，请用抖音扫码登录")
 
     @property
     def last_qr_content(self) -> str | None:
