@@ -64,6 +64,7 @@ class DashboardApi:
             src = {}
         return {
             "auth_state": self.gateway.auth_state.value,
+            "login_in_progress": bool(getattr(self.gateway, "login_in_progress", False)),
             "self_uid": self.gateway.self_uid,
             "gateway_mode": str(cfg.get("gateway_mode") or "inprocess"),
             "douyin_enabled": bool(src.get("enabled", True)),
@@ -104,8 +105,8 @@ class DashboardApi:
         return {"ok": True, "detail": "已触发登录"}
 
     async def logout(self):
-        await self.gateway.logout()
-        return {"ok": True, "detail": "已登出并清除会话"}
+        ok = await self.gateway.logout()
+        return {"ok": ok, "detail": "已登出并清除会话" if ok else "当前未登录，无需登出"}
 
     async def clear_records(self):
         self.fm.tracker.clear()

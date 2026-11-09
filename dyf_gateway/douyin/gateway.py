@@ -207,12 +207,21 @@ class DouyinGateway(MessageGateway):
         finally:
             self._login_lock.release()
 
-    async def logout(self) -> None:
+    async def logout(self) -> bool:
+        if not self._auth.sessionid:
+            logger.info("[dyf] 当前未登录，无需登出")
+            return False
         self._stop_receiver()
         self._login_flow.session.clear()
         self._state = AuthState.UNKNOWN
         self._emit_event(GatewayEvent("logout", "已登出并清除会话"))
         logger.info("[dyf] 已登出")
+        return True
+
+    @property
+    def login_in_progress(self) -> bool:
+        """是否正在扫码登录（登录线程持锁期间为 True）。"""
+        return bool(self._login_lock.locked())
 
     def trigger_mfa_send(self) -> None:
         self._code_waiter.trigger_send()

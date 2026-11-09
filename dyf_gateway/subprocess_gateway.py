@@ -49,6 +49,7 @@ class SubprocessGateway(MessageGateway):
         self._cfg_path = os.path.join(self._data_dir, "worker_config.json")
         self._tasks: list[asyncio.Task] = []
         self._reader_tasks: list[asyncio.Task] = []
+        self._logging_in = False
         # ---- 登录（父进程编排，登录后会话 cookie 注入 worker 配置）----
         from .douyin.login.flow import LoginFlow
         from .douyin.login.mfa import MfaHandler
@@ -260,6 +261,10 @@ class SubprocessGateway(MessageGateway):
 
     # ---- 登录 / 登出 / MFA（父进程编排，会话 cookie 经 _write_config 注入 worker）----
     async def login(self, timeout: int = 300) -> None:
+        if self._logging_in:
+            self._emit_event(GatewayEvent("error", "已有登录进行中"))
+            return
+        self._logging_in = True
         loop = asyncio.get_running_loop()
         self._emit_event(GatewayEvent("login_started", "开始扫码登录"))
 
@@ -275,8 +280,13 @@ class SubprocessGateway(MessageGateway):
         except Exception as e:
             self._emit_event(GatewayEvent("error", f"登录失败: {e}"))
             logger.error(f"[dyf] 登录失败: {e}")
+        finally:
+            self._logging_in = False
 
-    async def logout(self) -> None:
+    async def logout(self) -> bool:
+        if self._state != AuthState.OK and not self._login_flow.session.has_valid():
+            logger.info("[dyf] 当前未登录，无需登出")
+            return False
         self._stopping = True
         for t in self._reader_tasks:
             t.cancel()
@@ -291,6 +301,11 @@ class SubprocessGateway(MessageGateway):
         self._login_flow.session.clear()
         self._state = AuthState.UNKNOWN
         self._emit_event(GatewayEvent("logout", "已登出并清除会话"))
+        return True
+
+    @property
+    def login_in_progress(self) -> bool:
+        return self._logging_in
 
     async def _restart_worker(self) -> None:
         self._stopping = False

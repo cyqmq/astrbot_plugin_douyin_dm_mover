@@ -53,8 +53,7 @@
   <div class="bar">
     <button id="btnRefresh" class="primary">刷新</button>
     <label class="muted"><input type="checkbox" id="auto" checked> 自动刷新</label>
-    <button id="btnQrRefresh">刷新登录二维码</button>
-    <button id="btnLogin">登录</button>
+    <button id="btnLogin" class="primary">登录 / 刷新二维码</button>
     <button id="btnLogout" class="danger">登出</button>
     <button id="btnClear">清空搬运记录</button>
   </div>
@@ -116,7 +115,7 @@
   async function refreshStatus() {
     const d = await apiGet('status');
     $('status').innerHTML =
-      kv('登录态', statePill(d.auth_state)) +
+      kv('登录态', statePill(d.auth_state) + (d.login_in_progress ? ' <span class="pill warn">登录进行中</span>' : '')) +
       kv('self_uid', esc(d.self_uid ?? '未设置')) +
       kv('网关模式', esc(d.gateway_mode)) +
       kv('抖音来源', d.douyin_enabled ? '启用' : '停用') +
@@ -171,12 +170,7 @@
   async function refreshAll() { await Promise.all([refreshStatus(), refreshSenders(), refreshRecords(), refreshQr(), refreshLogs()]); }
 
   $('btnRefresh').onclick = refreshAll;
-  $('btnQrRefresh').onclick = async () => {
-    const d = await apiPost('qrcode/refresh');
-    toast(d.detail || (d.ok ? '已触发' : '请稍候'));
-    if (d.ok) { await refreshQr(); }
-  };
-  $('btnLogin').onclick = async () => { const d = await apiPost('login'); toast(d.detail || '已触发'); };
+  $('btnLogin').onclick = async () => { const d = await apiPost('login'); toast(d.detail || '已触发'); await refreshAll(); };
   $('btnLogout').onclick = async () => { const d = await apiPost('logout'); toast(d.detail || '已登出'); await refreshAll(); };
   $('btnClear').onclick = async () => { const d = await apiPost('records/clear'); toast(d.detail || '已清空'); await refreshRecords(); };
   $('btnLogRefresh').onclick = refreshLogs;
