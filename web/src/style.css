@@ -109,6 +109,9 @@ label.f .hint { grid-column:2; color:var(--muted); font-size:11px; line-height:1
 .src-card.empty { border-style:dashed; text-align:center; padding:14px 11px; }
 .src-card .sc-name { font-weight:600; }
 .src-card .sc-sub { color:var(--muted); font-size:11px; margin-top:2px; }
+.src-friend { display:flex; align-items:center; gap:8px; }
+.src-avatar { width:28px; height:28px; border-radius:999px; object-fit:cover; flex:none; background:var(--bg); }
+.src-avatar-ph { display:flex; align-items:center; justify-content:center; color:var(--muted); font-weight:600; }
 .route-card, .target-card { font-size:12px; color:var(--text);
   background:var(--card); border:1px solid var(--border2); border-radius:10px;
   padding:8px 10px; display:flex; flex-direction:column; gap:5px;

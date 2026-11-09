@@ -53,6 +53,15 @@ export async function addSender(key, uid) {
   await loadConfig()
 }
 
+export async function loadFriends() {
+  store.friendsLoading = true
+  store.friendsDetail = ''
+  const d = await apiGet('friends')
+  store.friendsLoading = false
+  if (d.detail) store.friendsDetail = d.detail
+  store.friends = d.friends || []
+}
+
 export function pill(k, cls, v) {
   return `<span class="pill"><span class="dot dot-${cls}"></span>${esc(k)}：${v}</span>`
 }

@@ -1,17 +1,35 @@
 <script setup>
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { store, sendersTop, ROUTE_TYPES, SELECTS, umoSplit } from '../../composables/store.js'
-import { saveConfig } from '../../composables/actions.js'
+import { saveConfig, addSender, loadFriends } from '../../composables/actions.js'
 
 const box = ref(null)
-const COL_TITLES = ['抖音来源', '路由', '目标群']
+const COL_TITLES = ['来源', '路由', '目标群']
 
-const sources = computed(() => sendersTop.value.length ? sendersTop.value : [{ peer_name: '抖音来源', peer_id: '' }])
+// 来源：最近发石者 / 抖音好友（familiar-list）
+const sources = computed(() => {
+  if (store.sourceMode === 'friends') return store.friends.length ? store.friends : []
+  return sendersTop.value.length ? sendersTop.value : [{ peer_name: '抖音来源', peer_id: '' }]
+})
+const sourceName = s => s.nickname || s.peer_name || ('用户 ' + (s.peer_id || ''))
+const sourceSub = s => {
+  if (store.sourceMode === 'friends') return (s.remark_name || s.signature || (s.uid ? ('uid ' + s.uid) : '')).slice(0, 40)
+  return s.peer_id ? ('uid ' + s.peer_id) : '抖音私信'
+}
+const sourceKey = s => (store.sourceMode === 'friends' ? (s.uid || s.peer_id || '') : (s.peer_id || ''))
+
 const targets = computed(() => {
   const t = []
   store.routes.forEach(r => { if (r.target && !t.includes(r.target)) t.push(r.target) })
   return t
 })
+
+async function switchSource(mode) {
+  store.sourceMode = mode
+  if (mode === 'friends' && !store.friends.length) await loadFriends()
+  nextTick(drawEdges)
+}
+async function refreshFriends() { await loadFriends(); nextTick(drawEdges) }
 
 function addRoute() {
   store.routes.push({ name: 'route' + (store.routes.length + 1), target: 'aiocqhttp:GroupMessage:',
@@ -53,7 +71,6 @@ function commitRoute(i, el) {
 }
 const splitLst = v => String(v || '').split(',').map(s => s.trim()).filter(Boolean)
 
-// 目标卡片编辑：改适配器/群号 → 更新所有指向该目标的路由
 function applyTarget(t, newAdapter, newGroup) {
   const newT = newGroup.trim() ? (newAdapter + ':GroupMessage:' + newGroup.trim()) : ''
   store.routes.forEach(r => { if (r.target === t) r.target = newT })
@@ -89,7 +106,7 @@ function drawEdges() {
       const rp = topoPos(re)
       const inc = (r.match && r.match.senders_include) || []
       const exc = (r.match && r.match.senders_exclude) || []
-      const sid = src.peer_id || ''
+      const sid = sourceKey(src)
       const included = inc.includes(sid) || (!inc.length)
       const excluded = exc.includes(sid)
       const any = inc.length || exc.length
@@ -112,12 +129,10 @@ function drawEdges() {
   svg.innerHTML = p
 }
 
-// 路由/来源变化 → 重绘
-watch(() => JSON.stringify({ r: store.routes, s: sendersTop.value.map(x => x.peer_id + '|' + x.peer_name) }), () => nextTick(drawEdges))
+watch(() => JSON.stringify({ r: store.routes, s: sources.value.map(sourceKey) }), () => nextTick(drawEdges))
 watch(targets, () => nextTick(drawEdges))
 onMounted(() => nextTick(drawEdges))
 
-// 行内输入：目标变化才整体重绘（连线），否则只重算连线
 function onRouteInput(i, el) {
   const before = umoOf(el)
   commitRoute(i, el)
@@ -139,10 +154,29 @@ function onRouteInput(i, el) {
         <svg class="topo-svg"></svg>
         <div class="td-cols">
           <div class="td-col"><div class="td-colhead">{{ COL_TITLES[0] }}</div>
+            <div class="bar" style="margin-bottom:8px">
+              <select :value="store.sourceMode" @change="switchSource($event.target.value)">
+                <option value="senders">最近发石者</option>
+                <option value="friends">抖音好友</option>
+              </select>
+              <button v-if="store.sourceMode === 'friends'" class="mini" @click="refreshFriends">刷新</button>
+            </div>
             <div class="td-list" id="td-src">
-              <div v-for="s in sources" :key="s.peer_id" class="src-card">
-                <div class="sc-name">{{ (s.peer_name || ('用户 ' + s.peer_id)).slice(0, 16) }}</div>
-                <div class="sc-sub">{{ s.peer_id ? ('uid ' + s.peer_id) : '抖音私信' }}</div>
+              <div v-for="s in sources" :key="sourceKey(s)" class="src-card" :class="{ 'src-friend': store.sourceMode === 'friends' }">
+                <img v-if="store.sourceMode === 'friends' && s.avatar" :src="s.avatar" class="src-avatar" alt="">
+                <span v-else-if="store.sourceMode === 'friends'" class="src-avatar src-avatar-ph">{{ sourceName(s).charAt(0) }}</span>
+                <div style="min-width:0;flex:1">
+                  <div class="sc-name">{{ sourceName(s).slice(0, 18) }}</div>
+                  <div class="sc-sub">{{ sourceSub(s) }}</div>
+                </div>
+                <div class="sender-actions" v-if="store.sourceMode === 'friends'">
+                  <button class="mini" @click="addSender('senders_whitelist', sourceKey(s))">+白</button>
+                  <button class="mini" @click="addSender('senders_blacklist', sourceKey(s))">+黑</button>
+                </div>
+              </div>
+              <div v-if="store.sourceMode === 'friends' && store.friendsLoading" class="src-card empty">加载好友中…</div>
+              <div v-else-if="store.sourceMode === 'friends' && !store.friends.length" class="src-card empty">
+                {{ store.friendsDetail || '暂无好友（未登录或好友为空）' }}
               </div>
             </div>
           </div>
