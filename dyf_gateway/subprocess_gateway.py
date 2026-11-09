@@ -69,7 +69,8 @@ class SubprocessGateway(MessageGateway):
             on_qrcode=self._on_qr_alemonjs, on_log=lambda m: None, code_waiter=self._code_waiter
         )
         self._alemonjs_py = AlemonsPyLogin(
-            on_qrcode=self._on_qr_alemonjs, on_log=lambda m: None, code_waiter=self._code_waiter
+            on_qrcode=self._on_qr_alemonjs, on_log=lambda m: None, code_waiter=self._code_waiter,
+            data_dir=self._data_dir,
         )
 
     @staticmethod

@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+## [0.8.1] - 2026-11-09
+
+### Fixed
+- 纯 Python 登录缺少桌面设备注册：此前 `DouyinHttpPy` 默认 `device_id="0"`，`check_qrconnect` 带 0 被抖音反爬限频（`error_code=7`）读不到 `verify_ways`，短信 MFA 永不触发。现移植 `setupDesktopDevice` 回退路径（`device.py`：`guidDeviceId` 十进制 GUID 哈希 + `device.json` 持久化 + saved 复用，与官方非 Windows 行为一致），登录前保证非零 `device_id`。
+- `guidDeviceId` 逐字节匹配 Node 参照（`3632482784`）。
+
 ## [0.8.0] - 2026-11-09
 
 ### Added

@@ -82,6 +82,7 @@ class DouyinGateway(MessageGateway):
             on_qrcode=self._on_qr_alemonjs,
             on_log=self._log_login,
             code_waiter=self._code_waiter,
+            data_dir=self._data_dir,
         )
         self._login_task: asyncio.Task | None = None
         self._login_lock = threading.Lock()

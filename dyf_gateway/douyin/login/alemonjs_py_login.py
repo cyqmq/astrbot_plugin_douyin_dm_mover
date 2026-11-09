@@ -5,18 +5,21 @@
 from __future__ import annotations
 
 import asyncio
+import os
 
 from .alemonjs import AlemonjsResult
 from .alemonjs_py import DouyinHttpPy, get_qrcode, poll_qr_confirm
+from .alemonjs_py.device import setup_desktop_device
 
 
 class AlemonsPyLogin:
     """纯 Python 扫码登录（desktop + 2046 MFA），无 Node/子进程依赖。"""
 
-    def __init__(self, on_qrcode=None, on_log=None, code_waiter=None):
+    def __init__(self, on_qrcode=None, on_log=None, code_waiter=None, data_dir=None):
         self._on_qrcode = on_qrcode or (lambda ev: None)
         self._on_log = on_log or (lambda text: None)
         self._code_waiter = code_waiter
+        self._data_dir = data_dir or os.path.join(os.getcwd(), "data", "douyin", "accounts")
 
     def _log(self, text: str) -> None:
         try:
@@ -26,7 +29,11 @@ class AlemonsPyLogin:
 
     async def qrcode_login_async(self, timeout: int = 300) -> AlemonjsResult:
         http = DouyinHttpPy({})
-        self._log("纯 Python 登录：生成二维码")
+        device_file = os.path.join(self._data_dir, "device.json")
+        setup_desktop_device(device_file, http)
+        self._log(
+            f"纯 Python 登录：桌面设备 device_id={http.device_id}，生成二维码"
+        )
 
         async def on_status(text: str) -> None:
             self._log(str(text))
