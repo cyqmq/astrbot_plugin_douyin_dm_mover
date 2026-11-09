@@ -257,10 +257,10 @@ class DouyinGateway(MessageGateway):
         return bool(self._login_lock.locked())
 
     async def install_login_backend(self) -> tuple[bool, str]:
-        """一键安装 @alemonjs/douyin（Node 依赖）。返回 (ok, msg)。"""
+        """一键安装 @alemonjs/douyin（Node 依赖，配置页按钮触发）。返回 (ok, msg)。"""
         from .login.alemonjs import ensure_alemonjs
 
-        return await ensure_alemonjs()
+        return await ensure_alemonjs(install=True)
 
     def trigger_mfa_send(self) -> None:
         self._code_waiter.trigger_send()

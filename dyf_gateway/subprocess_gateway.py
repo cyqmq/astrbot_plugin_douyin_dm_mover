@@ -332,7 +332,7 @@ class SubprocessGateway(MessageGateway):
     async def install_login_backend(self) -> tuple[bool, str]:
         from .douyin.login.alemonjs import ensure_alemonjs
 
-        return await ensure_alemonjs()
+        return await ensure_alemonjs(install=True)
 
     async def _restart_worker(self) -> None:
         self._stopping = False

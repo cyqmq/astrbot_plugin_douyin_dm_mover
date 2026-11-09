@@ -17,8 +17,8 @@ _BRIDGE = Path(__file__).resolve().parent / "alemonjs_bridge.mjs"
 _NODE_MODULE = _PLUGIN_ROOT / "node_modules" / "@alemonjs" / "douyin"
 
 
-async def ensure_alemonjs(install: bool = True, timeout: int = 300) -> tuple[bool, str]:
-    """确保 @alemonjs/douyin 已安装。install=True 时缺装则自动 npm install。
+async def ensure_alemonjs(install: bool = False, timeout: int = 300) -> tuple[bool, str]:
+    """确保 @alemonjs/douyin 已安装。install=True 时缺装则 npm install（配置页手动触发）。
 
     返回 (ok, msg)。ok=False 且未安装时给出可操作提示。
     """
@@ -91,9 +91,12 @@ class AlemonjsLogin:
             pass
 
     async def qrcode_login_async(self, timeout: int = 300) -> AlemonjsResult:
-        ok, msg = await ensure_alemonjs()
+        ok, _msg = await ensure_alemonjs()
         if not ok:
-            raise RuntimeError(msg)
+            raise RuntimeError(
+                "@alemonjs/douyin 未安装，请先到 Web 配置页点击「安装登录依赖」，"
+                "或手动在插件目录执行 npm install @alemonjs/douyin"
+            )
         node = shutil.which("node")
         if not node:
             raise RuntimeError("未找到 node：请安装 Node.js >= 20.19")
