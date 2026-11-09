@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>抖音私信搬运</title>
 <script src="/api/plugin/page/bridge-sdk.js"></script>
+<script src="https://unpkg.com/@antv/x6@2.18.1/dist/x6.js"></script>
 <style>
   :root { --bg:#f5f6f8; --card:#fff; --text:#1f2328; --muted:#6a737d; --border:#e1e4e8;
           --ok:#2da44e; --bad:#cf222e; --warn:#9a6700; --accent:#0969da; --side:#18181b; }
@@ -634,9 +635,15 @@
     return out;
   }
 
-  // ---- 拓扑图（来源 → 路由 → 目标，SVG 节点连线） ----
+  // ---- 拓扑图（来源 → 路由 → 目标）：优先 AntV X6，回退手写 SVG ----
   const TOPO_COLS = ['抖音来源', '路由', '目标群'];
   function renderTopo() {
+    if (window.X6 && window.X6.Graph) {
+      try { renderTopoX6(); return; } catch (e) { /* 回退手写 SVG */ }
+    }
+    renderTopoSvg();
+  }
+  function renderTopoSvg() {
     const box = document.getElementById('topo');
     if (!box) return;
     const W = Math.max(560, box.clientWidth || 900);
@@ -724,6 +731,107 @@
       if (card) { card.scrollIntoView({ behavior: 'smooth', block: 'center' });
         card.style.borderColor = 'var(--accent)';
         setTimeout(() => { card.style.borderColor = ''; }, 1400); }
+    });
+  }
+  let _x6 = null;
+  function renderTopoX6() {
+    const box = document.getElementById('topo');
+    if (!box) return;
+    const W = Math.max(560, box.clientWidth || 900);
+    const routes = collectRoutes();
+    const sources = _sendersCache.length ? _sendersCache : [{ peer_name: '抖音来源', peer_id: '' }];
+    const targets = [];
+    routes.forEach(r => { const t = r.target; if (t && !targets.includes(t)) targets.push(t); });
+    const colW = 190, colH = 60, rowGap = 26;
+    const colX = [20, W / 2 - colW / 2, W - colW - 20];
+    const n = Math.max(sources.length, routes.length, targets.length, 1);
+    const H = 50 + n * (colH + rowGap);
+    const yOf = (i, count) => 46 + i * (colH + rowGap) + (n - count) * (colH + rowGap) / 2;
+    const cs = getComputedStyle(document.documentElement);
+    const fill = cs.getPropertyValue('--card').trim() || '#fff';
+    const stroke = cs.getPropertyValue('--border2').trim() || '#888';
+    const accent = cs.getPropertyValue('--accent').trim() || '#0969da';
+    const muted = cs.getPropertyValue('--muted').trim() || '#666';
+    const textColor = cs.getPropertyValue('--text').trim() || '#222';
+    if (!_x6) {
+      _x6 = new window.X6.Graph({
+        container: box, width: W, height: H, panning: true,
+        mousewheel: { enabled: true, modifiers: ['ctrl', 'meta'] },
+        connecting: { connector: { name: 'smooth', args: { direction: 'H' } } },
+        grid: false, background: { color: 'transparent' },
+      });
+      _x6.on('node:click', ({ node }) => {
+        const id = node && node.id;
+        if (id && id.startsWith('route-')) {
+          const i = parseInt(id.slice(6), 10);
+          const card = document.querySelectorAll('#routeCards .rcard')[i];
+          if (card) { card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            card.style.borderColor = accent; setTimeout(() => { card.style.borderColor = ''; }, 1400); }
+        }
+      });
+    } else {
+      _x6.resize(W, H);
+    }
+    _x6.clearCells();
+    // 列标题（用无边框 rect 承载文本，避免依赖未注册的 text 形状）
+    TOPO_COLS.forEach((t, i) => {
+      _x6.addNode({ shape: 'rect', x: colX[i], y: 8, width: colW, height: 24, zIndex: 2,
+        attrs: { body: { fill: 'transparent', stroke: 'transparent' },
+                 label: { text: t, fill: muted, fontSize: 11, fontWeight: '600' } } });
+    });
+    // 来源节点
+    sources.forEach((src, i) => {
+      _x6.addNode({ id: 'src-' + i, shape: 'rect', x: colX[0], y: yOf(i, sources.length),
+        width: colW, height: colH,
+        attrs: { body: { fill, stroke, rx: 8, strokeWidth: 1.2 },
+                 label: { text: (src.peer_name || ('用户 ' + src.peer_id)).slice(0, 16),
+                          fill: textColor, fontSize: 12,
+                          textWrap: { width: colW - 16, height: colH - 10, textAnchor: 'middle' } } } });
+    });
+    // 路由节点
+    routes.forEach((r, i) => {
+      const types = (r.match && r.match.types) || [];
+      const tlabel = types.length ? types.map(typeName).join('、') : '全部类型';
+      _x6.addNode({ id: 'route-' + i, shape: 'rect', x: colX[1], y: yOf(i, routes.length),
+        width: colW, height: colH,
+        attrs: { body: { fill, stroke, rx: 8, strokeWidth: 1.2 },
+                 label: { text: (r.name || 'route') + '\n' + tlabel, fill: textColor, fontSize: 12,
+                          textWrap: { width: colW - 16, height: colH - 10, textAnchor: 'middle' } } } });
+    });
+    // 目标节点
+    targets.forEach((t, i) => {
+      const m = String(t).match(/^([^:]*):GroupMessage:(.*)$/);
+      const g = m ? m[2] : t; const ad = m ? m[1] : '';
+      _x6.addNode({ id: 'tgt-' + i, shape: 'rect', x: colX[2], y: yOf(i, targets.length),
+        width: colW, height: colH,
+        attrs: { body: { fill, stroke, rx: 8, strokeWidth: 1.2 },
+                 label: { text: '群 ' + g + '\n' + (ad || '—'), fill: textColor, fontSize: 12,
+                          textWrap: { width: colW - 16, height: colH - 10, textAnchor: 'middle' } } } });
+    });
+    // 边：来源→路由
+    sources.forEach((src, si) => {
+      routes.forEach((r, ri) => {
+        const inc = (r.match && r.match.senders_include) || [];
+        const exc = (r.match && r.match.senders_exclude) || [];
+        const sid = src.peer_id || '';
+        const included = inc.includes(sid) || (!inc.length);
+        const excluded = exc.includes(sid);
+        const any = inc.length || exc.length;
+        let strokeColor = accent, dash = '';
+        if (excluded || !included) { strokeColor = muted; dash = '3 3'; }
+        else if (any) { strokeColor = accent; }
+        _x6.addEdge({ source: 'src-' + si, target: 'route-' + ri, zIndex: -1,
+          attrs: { line: { stroke: strokeColor, strokeWidth: 1.3, strokeDasharray: dash,
+            targetMarker: { name: 'block', size: 6, fill: strokeColor } } } });
+      });
+    });
+    // 边：路由→目标
+    routes.forEach((r, ri) => {
+      const ti = targets.indexOf(r.target);
+      if (ti < 0) return;
+      _x6.addEdge({ source: 'route-' + ri, target: 'tgt-' + ti, zIndex: -1,
+        attrs: { line: { stroke: accent, strokeWidth: 1.3,
+          targetMarker: { name: 'block', size: 6, fill: accent } } } });
     });
   }
 
