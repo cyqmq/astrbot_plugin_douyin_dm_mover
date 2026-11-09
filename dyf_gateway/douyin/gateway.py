@@ -124,6 +124,9 @@ class DouyinGateway(MessageGateway):
                 self._login_task = asyncio.create_task(self.login())
             return
         self._start_receiver()
+        # 有有效已保存会话：乐观置为已登录（避免更新/重启后长期显示「未知」）；
+        # 若连接实际失败，_on_status -> _mark_auth_expired 会降级为 EXPIRED。
+        self._state = AuthState.OK
         self._emit_event(GatewayEvent("started", "Douyin gateway started"))
         self._watchdog_task = asyncio.create_task(self._watchdog())
         logger.info(f"[dyf] DouyinGateway 已启动 (device_id={self._device_id})")

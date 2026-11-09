@@ -16,6 +16,7 @@ import io
 import time
 
 import qrcode
+from astrbot.api import logger
 
 from dyf_core.logs import LogRing
 
@@ -198,7 +199,21 @@ class DashboardApi:
                     save()
                 except Exception as e:
                     return {"ok": False, "detail": f"配置保存失败: {e}"}
-        return {"ok": True, "detail": "已保存，请点「重载插件」生效"}
+        # 配置已落盘，自动重载插件使深层代码/运行时配置生效（免手动点「重载插件」）
+        self._schedule_reload()
+        return {"ok": True, "detail": "已保存并自动重载插件，稍候生效"}
+
+    def _schedule_reload(self) -> None:
+        """后台自动重载本插件，让配置/深层代码即时生效。"""
+        try:
+            sm = getattr(self.context, "_star_manager", None)
+            if sm is None:
+                return
+            import asyncio
+
+            asyncio.create_task(self._do_reload(sm))
+        except Exception as e:
+            logger.warning(f"[dyf] 自动重载失败（可手动点「重载插件」）: {e}")
 
     async def logout(self):
         ok = await self.gateway.logout()

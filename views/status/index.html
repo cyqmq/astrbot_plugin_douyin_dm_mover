@@ -127,6 +127,7 @@
   .topo .tline.dim { stroke:var(--border); stroke-dasharray:3 3; }
   .topo .tline.off { stroke:var(--border); opacity:.35; }
   .topo .tline:hover { stroke-width:2.2; }
+  .rsep { height:1px; background:var(--border); margin:14px 0 4px; }
   table.routes { width:100%; border-collapse:collapse; font-size:12px; margin-top:6px; }
   table.routes th,table.routes td { border:1px solid var(--border); padding:4px 6px; }
   table.routes input { width:100%; border:none; background:transparent; color:var(--text); }
@@ -236,14 +237,13 @@
       </div>
     </section>
 
-    <!-- 路由：拓扑图 + 编辑 -->
+    <!-- 路由：拓扑图 + 编辑（合并单卡） -->
     <section class="tab" id="tab-routes">
       <div class="card">
-        <h2>转发拓扑 <span class="muted">来源 → 路由 → 目标 · 点击路由节点定位编辑卡片 · 编辑实时预览</span></h2>
+        <h2>转发拓扑与路由编辑 <span class="muted">编辑实时预览 · 保存后自动重载生效 · ↑↓ 排序</span></h2>
         <div class="topo" id="topo"></div>
-      </div>
-      <div class="card" style="margin-top:14px">
-        <h2>编辑路由 <span class="muted">保存后点「重载插件」生效 · 支持 ↑↓ 排序</span></h2>
+        <div class="rsep"></div>
+        <div class="muted" style="margin:8px 0 6px">路由项（点拓扑中的路由节点可定位）：</div>
         <div id="routeCards"></div>
         <div class="bar" style="margin-top:10px"><button id="btnAddRoute" class="ghost">+ 添加路由</button></div>
         <div class="save-row"><button id="btnSaveRoutes" class="primary">保存路由</button></div>
@@ -603,14 +603,14 @@
       '</div></div>' +
       '<div class="rrow"><span>发送者包含</span><div class="senders-inline"><input data-rc="sinc" placeholder="逗号分隔 uid" value="' + esc(inc) + '"></div></div>' +
       '<div class="rrow"><span>发送者排除</span><div class="senders-inline"><input data-rc="sexc" placeholder="逗号分隔 uid" value="' + esc(exc) + '"></div></div>';
-    card.querySelector('[data-rdel]').onclick = () => { card.remove(); renderTopo(); };
+    card.querySelector('[data-rdel]').onclick = () => { card.remove(); renderTopo(true); };
     card.querySelectorAll('[data-rmove]').forEach(b => b.onclick = () => {
       const list = document.getElementById('routeCards');
       if (b.dataset.rmove === '-1' && card.previousElementSibling) list.insertBefore(card, card.previousElementSibling);
       else if (b.dataset.rmove === '1' && card.nextElementSibling) list.insertBefore(card.nextElementSibling, card);
-      renderTopo();
+      renderTopo(true);
     });
-    card.querySelectorAll('[data-rt]').forEach(tc => tc.onclick = () => { tc.classList.toggle('on'); renderTopo(); });
+    card.querySelectorAll('[data-rt]').forEach(tc => tc.onclick = () => { tc.classList.toggle('on'); renderTopo(true); });
     return card;
   }
   function renderRoutes(routes) {
@@ -637,9 +637,15 @@
 
   // ---- 拓扑图（来源 → 路由 → 目标）：优先 AntV X6，回退手写 SVG ----
   const TOPO_COLS = ['抖音来源', '路由', '目标群'];
-  function renderTopo() {
+  let _topoKey = '';
+  function renderTopo(force) {
+    // 数据签名：路由/来源未变时不重建（保留 X6 视口缩放/平移，自动刷新不闪回）
+    const routes = collectRoutes();
+    const key = JSON.stringify({ r: routes, s: _sendersCache.map(x => x.peer_id + '|' + x.peer_name) });
+    if (!force && key === _topoKey) return;
+    _topoKey = key;
     if (window.X6 && window.X6.Graph) {
-      try { renderTopoX6(); return; } catch (e) { /* 回退手写 SVG */ }
+      try { renderTopoX6(routes); return; } catch (e) { /* 回退手写 SVG */ }
     }
     renderTopoSvg();
   }
@@ -734,18 +740,18 @@
     });
   }
   let _x6 = null;
-  function renderTopoX6() {
+  function renderTopoX6(routes) {
     const box = document.getElementById('topo');
     if (!box) return;
     const W = Math.max(560, box.clientWidth || 900);
-    const routes = collectRoutes();
+    if (!routes) routes = collectRoutes();
     const sources = _sendersCache.length ? _sendersCache : [{ peer_name: '抖音来源', peer_id: '' }];
     const targets = [];
     routes.forEach(r => { const t = r.target; if (t && !targets.includes(t)) targets.push(t); });
     const colW = 190, colH = 60, rowGap = 26;
     const colX = [20, W / 2 - colW / 2, W - colW - 20];
     const n = Math.max(sources.length, routes.length, targets.length, 1);
-    const H = 50 + n * (colH + rowGap);
+    const H = Math.max(210, 50 + n * (colH + rowGap));
     const yOf = (i, count) => 46 + i * (colH + rowGap) + (n - count) * (colH + rowGap) / 2;
     const cs = getComputedStyle(document.documentElement);
     const fill = cs.getPropertyValue('--card').trim() || '#fff';
@@ -755,7 +761,11 @@
     const textColor = cs.getPropertyValue('--text').trim() || '#222';
     if (!_x6) {
       _x6 = new window.X6.Graph({
-        container: box, width: W, height: H, panning: true,
+        container: box, width: W, height: H,
+        panning: false,
+        interacting: { nodeMovable: () => false, edgeMovable: () => false,
+          edgeLabelMovable: () => false, arrowheadMovable: () => false,
+          vertexMovable: () => false },
         mousewheel: { enabled: true, modifiers: ['ctrl', 'meta'] },
         connecting: { connector: { name: 'smooth', args: { direction: 'H' } } },
         grid: false, background: { color: 'transparent' },
@@ -789,6 +799,12 @@
                           textWrap: { width: colW - 16, height: colH - 10, textAnchor: 'middle' } } } });
     });
     // 路由节点
+    if (!routes.length) {
+      _x6.addNode({ shape: 'rect', x: colX[1], y: yOf(0, 1), width: colW, height: colH,
+        attrs: { body: { fill: 'transparent', stroke: stroke, strokeDasharray: '4 4', rx: 8 },
+                 label: { text: '暂无路由\n点下方「+ 添加路由」', fill: muted, fontSize: 11,
+                          textWrap: { width: colW - 16, height: colH - 10, textAnchor: 'middle' } } } });
+    }
     routes.forEach((r, i) => {
       const types = (r.match && r.match.types) || [];
       const tlabel = types.length ? types.map(typeName).join('、') : '全部类型';
@@ -894,8 +910,8 @@
   $('mfaCode').addEventListener('keydown', e => { if (e.key === 'Enter') $('btnMfa').click(); });
   $('btnLogRefresh').onclick = refreshLogs;
   $('btnLogClear').onclick = async () => { const d = await apiPost('logs/clear'); toast(d.detail || '已清空'); await refreshLogs(); };
-  $('btnAddRoute').onclick = () => { const list = document.getElementById('routeCards'); const empty = list.querySelector('.empty'); if (empty) empty.remove(); list.appendChild(routeCard({})); renderTopo(); };
-  document.getElementById('routeCards').addEventListener('input', () => renderTopo());
+  $('btnAddRoute').onclick = () => { const list = document.getElementById('routeCards'); const empty = list.querySelector('.empty'); if (empty) empty.remove(); list.appendChild(routeCard({})); renderTopo(true); };
+  document.getElementById('routeCards').addEventListener('input', () => renderTopo(true));
   $('btnSaveRoutes').onclick = async () => { await saveConfig({ routes: collectRoutes() }); };
   $('btnSavePolicy').onclick = async () => { await saveConfig(collectKeys(POLICY_KEYS)); };
   $('btnSaveSettings').onclick = async () => { await saveConfig(collectKeys(SETTINGS_KEYS)); };

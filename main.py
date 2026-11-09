@@ -44,9 +44,25 @@ def _resolve_data_dir() -> str:
     try:
         from astrbot.core.utils.astrbot_path import get_astrbot_data_path
 
-        return os.path.join(str(get_astrbot_data_path()), "plugin_data", "douyin_dm_mover")
+        target = os.path.join(str(get_astrbot_data_path()), "plugin_data", "douyin_dm_mover")
     except Exception:
-        return os.path.abspath(DEFAULT_DATA_DIR)
+        target = os.path.abspath(DEFAULT_DATA_DIR)
+    # 迁移：旧版本把会话/设备存在相对 CWD 的 data/dyf，新目录为空时迁移过来，
+    # 避免升级插件后登录态「消失」（session.json/device.json 仍在旧位置）。
+    old = os.path.abspath(DEFAULT_DATA_DIR)
+    if os.path.isdir(old) and old != target:
+        os.makedirs(target, exist_ok=True)
+        for name in ("session.json", "device.json"):
+            src = os.path.join(old, name)
+            dst = os.path.join(target, name)
+            if os.path.isfile(src) and not os.path.isfile(dst):
+                try:
+                    import shutil
+
+                    shutil.copy2(src, dst)
+                except Exception as e:  # 迁移失败不阻断启动
+                    logger.warning(f"[dyf] 登录态迁移 {name} 失败: {e}")
+    return target
 
 
 @register(
