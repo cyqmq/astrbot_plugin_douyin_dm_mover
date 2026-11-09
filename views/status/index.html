@@ -55,6 +55,7 @@
     <label class="muted"><input type="checkbox" id="auto" checked> 自动刷新</label>
     <button id="btnLogin" class="primary">登录 / 刷新二维码</button>
     <button id="btnInstall" class="primary">安装登录依赖</button>
+    <button id="btnReload" class="primary">重载插件</button>
     <button id="btnLogout" class="danger">登出</button>
     <button id="btnClear">清空搬运记录</button>
   </div>
@@ -179,6 +180,11 @@
     const d = await apiPost('install-alemonjs');
     toast(d.detail || (d.ok ? '安装成功' : '安装失败'));
     await refreshAll();
+  };
+  $('btnReload').onclick = async () => {
+    toast('正在重载插件 …');
+    const d = await apiPost('reload');
+    toast(d.detail || (d.ok ? '重载中' : '重载失败'));
   };
   $('btnLogout').onclick = async () => { const d = await apiPost('logout'); toast(d.detail || '已登出'); await refreshAll(); };
   $('btnClear').onclick = async () => { const d = await apiPost('records/clear'); toast(d.detail || '已清空'); await refreshRecords(); };

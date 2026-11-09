@@ -54,11 +54,34 @@ class DashboardApi:
         reg("douyin_dm_mover/logs", self.logs, ["GET"], "dyf 运行日志")
         reg("douyin_dm_mover/logs/clear", self.clear_logs, ["POST"], "dyf 清空日志")
         reg("douyin_dm_mover/install-alemonjs", self.install_alemonjs, ["POST"], "dyf 安装 @alemonjs/douyin 登录依赖")
+        reg("douyin_dm_mover/reload", self.reload_plugin, ["POST"], "dyf 重载插件（刷新深层代码）")
 
     async def install_alemonjs(self):
         """一键安装 @alemonjs/douyin（Node 依赖）。"""
         ok, msg = await self.gateway.install_login_backend()
         return {"ok": ok, "detail": msg}
+
+    async def reload_plugin(self):
+        """后台重载本插件：终止当前实例并重新加载，使深层代码（dyf_gateway 等）生效。"""
+        sm = getattr(self.context, "_star_manager", None)
+        if sm is None:
+            return {"ok": False, "detail": "未找到 AstrBot 插件管理器，无法重载"}
+        asyncio.create_task(self._do_reload(sm))
+        return {"ok": True, "detail": "正在重载插件，稍候生效"}
+
+    async def _do_reload(self, sm) -> None:
+        try:
+            result = await sm.reload("astrbot_plugin_douyin_dm_mover")
+            ok = result[0] if isinstance(result, tuple) else bool(result)
+            err = result[1] if isinstance(result, tuple) else None
+            if not ok:
+                from astrbot.api import logger
+
+                logger.error(f"[dyf] 插件重载失败: {err}")
+        except Exception as e:
+            from astrbot.api import logger
+
+            logger.error(f"[dyf] 插件重载异常: {e}")
 
     # ---- 接口实现 ----
     async def status(self):

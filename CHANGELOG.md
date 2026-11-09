@@ -4,6 +4,14 @@
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-11-09
+
+### Added
+- Web 配置页新增「重载插件」按钮（`POST /douyin_dm_mover/reload`）：后台调用 AstrBot `StarManager.reload`，终止当前插件并重新加载，深层代码（`dyf_gateway` 等）无需重启 AstrBot 进程即可生效。
+
+### Fixed
+- 重载失效根因：AstrBot 只清 `data.plugins.<dir>.*` 前缀，`main.py` 原清理用 `basename` 前缀——都匹配不到裸名包 `dyf_gateway`/`dyf_core`/`dyf_config`，导致深层模块缓存残留、重载后仍跑旧代码。现改为清裸名包前缀 + 含插件名的模块键。
+
 ## [0.7.1] - 2026-11-09
 
 ### Fixed

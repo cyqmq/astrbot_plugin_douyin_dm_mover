@@ -18,12 +18,16 @@ if _PLUGIN_ROOT in sys.path:
     sys.path.remove(_PLUGIN_ROOT)
 sys.path.insert(0, _PLUGIN_ROOT)
 
-# 重载兜底：AstrBot 清理 sys.modules 可能不彻底，主动清理本插件名前缀的
-# 残留模块缓存，确保加载的是新代码而非旧缓存。只清本插件前缀，避免误伤
-# 其它插件共享的裸名模块（config/core/utils 等）。
-_PLUGIN_KEY = os.path.basename(_PLUGIN_ROOT)
+# 重载兜底：AstrBot 清理 sys.modules 只清 data.plugins.<dir>.* 前缀，清不到本插件的
+# 裸名包（dyf_gateway/dyf_core/dyf_config）与主模块路径，主动清理残留缓存，确保
+# 重载时加载新代码而非旧缓存。只清本插件相关前缀，避免误伤其它插件共享的裸名模块。
+_PLUGIN_MODULE_PREFIX = "astrbot_plugin_douyin_dm_mover"
+_BARE_PLUGIN_PREFIXES = ("dyf_gateway", "dyf_core", "dyf_config")
 for _key in list(sys.modules):
-    if _key.startswith(_PLUGIN_KEY + "."):
+    if (
+        _key.startswith(_BARE_PLUGIN_PREFIXES)
+        or _PLUGIN_MODULE_PREFIX in _key
+    ):
         sys.modules.pop(_key, None)
 
 from dyf_config import DEFAULT_DATA_DIR, DEFAULT_SOURCES
@@ -60,14 +64,16 @@ class DouyinForwardPlugin(Star):
         self._tasks: list[asyncio.Task] = []
 
     def _purge_own_modules(self) -> None:
-        """清理本插件可能残留的模块缓存，确保重载时加载的是新代码。
+        """清理本插件残留模块缓存，确保重载时加载新代码。
 
-        只清理 ``douyin_dm_mover.`` 前缀的子模块，不动裸名模块，
-        避免误伤其它插件（其 config/core/utils 等可能与裸名冲突）。
+        清裸名包（dyf_gateway/dyf_core/dyf_config）前缀与含插件名的主模块键，
+        避免误伤其它插件共享的裸名模块（config/core/utils 等）。
         """
-        key = "douyin_dm_mover"
         for _k in list(sys.modules):
-            if _k.startswith(key + "."):
+            if (
+                _k.startswith(_BARE_PLUGIN_PREFIXES)
+                or _PLUGIN_MODULE_PREFIX in _k
+            ):
                 sys.modules.pop(_k, None)
 
     # ---- 生命周期 ----
