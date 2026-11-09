@@ -91,8 +91,8 @@ label.f .hint { grid-column:2; color:var(--muted); font-size:11px; line-height:1
 .type-chips .tc:hover { border-color:var(--accent); color:var(--accent); }
 .type-chips .tc.on { background:var(--accent); border-color:var(--accent); color:#fff; }
 .topo { background:var(--bg); border:1px solid var(--border); border-radius:10px; padding:6px;
-  position:relative; overflow:auto; width:100%; box-sizing:border-box; }
-.topo.tall { min-height:440px; }
+  position:relative; overflow:hidden; width:100%; box-sizing:border-box; }
+.topo.tall { height:560px; }
 .topo-svg { position:absolute; top:0; left:0; pointer-events:none; z-index:1; }
 .topo-svg .tline { fill:none; stroke-width:1.4; }
 .topo-svg .tline.hit { stroke:var(--accent); }
@@ -181,7 +181,7 @@ label.f .hint { grid-column:2; color:var(--muted); font-size:11px; line-height:1
   .mnav-item.active { color:var(--accent); font-weight:600; }
   /* 拓扑三列 → 单列（手机） */
   .td-cols { grid-template-columns:1fr; }
-  .topo.tall { min-height:0; }
+  .topo.tall { height:62vh; }
   /* 弹窗：手机近全屏 + 二维码自适应 */
   .modal { width:100vw; max-width:100vw; height:100dvh; max-height:100dvh;
     border-radius:0; padding:16px; overflow:auto; }
@@ -200,3 +200,23 @@ label.f .hint { grid-column:2; color:var(--muted); font-size:11px; line-height:1
 @media (min-width:769px) {
   .mobile-nav { display:none; }
 }
+
+/* ===== Vue Flow 拓扑：Cloudflare Workers 风格绑定视图 ===== */
+.vue-flow { height:100%; }
+.vf-wrap .topo.tall { padding:4px; }
+.vf-wrap .bar { flex-wrap:wrap; }
+/* 去掉 Vue Flow 默认节点边框，卡片自身渲染 */
+.vue-flow__node { background:transparent; border:none; box-shadow:none; padding:0; border-radius:0; }
+.vue-flow__node.selected { box-shadow:none; }
+.vue-flow__node input, .vue-flow__node select { font-size:12px; }
+/* 连接桩 Handle */
+.vue-flow__handle { width:11px; height:11px; background:var(--accent); border:2px solid #fff;
+  box-shadow:0 0 0 1px var(--accent); }
+.vue-flow__handle:hover { background:#fff; }
+.vue-flow__edge path { stroke-linecap:round; }
+.vue-flow__edge.animated path { stroke-dasharray:6; animation:dashmove .7s linear infinite; }
+@keyframes dashmove { to { stroke-dashoffset:-24; } }
+/* 画布控件/背景 */
+.vue-flow__controls { box-shadow:0 1px 6px rgba(0,0,0,.12); border-radius:8px; overflow:hidden; }
+.vue-flow__minimap { border-radius:8px; overflow:hidden; }
+.vue-flow__attribution { display:none; }

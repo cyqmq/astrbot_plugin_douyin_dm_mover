@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+## [0.23.0] - 2026-11-10
+
+### Changed
+- 路由页拓扑改用 Vue Flow（@vue-flow/core 1.48.2）：Cloudflare Workers 风格绑定视图——来源/路由/目标群为带连接桩（Handle）的节点，贝塞尔曲线连线（含动画、命中/排除着色、箭头），节点可拖拽布局，画布可缩放平移。
+- 纯 DOM 拓扑渲染（topo-svg/topoPos/drawEdgesDom）移除；路由/目标卡片编辑保留（群号失焦提交避免重建丢焦点）。
+
 ## [0.22.0] - 2026-11-10
 
 ### Added
