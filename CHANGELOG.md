@@ -4,6 +4,15 @@
 
 ## [Unreleased]
 
+## [0.8.3] - 2026-11-09
+
+### Fixed
+- `qr.py` 安全验证判定：`verify_way` 为 `None` 时 `"verify" in None` 抛 `TypeError` 导致登录循环崩溃，改 `(last.get("verify_way") or "")`。
+- 发石者时间戳取错字段：`index_in_conversation` 是会话内序号非时间，导致前端 `Invalid Date`/1970；改取 `msg_time`/`create_time` 并统一秒级（毫秒自动换算）。
+
+### Changed
+- 发石者列表：类型映射中文（文本/视频卡片/图片/表情/语音/其他），昵称为空回退「用户 `<uid>`」。
+
 ## [0.8.2] - 2026-11-09
 
 ### Fixed

@@ -5,6 +5,8 @@ Douyin msg_type → 自有 MessageType（与 douyin_recv_msg.py 一致）：
 """
 from __future__ import annotations
 
+import time
+
 from dyf_core.model import InboundMessage, MessageType
 
 from .peer import is_outgoing, resolve_peer
@@ -12,6 +14,22 @@ from .peer import is_outgoing, resolve_peer
 _SKIP_TYPES = {50001}  # 对方已读
 
 VIDEO_CARD_TYPES = {8}
+
+
+def _timestamp_of(raw: dict) -> int:
+    """统一消息时间（秒级）：优先 msg_time/create_time，兼容毫秒，兜底当前时间。"""
+    for key in ("msg_time", "create_time", "timestamp", "msg_timestamp"):
+        v = raw.get(key)
+        if v in (None, ""):
+            continue
+        try:
+            ts = int(v)
+        except (TypeError, ValueError):
+            continue
+        if ts <= 0:
+            continue
+        return ts // 1000 if ts > 10**11 else ts
+    return int(time.time() * 1000) // 1000
 
 
 def _first_url(obj) -> str:
@@ -63,7 +81,7 @@ class DouyinConverter:
             text=text,
             media_urls=media_urls,
             card=card,
-            timestamp=int(raw.get("index_in_conversation", 0)) or 0,
+            timestamp=_timestamp_of(raw),
             is_outgoing=is_outgoing(sender, self_uid),
             raw=raw,
         )

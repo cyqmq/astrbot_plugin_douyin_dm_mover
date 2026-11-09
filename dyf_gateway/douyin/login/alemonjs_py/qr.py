@@ -249,7 +249,7 @@ async def poll_qr_confirm(http: DouyinHttpPy, token: str, options: dict | None =
         except Exception:
             await asyncio.sleep(poll_ms / 1000)
             continue
-        if verify_count < 3 and (last.get("error_code") == 1044 or last.get("verify") or "verify" in last.get("verify_way", "")):
+        if verify_count < 3 and (last.get("error_code") == 1044 or last.get("verify") or "verify" in (last.get("verify_way") or "")):
             verify_count += 1
             await status("verifying")
             raise RuntimeError("需要浏览器安全验证（当前 Python 后端暂不支持）")

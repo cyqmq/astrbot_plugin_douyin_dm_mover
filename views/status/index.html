@@ -137,12 +137,15 @@
   }
   function kv(k, v) { return '<b>' + esc(k) + '</b><span>' + v + '</span>'; }
 
+  const TYPE_NAMES = { text:'文本', video_card:'视频卡片', image:'图片', emoji:'表情', voice:'语音', other:'其他' };
+  const typeName = t => TYPE_NAMES[t] || t || '其他';
+
   async function refreshSenders() {
     const d = await apiGet('senders');
     const list = d.senders || [];
     $('senders').innerHTML = list.length ? list.map(s =>
-      '<li>' + esc(fmtTs(s.ts)) + ' · ' + esc(s.peer_name || s.peer_id || '未知') +
-      ' <span class="muted">[' + esc(s.type) + ']</span>' +
+      '<li>' + esc(fmtTs(s.ts)) + ' · ' + esc(s.peer_name || ('用户 ' + s.peer_id)) +
+      ' <span class="muted">[' + esc(typeName(s.type)) + ']</span>' +
       (s.text ? '<br><span class="muted">' + esc(s.text) + '</span>' : '') + '</li>'
     ).join('') : '<li class="empty">暂无</li>';
   }
