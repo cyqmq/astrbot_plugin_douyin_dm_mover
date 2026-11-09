@@ -57,6 +57,8 @@
     <button id="btnInstall" class="primary">安装登录依赖</button>
     <button id="btnReload" class="primary">重载插件</button>
     <button id="btnLogout" class="danger">登出</button>
+    <input id="mfaCode" placeholder="短信验证码" style="width:120px">
+    <button id="btnMfa">提交验证码</button>
     <button id="btnClear">清空搬运记录</button>
   </div>
 
@@ -113,6 +115,7 @@
 
   async function apiGet(ep) { try { return await V.apiGet(ep); } catch (e) { toast('请求失败: ' + e); return {}; } }
   async function apiPost(ep) { try { return await V.apiPost(ep, {}); } catch (e) { toast('请求失败: ' + e); return {}; } }
+  async function apiPostBody(ep, body) { try { return await V.apiPost(ep, body); } catch (e) { toast('请求失败: ' + e); return {}; } }
 
   async function refreshStatus() {
     const d = await apiGet('status');
@@ -185,6 +188,13 @@
     toast('正在重载插件 …');
     const d = await apiPost('reload');
     toast(d.detail || (d.ok ? '重载中' : '重载失败'));
+  };
+  $('btnMfa').onclick = async () => {
+    const code = $('mfaCode').value.trim();
+    if (!code) { toast('请输入验证码'); return; }
+    const d = await apiPostBody('mfa', { code: code });
+    toast(d.detail || (d.ok ? '已提交' : '提交失败'));
+    $('mfaCode').value = '';
   };
   $('btnLogout').onclick = async () => { const d = await apiPost('logout'); toast(d.detail || '已登出'); await refreshAll(); };
   $('btnClear').onclick = async () => { const d = await apiPost('records/clear'); toast(d.detail || '已清空'); await refreshRecords(); };

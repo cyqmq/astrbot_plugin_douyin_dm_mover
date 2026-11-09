@@ -55,6 +55,7 @@ class DashboardApi:
         reg("douyin_dm_mover/logs/clear", self.clear_logs, ["POST"], "dyf 清空日志")
         reg("douyin_dm_mover/install-alemonjs", self.install_alemonjs, ["POST"], "dyf 安装 @alemonjs/douyin 登录依赖")
         reg("douyin_dm_mover/reload", self.reload_plugin, ["POST"], "dyf 重载插件（刷新深层代码）")
+        reg("douyin_dm_mover/mfa", self.submit_mfa, ["POST"], "dyf 提交短信验证码")
 
     async def install_alemonjs(self):
         """一键安装 @alemonjs/douyin（Node 依赖）。"""
@@ -142,6 +143,20 @@ class DashboardApi:
     async def login(self):
         self._kick_login()
         return {"ok": True, "detail": "已触发登录"}
+
+    async def submit_mfa(self):
+        """接收 Web 配置页提交的短信验证码，喂给登录 MFA 流程。"""
+        try:
+            from astrbot.api.web import request as web_request
+
+            data = await web_request.json(default={}) or {}
+        except Exception:
+            data = {}
+        code = str((data or {}).get("code") or "").strip()
+        if not code:
+            return {"ok": False, "detail": "缺少验证码"}
+        self.gateway.submit_mfa_code(code)
+        return {"ok": True, "detail": "验证码已提交"}
 
     async def logout(self):
         ok = await self.gateway.logout()

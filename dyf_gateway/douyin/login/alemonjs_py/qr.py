@@ -170,7 +170,7 @@ def desktop_lite_passport_form_post(http: DouyinHttpPy, path: str, body: dict) -
         "Referer": "https://imdesktop.douyin.com",
     }
     res = http.request_json(url, "POST", headers=headers, body=body_wire)
-    return res.get("data") or {}
+    return res
 
 
 def send_qr_mfa_code(http: DouyinHttpPy, challenge: dict, verify_way: str) -> dict:

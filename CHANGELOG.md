@@ -4,6 +4,14 @@
 
 ## [Unreleased]
 
+## [0.8.2] - 2026-11-09
+
+### Fixed
+- `desktop_lite_passport_form_post` 多取一层 `.data`：原版 `requestJson().data`=完整 body，端口返回 `res.get("data")` 丢了顶层 `message`，导致 `send_code` 判不到 `message=="success"`、报"发送短信验证码失败: None"。改返回完整 body，`send_code`/`validate_code` 的 `message`/`data.ticket` 判定恢复。
+
+### Added
+- Web 配置页新增「提交验证码」输入框（`POST /douyin_dm_mover/mfa`），可直接喂码给登录 MFA 流程，无需依赖 QQ 群 `/dyf mfa` 指令。
+
 ## [0.8.1] - 2026-11-09
 
 ### Fixed
