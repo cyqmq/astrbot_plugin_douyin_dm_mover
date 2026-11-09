@@ -1,6 +1,6 @@
 <script setup>
-import { computed } from 'vue'
-import { store, ST_MAP } from '../composables/store.js'
+import { computed, watch } from 'vue'
+import { store, ST_MAP, apiGet } from '../composables/store.js'
 import logo from '../assets/logo.png'
 
 const NAV = [
@@ -14,7 +14,19 @@ const NAV = [
 
 const st = computed(() => ST_MAP[store.authState] || ST_MAP.idle)
 const stateLabel = computed(() => st.value[1])
-const stateSub = computed(() => (store.authState === 'ok' && store.authUid) ? ('uid ' + store.authUid) : st.value[2])
+const stateSub = computed(() => {
+  if (store.authState === 'ok') return store.profile.nickname || (store.authUid ? ('uid ' + store.authUid) : '已连接')
+  return st.value[2]
+})
+const avatar = computed(() => store.profile.avatar || logo)
+
+// 登录后拉一次账户档案
+watch(() => store.authState, async (s, o) => {
+  if (s === 'ok' && s !== o) {
+    const d = await apiGet('profile')
+    if (d.profile) store.profile = d.profile
+  }
+})
 </script>
 
 <template>
@@ -32,7 +44,8 @@ const stateSub = computed(() => (store.authState === 'ok' && store.authUid) ? ('
     </nav>
     <div class="side-foot">
       <div class="side-user" title="点击扫码登录" @click="store.modalOpen = true">
-        <span class="dot" :class="'dot-' + st[0]"></span>
+        <img v-if="store.authState === 'ok'" :src="avatar" class="side-avatar" alt="">
+        <span v-else class="dot" :class="'dot-' + st[0]"></span>
         <div style="flex:1;min-width:0">
           <div class="lbl">{{ stateLabel }}</div>
           <div class="sub">{{ stateSub }}</div>

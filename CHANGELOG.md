@@ -4,6 +4,14 @@
 
 ## [Unreleased]
 
+## [0.20.0] - 2026-11-10
+
+### Added
+- 账户档案：`alemonjs_py/profile.py::fetch_desktop_self_profile`（GET `/aweme/v1/web/user/profile/self/`，昵称/头像），登录 confirmed 后自动拉取一次存登录态；Web 侧栏已登录时显示昵称+头像。
+- 好友列表：`alemonjs_py/contact.py::fetch_friend_list`（familiar-list 全量分页，`version_code=21.6.0`，count≤100 循环 cursor，过滤 `user_canceled=0`/空 uid），`alemonjs_py` 导出。
+- 后端 API：`douyin_dm_mover/profile`（GET）、`douyin_dm_mover/friends`（GET，未登录返回空，已登录用会话 Cookie+桌面设备拉取）。
+- 桌面 REST 通用指纹 `desktop_rest_base_query`（device_platform=win32、screen 1707x1067、UA 去 Mozilla/ 作 browser_version、did/iid/awemeim_guid、channel=0，无 a_bogus）。
+
 ## [0.19.0] - 2026-11-10
 
 ### Changed

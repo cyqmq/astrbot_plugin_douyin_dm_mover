@@ -103,6 +103,7 @@ export const store = reactive({
   tab: 'overview',
   authState: 'idle',
   authUid: '',
+  profile: { uid: '', nickname: '', avatar: '' },
   status: {},
   senders: [],
   records: [],

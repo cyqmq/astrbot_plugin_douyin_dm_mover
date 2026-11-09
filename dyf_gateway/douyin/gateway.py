@@ -87,6 +87,8 @@ class DouyinGateway(MessageGateway):
         )
         self._login_task: asyncio.Task | None = None
         self._login_lock = threading.Lock()
+        self._profile: dict = {}          # 账户档案 {uid,nickname,avatar}（登录后拉取）
+        self._friends: list[dict] = []    # 好友列表缓存（familiar-list 全量）
 
     @staticmethod
     def _parse_list(value) -> list[str]:
@@ -251,6 +253,10 @@ class DouyinGateway(MessageGateway):
             if dev:
                 self._device_id = str(dev)
             self._auth.uid = self._self_uid
+            # 账户档案（昵称/头像）：仅纯 Python 登录会带回，存为登录态附加信息
+            if getattr(result, "profile", None):
+                self._profile = result.profile
+                self._friends = []
             # 登录成功：把 cookie/uid/device 写回 AstrBot 配置并落盘，确保配置页可见
             # 且配置层有兜底（session.json 亦在 data/plugin_data 下，更新插件不丢）。
             self._persist_login_config(cookie_str, uid, dev)

@@ -60,6 +60,8 @@ class DashboardApi:
         reg("douyin_dm_mover/mfa", self.submit_mfa, ["POST"], "dyf 提交短信验证码")
         reg("douyin_dm_mover/config/get", self.config_get, ["GET"], "dyf 读取配置 + schema")
         reg("douyin_dm_mover/config/set", self.config_set, ["POST"], "dyf 保存配置")
+        reg("douyin_dm_mover/profile", self.profile, ["GET"], "dyf 账户昵称/头像")
+        reg("douyin_dm_mover/friends", self.friends, ["GET"], "dyf 好友列表（familiar-list）")
 
     async def install_alemonjs(self):
         """一键安装 @alemonjs/douyin（Node 依赖）。"""
@@ -214,6 +216,43 @@ class DashboardApi:
             asyncio.create_task(self._do_reload(sm))
         except Exception as e:
             logger.warning(f"[dyf] 自动重载失败（可手动点「重载插件」）: {e}")
+
+    async def profile(self):
+        """账户档案（昵称/头像）：登录后缓存于 gateway，未登录返回空。"""
+        p = getattr(self.gateway, "_profile", None) or {}
+        if p:
+            return {"profile": p}
+        # 未登录/无缓存：回退到登录态基本字段
+        uid = getattr(self.gateway, "self_uid", None)
+        return {"profile": {"uid": str(uid or ""), "nickname": "", "avatar": ""}}
+
+    async def friends(self):
+        """好友列表（familiar-list 全量）：未登录返回空；已缓存直接返回。"""
+        gw = self.gateway
+        if gw.auth_state.value != "ok":
+            return {"friends": [], "detail": "未登录"}
+        cached = getattr(gw, "_friends", None) or []
+        if cached:
+            return {"friends": cached, "cached": True}
+        try:
+            from dyf_gateway.douyin.login.alemonjs_py import (
+                DouyinHttpPy,
+                fetch_friend_list,
+            )
+
+            auth = getattr(gw, "_auth", None)
+            cookie_str = getattr(auth, "cookie_str", "") or ""
+            if not cookie_str:
+                return {"friends": [], "detail": "无会话 Cookie"}
+            dev = getattr(gw, "_device_id", "") or "0"
+            http = DouyinHttpPy(cookie_str)
+            http.set_device({"deviceId": dev, "installId": "0", "guid": "0"})
+            friends = await asyncio.to_thread(fetch_friend_list, http)
+            gw._friends = friends
+            return {"friends": friends}
+        except Exception as e:
+            logger.warning(f"[dyf] 拉取好友列表失败: {e}")
+            return {"friends": [], "detail": f"拉取失败: {e}"}
 
     async def logout(self):
         ok = await self.gateway.logout()

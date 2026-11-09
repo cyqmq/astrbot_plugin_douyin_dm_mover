@@ -221,6 +221,14 @@ def _session_from_confirmed(http: DouyinHttpPy, qr_token: str, user_data: dict |
     session = {"platformUid": platform_uid, "cookies": http.get_cookies(), "qrToken": qr_token}
     if user_data:
         session["userData"] = user_data
+    # 登录 confirmed 后拉一次账户档案（昵称/头像），失败不阻断登录
+    try:
+        from .profile import fetch_desktop_self_profile
+
+        session["profile"] = fetch_desktop_self_profile(http)
+    except Exception as exc:
+        session["profile"] = {"uid": platform_uid, "nickname": "", "avatar": ""}
+        session["profileError"] = str(exc)
     return session
 
 

@@ -71,4 +71,5 @@ class AlemonsPyLogin:
             uid=session["platformUid"],
             device_id=device_id,
             user_data=session.get("userData"),
+            profile=session.get("profile"),
         )

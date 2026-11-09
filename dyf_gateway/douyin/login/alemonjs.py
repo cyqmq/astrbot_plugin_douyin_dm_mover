@@ -59,11 +59,12 @@ async def ensure_alemonjs(install: bool = False, timeout: int = 300) -> tuple[bo
 class AlemonjsResult:
     """登录成功结果：cookies 串（"k=v; k=v"）+ uid + 可选 device_id/user_data。"""
 
-    def __init__(self, cookie_str: str, uid: str, device_id: str | None = None, user_data: dict | None = None):
+    def __init__(self, cookie_str: str, uid: str, device_id: str | None = None, user_data: dict | None = None, profile: dict | None = None):
         self.cookie_str = cookie_str
         self.uid = uid
         self.device_id = device_id
         self.user_data = user_data or {}
+        self.profile = profile or {}
 
 
 class AlemonjsLogin:
