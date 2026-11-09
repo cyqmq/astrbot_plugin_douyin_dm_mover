@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>抖音私信搬运</title>
 <script src="/api/plugin/page/bridge-sdk.js"></script>
-<script src="./assets/x6.js"></script>
 <style>
   :root { --bg:#f5f6f8; --card:#fff; --text:#1f2328; --muted:#6a737d; --border:#e1e4e8;
           --ok:#2da44e; --bad:#cf222e; --warn:#9a6700; --accent:#0969da; --side:#18181b; }
@@ -101,26 +100,42 @@
   label.f .hint { grid-column:2; color:var(--muted); font-size:11px; line-height:1.4;
                   margin-top:-3px; }
   /* 路由卡片编辑器 */
-  .topo .tnd:hover rect { stroke:var(--accent); }
   .type-chips { display:flex; flex-wrap:wrap; gap:5px; }
   .type-chips .tc { padding:3px 10px; border:1px solid var(--border); border-radius:999px;
                     font-size:12px; color:var(--muted); cursor:pointer; user-select:none; transition:.1s; }
   .type-chips .tc:hover { border-color:var(--accent); color:var(--accent); }
   .type-chips .tc.on { background:var(--accent); border-color:var(--accent); color:#fff; }
   /* 拓扑图 */
-  .topo { background:var(--bg); border:1px solid var(--border); border-radius:10px; padding:6px; }
+  .topo { background:var(--bg); border:1px solid var(--border); border-radius:10px; padding:6px;
+    position:relative; overflow:auto; }
   .topo.tall { min-height:440px; }
-  .topo.tall .x6-graph { min-height:440px; }
-  /* 图上卡片编辑（X6 html 节点） */
+  .topo-svg { position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:1; }
+  .topo-svg .tline { fill:none; stroke-width:1.4; }
+  .topo-svg .tline.hit { stroke:var(--accent); }
+  .topo-svg .tline.off { stroke:var(--muted); stroke-dasharray:3 3; }
+  .topo-svg .tline.dim { stroke:var(--muted); opacity:.45; }
+  .td-cols { position:relative; z-index:2; display:grid; grid-template-columns:minmax(150px,1fr) minmax(250px,1.4fr) minmax(150px,1fr);
+    gap:14px; }
+  .td-col { min-width:0; }
+  .td-colhead { font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase;
+    letter-spacing:.4px; margin-bottom:8px; }
+  .td-list { display:flex; flex-direction:column; gap:12px; }
+  .src-card { font-size:12px; color:var(--text); background:var(--card);
+    border:1px solid var(--border2); border-radius:10px; padding:9px 11px; }
+  .src-card.empty { border-style:dashed; text-align:center; padding:14px 11px; }
+  .src-card .sc-name { font-weight:600; }
+  .src-card .sc-sub { color:var(--muted); font-size:11px; margin-top:2px; }
+  /* 图上卡片编辑（真实 HTML 表单） */
   .route-card, .target-card { font-size:12px; color:var(--text);
     background:var(--card); border:1px solid var(--border2); border-radius:10px;
-    padding:8px 10px; height:100%; box-sizing:border-box; overflow:hidden;
-    display:flex; flex-direction:column; gap:5px; }
+    padding:8px 10px; display:flex; flex-direction:column; gap:5px;
+    box-shadow:0 1px 4px rgba(0,0,0,.08); }
   .route-card:hover, .target-card:hover { border-color:var(--accent); }
-  .route-card input, .route-card select { font-size:12px; padding:2px 5px;
-    background:var(--bg); border:1px solid var(--border); border-radius:5px;
-    color:var(--text); width:100%; box-sizing:border-box; min-width:0; }
-  .route-card input:focus, .route-card select:focus { border-color:var(--accent); outline:none; }
+  .route-card input, .route-card select, .target-card input, .target-card select {
+    font-size:12px; padding:2px 5px; background:var(--bg); border:1px solid var(--border);
+    border-radius:5px; color:var(--text); width:100%; box-sizing:border-box; min-width:0; }
+  .route-card input:focus, .route-card select:focus,
+  .target-card input:focus, .target-card select:focus { border-color:var(--accent); outline:none; }
   .rc-head { display:flex; gap:5px; align-items:center; }
   .rc-head input { flex:1; font-weight:600; }
   .rc-btns { display:flex; gap:3px; }
@@ -133,24 +148,7 @@
   .target-card .tc-head { font-weight:600; }
   .target-card .tc-sub { color:var(--muted); font-size:11px; }
   .target-card .tc-n { color:var(--accent); }
-  .topo svg { display:block; width:100%; height:auto; }
-  .topo .tnd { cursor:pointer; }
-  .topo .tnd rect { fill:var(--card); stroke:var(--border2); stroke-width:1.2; rx:8; }
-  .topo .tnd:hover rect { stroke:var(--accent); }
-  .topo .tnd.sel rect { stroke:var(--accent); stroke-width:2; }
-  .topo .tnd text { fill:var(--text); font-size:12px; }
-  .topo .tnd .tsub { fill:var(--muted); font-size:10px; }
-  .topo .tcol { fill:var(--muted); font-size:11px; font-weight:600; }
-  .topo .tline { fill:none; stroke:var(--border2); stroke-width:1.3; }
-  .topo .tline.hit { stroke:var(--accent); }
-  .topo .tline.dim { stroke:var(--border); stroke-dasharray:3 3; }
-  .topo .tline.off { stroke:var(--border); opacity:.35; }
-  .topo .tline:hover { stroke-width:2.2; }
   .rsep { height:1px; background:var(--border); margin:14px 0 4px; }
-  table.routes { width:100%; border-collapse:collapse; font-size:12px; margin-top:6px; }
-  table.routes th,table.routes td { border:1px solid var(--border); padding:4px 6px; }
-  table.routes input { width:100%; border:none; background:transparent; color:var(--text); }
-  table.routes th { color:var(--muted); font-weight:500; }
   .tab { display:none; } .tab.active { display:block; }
   .save-row { margin-top:12px; }
   .chips { display:flex; flex-wrap:wrap; gap:5px; align-items:center; }
@@ -627,99 +625,107 @@
   const TOPO_COLS = ['抖音来源', '路由', '目标群'];
   let _topoKey = '';
   function renderTopo(force) {
-    // 数据签名：路由/来源未变时不重建（保留 X6 视口缩放/平移，自动刷新不闪回）
+    // 数据签名：路由/来源未变时不重建（自动刷新不闪回）
     const routes = collectRoutes();
     const key = JSON.stringify({ r: routes, s: _sendersCache.map(x => x.peer_id + '|' + x.peer_name) });
     if (!force && key === _topoKey) return;
     _topoKey = key;
-    if (window.X6 && window.X6.Graph) {
-      try { renderTopoX6(routes); return; } catch (e) { /* 回退手写 SVG */ }
-    }
-    renderTopoSvg();
+    renderTopoDom(routes);
   }
-  function renderTopoSvg() {
+  // ---- 纯 DOM 拓扑：SVG 连线层 + 三列真实 HTML 卡片（无 X6 遮罩） ----
+  function renderTopoDom(routes) {
     const box = document.getElementById('topo');
     if (!box) return;
-    const W = Math.max(560, box.clientWidth || 900);
-    const routes = collectRoutes();
     const sources = _sendersCache.length ? _sendersCache : [{ peer_name: '抖音来源', peer_id: '' }];
-    // 目标节点 = 各路由 target 去重
     const targets = [];
     routes.forEach(r => { const t = r.target; if (t && !targets.includes(t)) targets.push(t); });
-    const colH = 64;
-    const rowGap = 26;
-    const colX = [14, W / 2 - 95, W - 14 - 190];
-    const colW = [180, 190, 190];
-    const n = Math.max(sources.length, routes.length, targets.length, 1);
-    const H = 46 + n * (colH + rowGap);
-    const yOf = (i, count) => 40 + i * (colH + rowGap) + (n - count) * (colH + rowGap) / 2;
-    let s = '<svg viewBox="0 0 ' + W + ' ' + H + '" xmlns="http://www.w3.org/2000/svg">';
-    // 列标题
-    TOPO_COLS.forEach((t, i) => { s += '<text class="tcol" x="' + colX[i] + '" y="20">' + esc(t) + '</text>'; });
-    // 连线：来源→路由
+    box.innerHTML =
+      '<div class="topo-svg"></div>' +
+      '<div class="td-cols">' +
+        '<div class="td-col"><div class="td-colhead">' + esc(TOPO_COLS[0]) + '</div><div class="td-list" id="td-src"></div></div>' +
+        '<div class="td-col"><div class="td-colhead">' + esc(TOPO_COLS[1]) + '</div><div class="td-list" id="td-route"></div></div>' +
+        '<div class="td-col"><div class="td-colhead">' + esc(TOPO_COLS[2]) + '</div><div class="td-list" id="td-tgt"></div></div>' +
+      '</div>';
+    const sList = box.querySelector('#td-src'), rList = box.querySelector('#td-route'), tList = box.querySelector('#td-tgt');
+    // 来源（只读）
+    sources.forEach((src, i) => {
+      const c = document.createElement('div'); c.className = 'src-card';
+      c.innerHTML = '<div class="sc-name">' + esc((src.peer_name || ('用户 ' + src.peer_id)).slice(0, 16)) + '</div>' +
+        '<div class="sc-sub">' + (src.peer_id ? ('uid ' + esc(src.peer_id)) : '抖音私信') + '</div>';
+      sList.appendChild(c);
+    });
+    // 空路由占位
+    if (!routes.length) {
+      const e = document.createElement('div'); e.className = 'src-card empty';
+      e.innerHTML = '<div class="sc-name" style="color:var(--muted)">暂无路由</div>' +
+        '<div class="sc-sub" style="color:var(--muted)">点「+ 添加路由」</div>';
+      rList.appendChild(e);
+    }
+    // 路由（可编辑卡片）
+    routes.forEach((r, i) => rList.appendChild(routeCardEl(i)));
+    // 目标（可编辑卡片）
+    targets.forEach((t, i) => tList.appendChild(targetCardEl(t, i)));
+    drawEdgesDom();
+  }
+  function topoPos(box, el) {
+    const br = el.getBoundingClientRect(), bb = box.getBoundingClientRect();
+    return { x: br.left - bb.left, y: br.top - bb.top, w: br.width, h: br.height };
+  }
+  function drawEdgesDom() {
+    const box = document.getElementById('topo');
+    if (!box) return;
+    const svg = box.querySelector('.topo-svg');
+    if (!svg) return;
+    const cs = getComputedStyle(document.documentElement);
+    const accent = cs.getPropertyValue('--accent').trim() || '#0969da';
+    const muted = cs.getPropertyValue('--muted').trim() || '#666';
+    const sources = _sendersCache.length ? _sendersCache : [{ peer_name: '抖音来源', peer_id: '' }];
+    const routes = _routes;
+    const targets = [];
+    routes.forEach(r => { const t = r.target; if (t && !targets.includes(t)) targets.push(t); });
+    const srcEls = box.querySelectorAll('#td-src .src-card');
+    const rEls = box.querySelectorAll('#td-route .src-card:not(.empty)');
+    const tEls = box.querySelectorAll('#td-tgt .target-card');
+    let p = '';
+    const bez = (x1, y1, x2, y2, cls) => {
+      const mx = (x1 + x2) / 2;
+      p += '<path class="tline ' + cls + '" d="M' + x1 + ' ' + y1 + ' C' + mx + ' ' + y1 + ' ' + mx + ' ' + y2 + ' ' + x2 + ' ' + y2 + '"/>';
+    };
     sources.forEach((src, si) => {
-      const sy = yOf(si, sources.length) + colH / 2;
+      const se = srcEls[si]; if (!se) return;
+      const sp = topoPos(box, se);
+      const sy = sp.y + sp.h / 2, x1 = sp.x + sp.w;
       routes.forEach((r, ri) => {
-        const rx = colX[1] + colW[1];
-        const ry = yOf(ri, routes.length) + colH / 2;
+        const re = rEls[ri]; if (!re) return;
+        const rp = topoPos(box, re);
         const inc = (r.match && r.match.senders_include) || [];
         const exc = (r.match && r.match.senders_exclude) || [];
         const sid = src.peer_id || '';
-        const hit = !inc.length && !exc.length;
         const included = inc.includes(sid) || (!inc.length);
         const excluded = exc.includes(sid);
-        let cls = 'tline';
-        if (!excluded && included) cls += ' hit';
-        else cls += (inc.length || exc.length) ? ' off' : ' dim';
-        const x1 = colX[0] + colW[0], x2 = rx;
-        const mx = (x1 + x2) / 2;
-        s += '<path class="' + cls + '" d="M' + x1 + ' ' + sy + ' C' + mx + ' ' + sy + ' ' + mx + ' ' + ry + ' ' + x2 + ' ' + ry + '" data-sr="' + si + '-' + ri + '"/>';
+        const any = inc.length || exc.length;
+        let cls = 'hit';
+        if (excluded || !included) cls = 'off';
+        else if (!any) cls = 'dim';
+        bez(x1, sy, rp.x, rp.y + rp.h / 2, cls);
       });
     });
-    // 连线：路由→目标
     routes.forEach((r, ri) => {
-      const ry = yOf(ri, routes.length) + colH / 2;
+      const re = rEls[ri]; if (!re) return;
       const ti = targets.indexOf(r.target);
       if (ti < 0) return;
-      const ty = yOf(ti, targets.length) + colH / 2;
-      const x1 = colX[1] + colW[1], x2 = colX[2];
-      const mx = (x1 + x2) / 2;
-      s += '<path class="tline hit" d="M' + x1 + ' ' + ry + ' C' + mx + ' ' + ry + ' ' + mx + ' ' + ty + ' ' + x2 + ' ' + ty + '"/>';
+      const te = tEls[ti]; if (!te) return;
+      const rp = topoPos(box, re), tp = topoPos(box, te);
+      bez(rp.x + rp.w, rp.y + rp.h / 2, tp.x, tp.y + tp.h / 2, 'hit');
     });
-    // 来源节点
-    sources.forEach((src, i) => {
-      const y = yOf(i, sources.length);
-      const name = (src.peer_name || ('用户 ' + src.peer_id)).slice(0, 18);
-      s += '<g class="tnd" data-t="src" data-i="' + i + '">' +
-        '<rect x="' + colX[0] + '" y="' + y + '" width="' + colW[0] + '" height="' + colH + '"/>' +
-        '<text x="' + (colX[0] + 12) + '" y="' + (y + 26) + '">' + esc(name) + '</text>' +
-        '<text class="tsub" x="' + (colX[0] + 12) + '" y="' + (y + 44) + '">' + (src.peer_id ? ('uid ' + esc(src.peer_id)) : '抖音私信') + '</text></g>';
-    });
-    // 路由节点
-    routes.forEach((r, i) => {
-      const y = yOf(i, routes.length);
-      const types = (r.match && r.match.types) || [];
-      const tlabel = types.length ? types.map(typeName).join('、') : '全部类型';
-      s += '<g class="tnd" data-t="route" data-i="' + i + '">' +
-        '<rect x="' + colX[1] + '" y="' + y + '" width="' + colW[1] + '" height="' + colH + '"/>' +
-        '<text x="' + (colX[1] + 12) + '" y="' + (y + 26) + '">' + esc(r.name || 'route') + '</text>' +
-        '<text class="tsub" x="' + (colX[1] + 12) + '" y="' + (y + 44) + '">' + esc(tlabel) + '</text></g>';
-    });
-    // 目标节点
-    targets.forEach((t, i) => {
-      const y = yOf(i, targets.length);
-      const m = String(t).match(/^([^:]*):GroupMessage:(.*)$/);
-      const g = m ? m[2] : t;
-      const ad = m ? m[1] : '';
-      s += '<g class="tnd" data-t="target" data-i="' + i + '">' +
-        '<rect x="' + colX[2] + '" y="' + y + '" width="' + colW[2] + '" height="' + colH + '"/>' +
-        '<text x="' + (colX[2] + 12) + '" y="' + (y + 26) + '">群 ' + esc(g) + '</text>' +
-        '<text class="tsub" x="' + (colX[2] + 12) + '" y="' + (y + 44) + '">' + esc(ad || '—') + '</text></g>';
-    });
-    s += '</svg>';
-    box.innerHTML = s;
+    svg.setAttribute('width', box.scrollWidth);
+    svg.setAttribute('height', box.scrollHeight);
+    svg.innerHTML = p;
   }
-  let _x6 = null;
+  function refreshEdgesDom() { drawEdgesDom(); updateTopoKey(); }
+  function updateTopoKey() {
+    _topoKey = JSON.stringify({ r: collectRoutes(), s: _sendersCache.map(x => x.peer_id + '|' + x.peer_name) });
+  }
   function routeCardEl(i) {
     const r = _routes[i] || { name: '', target: '', match: { types: [], senders_include: [], senders_exclude: [] } };
     const u = umoSplit(r.target);
@@ -740,10 +746,10 @@
       '</div></div>' +
       '<div class="rc-row"><span>发送者包含</span><input data-e="inc" placeholder="逗号分隔 uid" value="' + esc((r.match && (r.match.senders_include || [])).join(',')) + '"></div>' +
       '<div class="rc-row"><span>发送者排除</span><input data-e="exc" placeholder="逗号分隔 uid" value="' + esc((r.match && (r.match.senders_exclude || [])).join(',')) + '"></div>';
-    // 输入类：写回 _routes 并只刷新连线（不重建节点，保持焦点）
-    const onInput = () => { const before = umoOf(el); commitRoute(i, el); if (umoOf(el) !== before) renderTopo(true); else refreshEdgesX6(); };
+    // 输入：写回 _routes，目标变化才重建，否则仅刷新连线（保持焦点）
+    const onInput = () => { const before = umoOf(el); commitRoute(i, el); if (umoOf(el) !== before) renderTopo(true); else refreshEdgesDom(); };
     el.querySelectorAll('input, select').forEach(inp => inp.addEventListener('input', onInput));
-    el.querySelectorAll('[data-rt]').forEach(tc => tc.onclick = () => { tc.classList.toggle('on'); commitRoute(i, el); });
+    el.querySelectorAll('[data-rt]').forEach(tc => tc.onclick = () => { tc.classList.toggle('on'); commitRoute(i, el); refreshEdgesDom(); });
     el.querySelector('[data-a="del"]').onclick = () => { _routes.splice(i, 1); renderTopo(true); };
     el.querySelector('[data-a="up"]').onclick = () => { if (i > 0) { const t = _routes[i-1]; _routes[i-1] = _routes[i]; _routes[i] = t; renderTopo(true); } };
     el.querySelector('[data-a="down"]').onclick = () => { if (i < _routes.length - 1) { const t = _routes[i+1]; _routes[i+1] = _routes[i]; _routes[i] = t; renderTopo(true); } };
@@ -771,116 +777,6 @@
     };
     el.querySelectorAll('input, select').forEach(inp => inp.addEventListener('change', apply));
     return el;
-  }
-  function drawEdgesX6() {
-    const cs = getComputedStyle(document.documentElement);
-    const accent = cs.getPropertyValue('--accent').trim() || '#0969da';
-    const muted = cs.getPropertyValue('--muted').trim() || '#666';
-    const sources = _sendersCache.length ? _sendersCache : [{ peer_name: '抖音来源', peer_id: '' }];
-    const routes = _routes;
-    const targets = [];
-    routes.forEach(r => { const t = r.target; if (t && !targets.includes(t)) targets.push(t); });
-    _x6.getEdges().forEach(e => _x6.removeEdge(e.id));
-    // 边：来源→路由
-    sources.forEach((src, si) => {
-      routes.forEach((r, ri) => {
-        const inc = (r.match && r.match.senders_include) || [];
-        const exc = (r.match && r.match.senders_exclude) || [];
-        const sid = src.peer_id || '';
-        const included = inc.includes(sid) || (!inc.length);
-        const excluded = exc.includes(sid);
-        const any = inc.length || exc.length;
-        let strokeColor = accent, dash = '';
-        if (excluded || !included) { strokeColor = muted; dash = '3 3'; }
-        else if (any) { strokeColor = accent; }
-        _x6.addEdge({ source: 'src-' + si, target: 'route-' + ri, zIndex: -1,
-          attrs: { line: { stroke: strokeColor, strokeWidth: 1.3, strokeDasharray: dash,
-            targetMarker: { name: 'block', size: 6, fill: strokeColor } } } });
-      });
-    });
-    // 边：路由→目标
-    routes.forEach((r, ri) => {
-      const ti = targets.indexOf(r.target);
-      if (ti < 0) return;
-      _x6.addEdge({ source: 'route-' + ri, target: 'tgt-' + ti, zIndex: -1,
-        attrs: { line: { stroke: accent, strokeWidth: 1.3,
-          targetMarker: { name: 'block', size: 6, fill: accent } } } });
-    });
-  }
-  function updateTopoKey() {
-    _topoKey = JSON.stringify({ r: collectRoutes(), s: _sendersCache.map(x => x.peer_id + '|' + x.peer_name) });
-  }
-  function refreshEdgesX6() { if (_x6) { drawEdgesX6(); updateTopoKey(); } }
-  function renderTopoX6(routes) {
-    const box = document.getElementById('topo');
-    if (!box) return;
-    const W = Math.max(560, box.clientWidth || 900);
-    if (!routes) routes = collectRoutes();
-    const sources = _sendersCache.length ? _sendersCache : [{ peer_name: '抖音来源', peer_id: '' }];
-    const targets = [];
-    routes.forEach(r => { const t = r.target; if (t && !targets.includes(t)) targets.push(t); });
-    const colW = 250, rowGap = 34;
-    const colH = 150, tgtH = 64;
-    const colX = [20, W / 2 - colW / 2, W - colW - 20];
-    const n = Math.max(sources.length, routes.length, targets.length, 1);
-    const H = Math.max(230, 50 + n * (Math.max(colH, tgtH) + rowGap));
-    const yOf = (i, count, h) => 46 + i * (Math.max(colH, tgtH) + rowGap) + (n - count) * (Math.max(colH, tgtH) + rowGap) / 2;
-    const cs = getComputedStyle(document.documentElement);
-    const fill = cs.getPropertyValue('--card').trim() || '#fff';
-    const stroke = cs.getPropertyValue('--border2').trim() || '#888';
-    const accent = cs.getPropertyValue('--accent').trim() || '#0969da';
-    const muted = cs.getPropertyValue('--muted').trim() || '#666';
-    const textColor = cs.getPropertyValue('--text').trim() || '#222';
-    if (!_x6) {
-      _x6 = new window.X6.Graph({
-        container: box, width: W, height: H,
-        panning: false,
-        interacting: { nodeMovable: () => false, edgeMovable: () => false,
-          edgeLabelMovable: () => false, arrowheadMovable: () => false,
-          vertexMovable: () => false },
-        mousewheel: { enabled: true, modifiers: ['ctrl', 'meta'] },
-        connecting: { connector: { name: 'smooth', args: { direction: 'H' } } },
-        grid: false, background: { color: 'transparent' },
-      });
-    } else {
-      _x6.resize(W, H);
-    }
-    _x6.clearCells();
-    // 列标题
-    TOPO_COLS.forEach((t, i) => {
-      _x6.addNode({ shape: 'rect', x: colX[i], y: 8, width: colW, height: 24, zIndex: 2,
-        attrs: { body: { fill: 'transparent', stroke: 'transparent' },
-                 label: { text: t, fill: muted, fontSize: 11, fontWeight: '600' } } });
-    });
-    // 来源节点（只读）
-    sources.forEach((src, i) => {
-      _x6.addNode({ id: 'src-' + i, shape: 'rect', x: colX[0], y: yOf(i, sources.length, colH),
-        width: colW, height: colH,
-        attrs: { body: { fill, stroke, rx: 8, strokeWidth: 1.2 },
-                 label: { text: (src.peer_name || ('用户 ' + src.peer_id)).slice(0, 16),
-                          fill: textColor, fontSize: 12,
-                          textWrap: { width: colW - 16, height: colH - 10, textAnchor: 'middle' } } } });
-    });
-    // 空路由占位
-    if (!routes.length) {
-      _x6.addNode({ shape: 'rect', x: colX[1], y: yOf(0, 1, colH), width: colW, height: colH,
-        attrs: { body: { fill: 'transparent', stroke: stroke, strokeDasharray: '4 4', rx: 8 },
-                 label: { text: '暂无路由\n点「+ 添加路由」', fill: muted, fontSize: 11,
-                          textWrap: { width: colW - 16, height: colH - 10, textAnchor: 'middle' } } } });
-    }
-    // 路由节点：HTML 可编辑卡片（真实卡片编辑）
-    routes.forEach((r, i) => {
-      _x6.addNode({ id: 'route-' + i, shape: 'html', x: colX[1], y: yOf(i, routes.length, colH),
-        width: colW, height: colH, zIndex: 3,
-        html: () => routeCardEl(i) });
-    });
-    // 目标节点：HTML 卡片（只读展示，去重后的目标群）
-    targets.forEach((t, i) => {
-      _x6.addNode({ id: 'tgt-' + i, shape: 'html', x: colX[2], y: yOf(i, targets.length, tgtH),
-        width: colW, height: tgtH, zIndex: 3,
-        html: () => targetCardEl(t, i) });
-    });
-    drawEdgesX6();
   }
 
   async function loadConfig() {
