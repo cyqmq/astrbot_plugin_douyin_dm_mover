@@ -33,11 +33,12 @@ def _qr_data_url(content: str) -> str | None:
 
 
 class DashboardApi:
-    def __init__(self, context, gateway, forward_manager, logring: LogRing | None = None):
+    def __init__(self, context, gateway, forward_manager, logring: LogRing | None = None, config_obj=None):
         self.context = context
         self.gateway = gateway
         self.fm = forward_manager
         self.logring = logring or LogRing()
+        self._config_obj = config_obj
         self._last_refresh_ts = 0.0
 
     # ---- 注册 ----
@@ -56,6 +57,8 @@ class DashboardApi:
         reg("douyin_dm_mover/install-alemonjs", self.install_alemonjs, ["POST"], "dyf 安装 @alemonjs/douyin 登录依赖")
         reg("douyin_dm_mover/reload", self.reload_plugin, ["POST"], "dyf 重载插件（刷新深层代码）")
         reg("douyin_dm_mover/mfa", self.submit_mfa, ["POST"], "dyf 提交短信验证码")
+        reg("douyin_dm_mover/config/get", self.config_get, ["GET"], "dyf 读取配置 + schema")
+        reg("douyin_dm_mover/config/set", self.config_set, ["POST"], "dyf 保存配置")
 
     async def install_alemonjs(self):
         """一键安装 @alemonjs/douyin（Node 依赖）。"""
@@ -157,6 +160,45 @@ class DashboardApi:
             return {"ok": False, "detail": "缺少验证码"}
         self.gateway.submit_mfa_code(code)
         return {"ok": True, "detail": "验证码已提交"}
+
+    @staticmethod
+    def _load_schema() -> dict:
+        import json as _json
+        import os
+
+        path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "_conf_schema.json")
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                return _json.load(f)
+        except Exception:
+            return {}
+
+    async def config_get(self):
+        """读取当前配置与 schema（配置页渲染表单用）。"""
+        return {"config": dict(self.fm.config), "schema": self._load_schema()}
+
+    async def config_set(self):
+        """保存配置：合并更新到运行配置并写回 AstrBot 配置，提示重载生效。"""
+        try:
+            from astrbot.api.web import request as web_request
+
+            data = await web_request.json(default={}) or {}
+        except Exception:
+            data = {}
+        updates = (data or {}).get("config") or {}
+        if not isinstance(updates, dict) or not updates:
+            return {"ok": False, "detail": "缺少 config 更新"}
+        cfg = self.fm.config
+        for k, v in updates.items():
+            cfg[k] = v
+        if self._config_obj is not None:
+            save = getattr(self._config_obj, "save_config", None)
+            if save is not None:
+                try:
+                    save()
+                except Exception as e:
+                    return {"ok": False, "detail": f"配置保存失败: {e}"}
+        return {"ok": True, "detail": "已保存，请点「重载插件」生效"}
 
     async def logout(self):
         ok = await self.gateway.logout()

@@ -4,6 +4,13 @@
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-11-09
+
+### Added
+- Web 配置页重写：新增 `config/get` + `config/set` 后端端点（读当前配置 + schema、写回 AstrBotConfig 并提示重载生效）。
+- 配置表单（33 项分组：登录/转发/限流/去重/重试/过滤/告警）+ **路由表编辑器**（增删改路由项：name/target/types/senders_include/senders_exclude），改配置后点「重载插件」生效。
+- 体验优化：登录成功后二维码区显示「已登录」；自动刷新间隔可调（`autoSec`）；发石者/记录项悬停显示原始 detail。
+
 ## [0.8.3] - 2026-11-09
 
 ### Fixed

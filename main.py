@@ -59,7 +59,7 @@ class DouyinForwardPlugin(Star):
         self.forward_manager = ForwardManager(context, cfg)
         self.listener = MessageListener(self.gateway, self.forward_manager)
         self.logring = LogRing()
-        self.dashboard = DashboardApi(context, self.gateway, self.forward_manager, self.logring)
+        self.dashboard = DashboardApi(context, self.gateway, self.forward_manager, self.logring, config_obj=config)
         self.dashboard.register()
         self._tasks: list[asyncio.Task] = []
 

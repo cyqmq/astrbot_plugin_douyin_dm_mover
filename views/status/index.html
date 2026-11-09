@@ -13,7 +13,7 @@
   * { box-sizing:border-box; }
   body { margin:0; padding:16px; background:var(--bg); color:var(--text);
          font:14px/1.5 -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif; }
-  .wrap { max-width:960px; margin:0 auto; }
+  .wrap { max-width:1020px; margin:0 auto; }
   h1 { font-size:18px; margin:0 0 12px; }
   .bar { display:flex; gap:8px; align-items:center; margin-bottom:14px; flex-wrap:wrap; }
   button { border:1px solid var(--border); background:var(--card); color:var(--text);
@@ -42,6 +42,20 @@
           font:12px/1.6 ui-monospace,SFMono-Regular,Consolas,monospace; white-space:pre-wrap;
           word-break:break-all; }
   .lvl-error { color:var(--bad); } .lvl-warning { color:var(--warn); } .lvl-info { color:var(--muted); }
+  input[type=text],input[type=number],input[type=password],textarea,select {
+    border:1px solid var(--border); background:var(--bg); color:var(--text);
+    padding:5px 8px; border-radius:5px; font-size:13px; }
+  textarea { font-family:ui-monospace,SFMono-Regular,Consolas,monospace; font-size:12px; }
+  label.f { display:grid; grid-template-columns:200px 1fr; gap:8px; align-items:center;
+            margin-bottom:6px; font-size:13px; }
+  label.f > span { color:var(--muted); }
+  .cfg h3 { font-size:13px; margin:12px 0 6px; color:var(--accent); }
+  .cfg h3:first-child { margin-top:0; }
+  table.routes { width:100%; border-collapse:collapse; font-size:12px; margin-top:6px; }
+  table.routes th,table.routes td { border:1px solid var(--border); padding:4px 6px; }
+  table.routes input { width:100%; border:none; background:transparent; color:var(--text); }
+  table.routes th { color:var(--muted); font-weight:500; }
+  .clickable { cursor:pointer; }
   #toast { position:fixed; bottom:18px; left:50%; transform:translateX(-50%);
            background:var(--text); color:var(--bg); padding:7px 14px; border-radius:6px;
            font-size:13px; opacity:0; transition:opacity .3s; pointer-events:none; }
@@ -53,13 +67,13 @@
   <div class="bar">
     <button id="btnRefresh" class="primary">刷新</button>
     <label class="muted"><input type="checkbox" id="auto" checked> 自动刷新</label>
+    <input type="number" id="autoSec" value="5" min="2" max="120" style="width:64px" title="自动刷新间隔(秒)">
     <button id="btnLogin" class="primary">登录 / 刷新二维码</button>
     <button id="btnInstall" class="primary">安装登录依赖</button>
     <button id="btnReload" class="primary">重载插件</button>
     <button id="btnLogout" class="danger">登出</button>
     <input id="mfaCode" placeholder="短信验证码" style="width:120px">
     <button id="btnMfa">提交验证码</button>
-    <button id="btnClear">清空搬运记录</button>
   </div>
 
   <div class="grid">
@@ -82,6 +96,12 @@
     </div>
   </div>
 
+  <div class="card cfg" style="margin-top:12px">
+    <h2>配置 <span class="muted">保存后需点「重载插件」生效</span></h2>
+    <div id="cfgForm"><div class="empty">加载配置中…</div></div>
+    <div style="margin-top:10px"><button id="btnSaveCfg" class="primary">保存配置</button></div>
+  </div>
+
   <div class="card" style="margin-top:12px">
     <h2>运行日志 <span class="muted" id="logCount"></span></h2>
     <div class="bar" style="margin-bottom:8px">
@@ -101,10 +121,12 @@
   const $ = id => document.getElementById(id);
   const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   const fmtTs = ts => ts ? new Date(ts * 1000).toLocaleString('zh-CN', {hour12:false}) : '—';
+  const TYPE_NAMES = { text:'文本', video_card:'视频卡片', image:'图片', emoji:'表情', voice:'语音', other:'其他' };
+  const typeName = t => TYPE_NAMES[t] || t || '其他';
 
   function toast(msg) {
     const t = $('toast'); t.textContent = msg; t.style.opacity = 1;
-    setTimeout(() => { t.style.opacity = 0; }, 2200);
+    setTimeout(() => { t.style.opacity = 0; }, 2400);
   }
 
   function statePill(state) {
@@ -137,14 +159,12 @@
   }
   function kv(k, v) { return '<b>' + esc(k) + '</b><span>' + v + '</span>'; }
 
-  const TYPE_NAMES = { text:'文本', video_card:'视频卡片', image:'图片', emoji:'表情', voice:'语音', other:'其他' };
-  const typeName = t => TYPE_NAMES[t] || t || '其他';
-
   async function refreshSenders() {
     const d = await apiGet('senders');
     const list = d.senders || [];
     $('senders').innerHTML = list.length ? list.map(s =>
-      '<li>' + esc(fmtTs(s.ts)) + ' · ' + esc(s.peer_name || ('用户 ' + s.peer_id)) +
+      '<li class="clickable" title="peer_id=' + esc(s.peer_id) + '">' +
+      esc(fmtTs(s.ts)) + ' · ' + esc(s.peer_name || ('用户 ' + s.peer_id)) +
       ' <span class="muted">[' + esc(typeName(s.type)) + ']</span>' +
       (s.text ? '<br><span class="muted">' + esc(s.text) + '</span>' : '') + '</li>'
     ).join('') : '<li class="empty">暂无</li>';
@@ -154,13 +174,15 @@
     const d = await apiGet('records');
     const list = d.records || [];
     $('records').innerHTML = list.length ? list.map(r =>
-      '<li>' + esc(fmtTs(r.ts)) + ' · [' + esc(r.type) + '] ' + esc(r.peer) +
+      '<li class="clickable" title="' + esc(r.error || (r.detail || '')) + '">' +
+      esc(fmtTs(r.ts)) + ' · [' + esc(r.type) + '] ' + esc(r.peer) +
       ' → ' + esc(r.target) +
       ' <span class="muted">' + (r.ok ? '<span style="color:var(--ok)">成功</span>' : '<span style="color:var(--bad)">失败</span> ' + esc(r.error)) + '</span></li>'
     ).join('') : '<li class="empty">暂无</li>';
   }
 
-  async function refreshQr() {
+  async function refreshQr(state) {
+    if (state && state === 'ok') { $('qr').innerHTML = '<div class="ph">已登录</div>'; $('qrDetail').textContent = ''; return; }
     const d = await apiGet('qrcode');
     $('qrDetail').textContent = d.detail || '';
     if (d.qr) { $('qr').innerHTML = '<img src="' + d.qr + '" alt="登录二维码">'; }
@@ -177,7 +199,140 @@
     }).join('') : '<span class="empty">暂无日志</span>';
   }
 
-  async function refreshAll() { await Promise.all([refreshStatus(), refreshSenders(), refreshRecords(), refreshQr(), refreshLogs()]); }
+  // ---- 配置表单 ----
+  const GROUPS = [
+    ['login', '登录', ['douyin_cookies','douyin_web_protect','douyin_keys','self_uid','device_id','gateway_mode','login_backend','mfa_mode','login_timeout','login_mfa_timeout','auth_watchdog_minutes','auth_failure_close_codes','auth_failure_keywords']],
+    ['forward', '转发', ['max_message_length','include_link','header_template','default_target_group']],
+    ['rate', '限流', ['rate_limit_global_enabled','rate_limit_global_max_per_min','rate_limit_sender_enabled','rate_limit_sender_max_per_min']],
+    ['dedup', '去重 / 重试', ['dedup_enabled','dedup_window_seconds','retry_enabled','retry_interval_seconds']],
+    ['filter', '过滤', ['senders_whitelist','senders_blacklist','keyword_filters']],
+    ['alert', '告警', ['alert_target','alert_only_once','qq_adapter_id']],
+  ];
+  const JSON_KEYS = ['sources','routes','keyword_filters'];
+  let _schema = {};
+  let _cfg = {};
+
+  function fieldType(key, schema) {
+    const s = (schema[key] || {});
+    if (JSON_KEYS.includes(key)) return 'json';
+    const t = s.type;
+    if (t === 'bool') return 'bool';
+    if (t === 'int') return 'int';
+    return 'text';
+  }
+
+  function renderConfig(cfg, schema) {
+    _cfg = cfg; _schema = schema;
+    let html = '';
+    for (const [gid, title, keys] of GROUPS) {
+      html += '<h3>' + esc(title) + '</h3>';
+      for (const k of keys) {
+        const t = fieldType(k, schema);
+        const val = cfg[k];
+        const input = t === 'bool'
+          ? '<input type="checkbox" data-k="' + esc(k) + '" ' + (val ? 'checked' : '') + '>'
+          : t === 'int'
+            ? '<input type="number" data-k="' + esc(k) + '" value="' + esc(val ?? '') + '" style="width:120px">'
+            : t === 'json'
+              ? '<textarea data-k="' + esc(k) + '" rows="3">' + esc(typeof val === 'string' ? val : JSON.stringify(val ?? '', null, 0)) + '</textarea>'
+              : '<input type="text" data-k="' + esc(k) + '" value="' + esc(val ?? '') + '">';
+        html += '<label class="f"><span>' + esc(k) + '</span>' + input + '</label>';
+      }
+    }
+    html += '<h3>路由表（routes）</h3>';
+    html += '<table class="routes" id="routeTbl"><thead><tr><th style="width:100px">name</th><th>target</th><th>types</th><th>senders_include</th><th>senders_exclude</th><th style="width:40px"></th></tr></thead><tbody></tbody></table>';
+    html += '<button id="btnAddRoute" class="muted">+ 添加路由</button>';
+    $('cfgForm').innerHTML = html;
+    renderRoutes(cfg.routes || []);
+    $('btnAddRoute').onclick = () => { addRouteRow({}); };
+  }
+
+  function renderRoutes(routes) {
+    const tbody = document.querySelector('#routeTbl tbody');
+    tbody.innerHTML = '';
+    for (const r of routes) addRouteRow(r);
+  }
+
+  function addRouteRow(r) {
+    const tbody = document.querySelector('#routeTbl tbody');
+    const tr = document.createElement('tr');
+    const match = r.match || {};
+    tr.innerHTML =
+      '<td><input data-r="name" value="' + esc(r.name || '') + '"></td>' +
+      '<td><input data-r="target" value="' + esc(r.target || '') + '"></td>' +
+      '<td><input data-r="types" value="' + esc((match.types || []).join(',')) + '" placeholder="逗号分隔"></td>' +
+      '<td><input data-r="senders_include" value="' + esc((match.senders_include || []).join(',')) + '" placeholder="逗号分隔"></td>' +
+      '<td><input data-r="senders_exclude" value="' + esc((match.senders_exclude || []).join(',')) + '" placeholder="逗号分隔"></td>' +
+      '<td><button data-del="1">删</button></td>';
+    tr.querySelector('[data-del]').onclick = () => tr.remove();
+    tbody.appendChild(tr);
+  }
+
+  function collectRoutes() {
+    const rows = document.querySelectorAll('#routeTbl tbody tr');
+    const out = [];
+    for (const tr of rows) {
+      const get = k => (tr.querySelector('[data-r="' + k + '"]') || {}).value || '';
+      const target = get('target').trim();
+      if (!target) continue;
+      const split = v => v.split(',').map(s => s.trim()).filter(Boolean);
+      out.push({
+        name: get('name').trim() || 'route',
+        target: target,
+        match: {
+          types: split(get('types')),
+          senders_include: split(get('senders_include')),
+          senders_exclude: split(get('senders_exclude')),
+        }
+      });
+    }
+    return out;
+  }
+
+  async function loadConfig() {
+    const d = await apiGet('config/get');
+    if (!d.config) { $('cfgForm').innerHTML = '<div class="empty">配置读取失败</div>'; return; }
+    renderConfig(d.config, d.schema || {});
+  }
+
+  $('btnSaveCfg').onclick = async () => {
+    const cfg = {};
+    document.querySelectorAll('#cfgForm [data-k]').forEach(el => {
+      const k = el.getAttribute('data-k');
+      const t = fieldType(k, _schema);
+      if (t === 'bool') cfg[k] = el.checked;
+      else if (t === 'int') cfg[k] = parseInt(el.value, 10) || 0;
+      else if (t === 'json') {
+        try { cfg[k] = JSON.parse(el.value || 'null'); } catch { cfg[k] = el.value; }
+      } else cfg[k] = el.value;
+    });
+    cfg.routes = collectRoutes();
+    const d = await apiPostBody('config/set', { config: cfg });
+    toast(d.detail || (d.ok ? '已保存' : '保存失败'));
+  };
+
+  async function refreshAll() {
+    const [st] = await Promise.all([apiGet('status'), refreshSenders(), refreshRecords(), refreshLogs()]);
+    refreshStatusFrom(st);
+    refreshQr(st.auth_state);
+  }
+  function refreshStatusFrom(d) {
+    $('status').innerHTML =
+      kv('登录态', statePill(d.auth_state) + (d.login_in_progress ? ' <span class="pill warn">登录进行中</span>' : '')) +
+      kv('self_uid', esc(d.self_uid ?? '未设置')) +
+      kv('网关模式', esc(d.gateway_mode)) +
+      kv('抖音来源', d.douyin_enabled ? '启用' : '停用') +
+      kv('路由数', esc(d.routes)) +
+      kv('默认目标', esc(d.default_target_group || '未配置')) +
+      kv('去重/限流', (d.dedup ? '开' : '关') + ' / ' + (d.rate_limit_global ? '开' : '关')) +
+      kv('重试', d.retry_enabled ? '开' : '关') +
+      kv('失败缓存', esc(d.failed_cache)) +
+      kv('告警目标', esc(d.alert_target || '未配置')) +
+      kv('MFA 模式', esc(d.mfa_mode)) +
+      kv('登录后端', esc(d.login_backend) + ' ' +
+        (d.alemonjs_installed ? '<span class="pill ok">已安装</span>' : '<span class="pill bad">缺依赖</span>')) +
+      kv('记录数', esc(d.senders_count) + ' 发石者 / ' + esc(d.records_count) + ' 搬运');
+  }
 
   $('btnRefresh').onclick = refreshAll;
   $('btnLogin').onclick = async () => { const d = await apiPost('login'); toast(d.detail || '已触发'); await refreshAll(); };
@@ -206,7 +361,14 @@
 
   V.ready().then(() => {
     refreshAll();
-    setInterval(() => { if ($('auto').checked) refreshAll(); }, 5000);
+    loadConfig();
+    let _tick = 0;
+    setInterval(() => {
+      if (!$('auto').checked) return;
+      const sec = Math.max(2, parseInt($('autoSec').value, 10) || 5);
+      _tick++;
+      if (_tick >= sec) { _tick = 0; refreshAll(); }
+    }, 1000);
   });
 })();
 </script>
