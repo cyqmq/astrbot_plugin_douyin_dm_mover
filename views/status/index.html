@@ -14,7 +14,6 @@
   body { margin:0; padding:0; background:var(--bg); color:var(--text);
          font:14px/1.5 -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif; }
   .app { display:flex; min-height:100vh; }
-  /* 侧栏 */
   aside { width:210px; background:var(--side); color:#e4e4e7; display:flex; flex-direction:column;
           flex-shrink:0; position:sticky; top:0; height:100vh; }
   .side-head { display:flex; align-items:center; gap:9px; padding:0 14px; height:52px;
@@ -29,7 +28,6 @@
   .nav-item.active { background:rgba(255,255,255,.10); color:#fff; font-weight:600; }
   .nav-item .ic { width:15px; height:15px; flex:none; }
   .side-foot { padding:10px; }
-  /* 左下角登录触发卡 */
   .side-user { display:flex; align-items:center; gap:9px; padding:9px 11px; border-radius:10px;
                border:1px solid rgba(255,255,255,.10); background:rgba(255,255,255,.05);
                cursor:pointer; transition:.14s; }
@@ -38,7 +36,6 @@
   .side-user .lbl { font-size:11.5px; font-weight:600; color:#e4e4e7; }
   .side-user .sub { font-size:11px; color:#71717a; margin-top:1px; }
   .dot-ok { background:#34d399; } .dot-bad { background:#f87171; } .dot-warn { background:#fbbf24; } .dot-idle { background:#71717a; }
-  /* 主区 */
   main { flex:1; padding:20px 24px; max-width:1000px; }
   .top { display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; }
   .top h1 { font-size:20px; font-weight:800; margin:0; letter-spacing:-.3px; }
@@ -50,6 +47,7 @@
   button.primary { background:var(--accent); border-color:var(--accent); color:#fff; }
   button.danger:hover { border-color:var(--bad); color:var(--bad); }
   button.ghost { border-color:transparent; background:transparent; color:var(--muted); }
+  button.mini { padding:1px 7px; font-size:11px; border-radius:6px; }
   input[type=text],input[type=number],input[type=password],textarea,select {
     border:1px solid var(--border); background:var(--bg); color:var(--text);
     padding:5px 8px; border-radius:6px; font-size:13px; }
@@ -92,10 +90,20 @@
   table.routes th { color:var(--muted); font-weight:500; }
   .tab { display:none; } .tab.active { display:block; }
   .save-row { margin-top:12px; }
+  .chips { display:flex; flex-wrap:wrap; gap:5px; align-items:center; }
+  .chip { display:inline-flex; align-items:center; gap:5px; background:var(--bg);
+          border:1px solid var(--border); border-radius:999px; padding:2px 9px; font-size:12px; }
+  .chip button { border:none; background:none; padding:0 2px; color:var(--muted);
+                 font-size:13px; cursor:pointer; line-height:1; }
+  .chip button:hover { color:var(--bad); }
+  .chips .add { display:flex; gap:4px; align-items:center; }
+  .chips .add input { width:110px; }
+  .umo-row { display:flex; gap:6px; align-items:center; }
+  .umo-row select { flex:none; } .umo-row input { flex:1; min-width:90px; }
+  .sender-actions { display:flex; gap:4px; }
   #toast { position:fixed; bottom:18px; left:50%; transform:translateX(-50%);
            background:var(--text); color:var(--bg); padding:7px 14px; border-radius:7px;
            font-size:13px; opacity:0; transition:opacity .3s; pointer-events:none; }
-  /* 居中登录弹窗 */
   .modal-mask { position:fixed; inset:0; background:rgba(0,0,0,.60); backdrop-filter:blur(4px);
                 display:none; align-items:center; justify-content:center; z-index:50; }
   .modal-mask.open { display:flex; }
@@ -172,7 +180,6 @@
         <label class="muted"><input type="checkbox" id="auto" checked> 自动</label>
         <input type="number" id="autoSec" value="5" min="2" max="120" style="width:58px" title="自动刷新间隔(秒)">
         <button id="btnRefresh">刷新</button>
-        <button id="btnLoginTop" class="primary">扫码登录</button>
       </div>
     </div>
 
@@ -181,7 +188,7 @@
       <div class="pills" id="ovPills"></div>
       <div class="stats" id="ovStats"></div>
       <div class="grid2">
-        <div class="card"><h2>最近发石者</h2><ul class="list" id="senders"></ul></div>
+        <div class="card"><h2>最近发石者 <span class="muted">（点击「+白/+黑」加入名单）</span></h2><ul class="list" id="senders"></ul></div>
         <div class="card"><h2>最近搬运记录</h2><ul class="list" id="records"></ul></div>
       </div>
     </section>
@@ -208,7 +215,7 @@
     <!-- 监控 -->
     <section class="tab" id="tab-monitor">
       <div class="grid2">
-        <div class="card"><h2>发石者明细</h2><ul class="list" id="monSenders"></ul></div>
+        <div class="card"><h2>发石者明细 <span class="muted">（点「+白/+黑」加入名单）</span></h2><ul class="list" id="monSenders"></ul></div>
         <div class="card"><h2>搬运记录明细</h2><ul class="list" id="monRecords"></ul></div>
       </div>
     </section>
@@ -267,7 +274,6 @@
   const TITLES = { overview:['总览','登录态与最近搬运概览'],
     routes:['路由','转发路由表'], policy:['策略','限流 / 去重 / 过滤 / 告警'],
     monitor:['监控','发石者与搬运明细'], logs:['日志','运行日志'], settings:['设置','登录 / 转发 / 来源配置'] };
-  // 配置项中文标签（设置/策略/路由均为英文 key，展示中文）
   const LABELS = { douyin_cookies:'登录 Cookie', douyin_web_protect:'Web 防护', douyin_keys:'密钥',
     self_uid:'本机 UID', device_id:'设备 ID', gateway_mode:'网关模式', login_backend:'登录后端',
     mfa_mode:'MFA 模式', login_timeout:'登录超时(秒)', login_mfa_timeout:'MFA 超时(秒)',
@@ -280,6 +286,15 @@
     keyword_filters:'关键词过滤', alert_target:'告警目标', alert_only_once:'仅告警一次',
     qq_adapter_id:'QQ 适配器', sources:'来源配置', routes:'路由表' };
   const lbl = k => LABELS[k] || k;
+  // 枚举下拉：值 → 中文 label
+  const SELECTS = {
+    login_backend: [['alemonjs','@alemonjs/douyin（纯 Python）'],['alemonjs_node','Node 桥接（可选回退）'],['douyin_spider','旧 vendored']],
+    gateway_mode: [['inprocess','进程内（默认）'],['subprocess','子进程隔离']],
+    mfa_mode: [['auto_sms','自动短信'],['manual_command','手动指令'],['alert_wait','仅告警等 App']],
+    qq_adapter_id: [['aiocqhttp','NapCat (aiocqhttp)'],['qq_official','QQ 官方机器人'],['telegram','Telegram'],['wecom','企业微信']]
+  };
+  const UMO_KEYS = ['default_target_group','alert_target'];
+  const SENDER_KEYS = ['senders_whitelist','senders_blacklist'];
   let _schema = {};
   let _cfg = {};
 
@@ -289,17 +304,16 @@
   async function apiPost(ep) { try { return await V.apiPost(ep, {}); } catch (e) { toast('请求失败: ' + e); return {}; } }
   async function apiPostBody(ep, body) { try { return await V.apiPost(ep, body); } catch (e) { toast('请求失败: ' + e); return {}; } }
 
-  // ---- 登录弹窗显隐（useState 等价） ----
+  // ---- 登录弹窗显隐 ----
   let modalOpen = false;
   function setModalOpen(v) { modalOpen = v; $('loginModal').classList.toggle('open', v); }
   function openLogin() { setModalOpen(true); refreshQr(); }
   function closeLogin() { setModalOpen(false); }
   $('sideUser').onclick = openLogin;
-  $('btnLoginTop').onclick = openLogin;
   $('modalClose').onclick = closeLogin;
   $('loginModal').addEventListener('click', e => { if (e.target === $('loginModal')) closeLogin(); });
 
-  // ---- Tab 切换 ----
+  // ---- Tab ----
   function showTab(name) {
     document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.tab === name));
     document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.id === 'tab-' + name));
@@ -308,15 +322,21 @@
   }
   document.querySelectorAll('.nav-item').forEach(n => n.onclick = () => showTab(n.dataset.tab));
 
-  // ---- 状态 ----
-  const ST_MAP = { ok:['ok','已连接'], expired:['bad','登录态失效'], unknown:['warn','未知'] };
+  // ---- 状态（三态明确） ----
+  const ST_MAP = {
+    ok:['ok','已登录','已连接'],
+    expired:['bad','登录失效','点击重新登录'],
+    unknown:['warn','未知','状态未知'],
+    idle:['idle','未登录','点击扫码登录']
+  };
   function renderStatus(d) {
-    const [cls, label] = ST_MAP[d.auth_state] || ['idle', d.auth_state || '未知'];
-    $('sideState').textContent = label;
+    const st = d.auth_state || 'idle';
+    const [cls, label, sub] = ST_MAP[st] || ST_MAP.idle;
     $('sideDot').className = 'dot dot-' + cls;
-    $('sideUid').textContent = 'uid ' + (d.self_uid ?? '—');
+    $('sideState').textContent = label;
+    $('sideUid').textContent = (st === 'ok' && d.self_uid) ? ('uid ' + d.self_uid) : sub;
     $('ovPills').innerHTML =
-      pill('登录态', d.auth_state === 'ok' ? 'ok' : (d.auth_state === 'expired' ? 'bad' : 'warn'), label) +
+      pill('登录态', st === 'ok' ? 'ok' : (st === 'expired' ? 'bad' : 'warn'), label) +
       pill('抖音来源', d.douyin_enabled ? 'ok' : 'idle', d.douyin_enabled ? '启用' : '停用') +
       pill('MFA', 'idle', esc(d.mfa_mode)) +
       pill('路由', 'ok', esc(d.routes) + ' 条') +
@@ -330,10 +350,7 @@
   }
   function pill(k, cls, v) { return '<span class="pill"><span class="dot dot-' + cls + '"></span>' + esc(k) + '：' + v + '</span>'; }
   function stat(k, cls, v) { return '<div class="stat"><div class="k"><span class="dot dot-' + cls + '"></span>' + esc(k) + '</div><div class="v">' + v + '</div></div>'; }
-
-  function listItems(arr, renderer) {
-    return arr.length ? arr.map(renderer).join('') : '<li class="empty">暂无</li>';
-  }
+  function listItems(arr, renderer) { return arr.length ? arr.map(renderer).join('') : '<li class="empty">暂无</li>'; }
 
   async function refreshStatus() {
     const d = await apiGet('status');
@@ -347,9 +364,13 @@
     const r = s => '<li class="clickable" title="peer_id=' + esc(s.peer_id) + '">' +
       esc(fmtTs(s.ts)) + ' · ' + esc(s.peer_name || ('用户 ' + s.peer_id)) +
       ' <span class="muted">[' + esc(typeName(s.type)) + ']</span>' +
-      (s.text ? '<br><span class="muted">' + esc(s.text) + '</span>' : '') + '</li>';
+      (s.text ? '<br><span class="muted">' + esc(s.text) + '</span>' : '') +
+      '<div class="sender-actions"><button class="mini" data-w="' + esc(s.peer_id) + '">+白</button>' +
+      '<button class="mini" data-b="' + esc(s.peer_id) + '">+黑</button></div></li>';
     $('senders').innerHTML = listItems(list, r);
     $('monSenders').innerHTML = listItems(list, r);
+    document.querySelectorAll('[data-w]').forEach(b => b.onclick = () => addSender('senders_whitelist', b.dataset.w));
+    document.querySelectorAll('[data-b]').forEach(b => b.onclick = () => addSender('senders_blacklist', b.dataset.b));
   }
 
   async function refreshRecords() {
@@ -391,14 +412,46 @@
     'max_message_length','include_link','header_template','default_target_group','sources'];
 
   function fieldType(key, schema) {
+    if (SELECTS[key]) return 'select';
+    if (UMO_KEYS.includes(key)) return 'umo';
+    if (SENDER_KEYS.includes(key)) return 'senderlist';
     const s = (schema[key] || {});
     if (JSON_KEYS.includes(key)) return 'json';
     if (s.type === 'bool') return 'bool';
     if (s.type === 'int') return 'int';
     return 'text';
   }
+  function selectOptions(key, val) {
+    return '<select data-k="' + esc(key) + '">' + SELECTS[key].map(([v, l]) =>
+      '<option value="' + esc(v) + '"' + (String(v) === String(val ?? '') ? ' selected' : '') + '>' + esc(l) + '</option>').join('') + '</select>';
+  }
+  function umoSplit(val) {
+    const m = String(val || '').match(/^([^:]*):GroupMessage:(.*)$/);
+    return { adapter: m ? m[1] : 'aiocqhttp', group: m ? m[2] : (String(val || '')) };
+  }
+  function umoHtml(key, val) {
+    const u = umoSplit(val);
+    return '<div class="umo-row">' +
+      '<select data-umo="' + esc(key) + '" data-part="adapter">' + (SELECTS.qq_adapter_id || []).map(([v, l]) =>
+        '<option value="' + esc(v) + '"' + (v === u.adapter ? ' selected' : '') + '>' + esc(l) + '</option>').join('') + '</select>' +
+      '<input data-umo="' + esc(key) + '" data-part="group" placeholder="群号" value="' + esc(u.group) + '">' +
+      '</div>';
+  }
+  function senderListHtml(key, val) {
+    const items = String(val || '').split(',').map(s => s.trim()).filter(Boolean);
+    return '<div class="chips" data-senders="' + esc(key) + '">' +
+      items.map(v => chipHtml(v)).join('') +
+      '<span class="add"><input placeholder="添加 uid" data-add="' + esc(key) + '"><button data-addbtn="' + esc(key) + '">+</button></span>' +
+      '</div>';
+  }
+  function chipHtml(v) {
+    return '<span class="chip">' + esc(v) + '<button data-delv="' + esc(v) + '">×</button></span>';
+  }
   function fieldHtml(k, schema, val) {
     const t = fieldType(k, schema);
+    if (t === 'select') return selectOptions(k, val);
+    if (t === 'umo') return umoHtml(k, val);
+    if (t === 'senderlist') return senderListHtml(k, val);
     if (t === 'bool') return '<input type="checkbox" data-k="' + esc(k) + '" ' + (val ? 'checked' : '') + '>';
     if (t === 'int') return '<input type="number" data-k="' + esc(k) + '" value="' + esc(val ?? '') + '" style="width:130px">';
     if (t === 'json') return '<textarea data-k="' + esc(k) + '" rows="3">' + esc(typeof val === 'string' ? val : JSON.stringify(val ?? '', null, 0)) + '</textarea>';
@@ -409,6 +462,40 @@
     let html = '';
     for (const k of keys) html += '<label class="f"><span>' + esc(lbl(k)) + '</span>' + fieldHtml(k, _schema, _cfg[k]) + '</label>';
     box.innerHTML = html || '<div class="empty">无配置项</div>';
+    // chips 删除
+    box.querySelectorAll('[data-delv]').forEach(b => b.onclick = () => {
+      const wrap = b.closest('.chips'); const key = wrap.dataset.senders;
+      const v = b.dataset.delv;
+      _cfg[key] = senderVals(wrap).filter(x => x !== v).join(',');
+      wrap.querySelectorAll('.chip').forEach(c => { if (c.dataset.v === v) c.remove(); });
+    });
+    // chips 添加
+    box.querySelectorAll('[data-addbtn]').forEach(b => b.onclick = () => {
+      const wrap = b.closest('.chips'); const key = b.dataset.addbtn;
+      const inp = wrap.querySelector('[data-add]'); const v = inp.value.trim();
+      if (!v) return;
+      if (senderVals(wrap).includes(v)) { toast('已在名单中'); return; }
+      _cfg[key] = senderVals(wrap).concat(v).join(',');
+      inp.value = '';
+      const span = document.createElement('span');
+      span.className = 'chip'; span.innerHTML = esc(v) + '<button data-delv="' + esc(v) + '">×</button>';
+      span.querySelector('[data-delv]').onclick = () => { const s = senderVals(wrap).filter(x => x !== v).join(','); _cfg[key] = s; span.remove(); };
+      wrap.insertBefore(span, wrap.querySelector('.add'));
+    });
+    box.querySelectorAll('[data-add]').forEach(inp => inp.addEventListener('keydown', e => {
+      if (e.key === 'Enter') { const b = inp.closest('.chips').querySelector('[data-addbtn]'); b && b.click(); }
+    }));
+  }
+  function senderVals(wrap) {
+    return Array.from(wrap.querySelectorAll('.chip')).map(c => c.textContent.replace('×', '').trim()).filter(Boolean);
+  }
+  // 一键加白/黑（从监控页发石者）
+  async function addSender(key, uid) {
+    const cur = String(_cfg[key] || '').split(',').map(s => s.trim()).filter(Boolean);
+    if (cur.includes(uid)) { toast('已在名单中'); return; }
+    cur.push(uid);
+    await saveConfig({ [key]: cur.join(',') });
+    await loadConfig();
   }
 
   // ---- 路由表编辑器 ----
@@ -457,6 +544,19 @@
   function collectKeys(keys) {
     const cfg = {};
     keys.forEach(k => {
+      if (SELECTS[k]) { const el = document.querySelector('[data-k="' + k + '"]'); if (el) cfg[k] = el.value; return; }
+      if (UMO_KEYS.includes(k)) {
+        const ad = document.querySelector('[data-umo="' + k + '"][data-part="adapter"]');
+        const gr = document.querySelector('[data-umo="' + k + '"][data-part="group"]');
+        const g = (gr && gr.value.trim()) || '';
+        cfg[k] = g ? ((ad ? ad.value : 'aiocqhttp') + ':GroupMessage:' + g) : '';
+        return;
+      }
+      if (SENDER_KEYS.includes(k)) {
+        const wrap = document.querySelector('[data-senders="' + k + '"]');
+        if (wrap) cfg[k] = senderVals(wrap).join(',');
+        return;
+      }
       const el = document.querySelector('[data-k="' + k + '"]');
       if (!el) return;
       const t = fieldType(k, _schema);
