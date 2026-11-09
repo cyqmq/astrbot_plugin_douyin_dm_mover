@@ -38,11 +38,22 @@ from dyf_core.logs import LogRing
 from dyf_gateway import build_gateway
 
 
+def _resolve_data_dir() -> str:
+    """登录会话/设备等持久化目录：锚定到 AstrBot 数据目录（data/plugin_data/<插件>），
+    确保插件更新/重装不会覆盖登录态。取不到 AstrBot 路径时回退到相对 data/dyf（绝对化）。"""
+    try:
+        from astrbot.core.utils.astrbot_path import get_astrbot_data_path
+
+        return os.path.join(str(get_astrbot_data_path()), "plugin_data", "douyin_dm_mover")
+    except Exception:
+        return os.path.abspath(DEFAULT_DATA_DIR)
+
+
 @register(
     "astrbot_plugin_douyin_dm_mover",
     "cyqmq",
     "把抖音 Bot 账号收到的私信视频/分享卡片，自动搬进指定 QQ 群。",
-    "0.6.1",
+    "0.13.0",
     "https://github.com/cyqmq/astrbot_plugin_douyin_dm_mover",
 )
 class DouyinForwardPlugin(Star):
@@ -51,11 +62,11 @@ class DouyinForwardPlugin(Star):
         self._purge_own_modules()
         self.config = config if config is not None else {}
         cfg = dict(config or {})
-        cfg.setdefault("_data_dir", DEFAULT_DATA_DIR)
+        cfg.setdefault("_data_dir", _resolve_data_dir())
         if not cfg.get("sources"):
             cfg["sources"] = DEFAULT_SOURCES
         self._cfg = cfg
-        self.gateway = build_gateway(cfg)
+        self.gateway = build_gateway(cfg, config_obj=config)
         self.forward_manager = ForwardManager(context, cfg)
         self.listener = MessageListener(self.gateway, self.forward_manager)
         self.logring = LogRing()

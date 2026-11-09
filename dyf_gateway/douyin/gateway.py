@@ -31,8 +31,9 @@ _DEFAULT_UA = (
 
 
 class DouyinGateway(MessageGateway):
-    def __init__(self, config: dict):
+    def __init__(self, config: dict, config_obj=None):
         self._config = config
+        self._config_obj = config_obj
         self._data_dir = config.get("_data_dir") or os.path.join("data", "dyf")
         os.makedirs(self._data_dir, exist_ok=True)
         self._auth = DouyinAuth(
@@ -247,6 +248,9 @@ class DouyinGateway(MessageGateway):
             if dev:
                 self._device_id = str(dev)
             self._auth.uid = self._self_uid
+            # 登录成功：把 cookie/uid/device 写回 AstrBot 配置并落盘，确保配置页可见
+            # 且配置层有兜底（session.json 亦在 data/plugin_data 下，更新插件不丢）。
+            self._persist_login_config(cookie_str, uid, dev)
             self._state = AuthState.OK
             self._emit_event(GatewayEvent("login_ok", "登录成功，会话已保存"))
             if self._auth.sessionid:
@@ -259,6 +263,34 @@ class DouyinGateway(MessageGateway):
             logger.error(f"[dyf] 登录失败: {e}")
         finally:
             self._login_lock.release()
+
+    def _persist_login_config(self, cookie_str: str, uid, dev) -> None:
+        """登录成功后把 cookie/uid/device 写回运行配置与 AstrBot 配置（落盘）。
+
+        session.json 存于 data/plugin_data 下（更新插件不丢），此处再同步到配置层，
+        使配置页「登录 Cookie」等字段可见、并在配置层留下兜底。
+        """
+        if cookie_str:
+            self._config["douyin_cookies"] = cookie_str
+        if uid:
+            self._config["self_uid"] = str(uid)
+        if dev:
+            self._config["device_id"] = str(dev)
+        obj = self._config_obj
+        if obj is None:
+            return
+        try:
+            if cookie_str:
+                obj["douyin_cookies"] = cookie_str
+            if uid:
+                obj["self_uid"] = str(uid)
+            if dev:
+                obj["device_id"] = str(dev)
+            save = getattr(obj, "save_config", None)
+            if save is not None:
+                save()
+        except Exception as e:  # 配置写回失败不阻断登录
+            logger.warning(f"[dyf] 登录配置写回失败（不影响会话）: {e}")
 
     async def logout(self) -> bool:
         if not self._auth.sessionid:

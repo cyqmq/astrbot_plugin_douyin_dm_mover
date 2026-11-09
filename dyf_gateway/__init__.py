@@ -11,7 +11,7 @@ from dyf_core.model import InboundMessage  # noqa: F401  (接口约定)
 from .base import MessageGateway
 
 
-def build_gateway(config: dict) -> MessageGateway:
+def build_gateway(config: dict, config_obj=None) -> MessageGateway:
     from astrbot.api import logger  # 延迟导入，保持包顶层无 astrbot 依赖
 
     mode = str(config.get("gateway_mode") or "inprocess")
@@ -23,4 +23,4 @@ def build_gateway(config: dict) -> MessageGateway:
 
     if mode != "inprocess":
         logger.warning(f"[dyf] 未知 gateway_mode={mode!r}，回退到 inprocess")
-    return DouyinGateway(config)
+    return DouyinGateway(config, config_obj=config_obj)

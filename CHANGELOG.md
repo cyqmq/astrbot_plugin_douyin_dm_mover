@@ -4,6 +4,13 @@
 
 ## [Unreleased]
 
+## [0.13.1] - 2026-11-09
+
+### Fixed
+- **更新插件掉登录**：登录会话/设备持久化目录改锚定到 AstrBot 数据目录 `data/plugin_data/douyin_dm_mover`（`get_astrbot_data_path()`，取不到回退绝对化 `data/dyf`），不再相对 CWD 落到插件目录内，插件更新/重装不再覆盖 `session.json`/`device.json`。
+- **扫码后设置页登录 Cookie 为空**：登录成功后将 `douyin_cookies`/`self_uid`/`device_id` 写回 AstrBot 配置并 `save_config()` 落盘，配置页可见且配置层有兜底（此前只写 `session.json`，配置层从未回写）。
+- `main.py` register 插件版本号 0.6.1 → 0.13.0（与 metadata.yaml 对齐）。
+
 ## [0.13.0] - 2026-11-09
 
 ### Changed
