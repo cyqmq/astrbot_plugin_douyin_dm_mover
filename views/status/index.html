@@ -54,6 +54,7 @@
     <button id="btnRefresh" class="primary">刷新</button>
     <label class="muted"><input type="checkbox" id="auto" checked> 自动刷新</label>
     <button id="btnLogin" class="primary">登录 / 刷新二维码</button>
+    <button id="btnInstall" class="primary">安装登录依赖</button>
     <button id="btnLogout" class="danger">登出</button>
     <button id="btnClear">清空搬运记录</button>
   </div>
@@ -126,6 +127,8 @@
       kv('失败缓存', esc(d.failed_cache)) +
       kv('告警目标', esc(d.alert_target || '未配置')) +
       kv('MFA 模式', esc(d.mfa_mode)) +
+      kv('登录后端', esc(d.login_backend) + ' ' +
+        (d.alemonjs_installed ? '<span class="pill ok">已安装</span>' : '<span class="pill bad">缺依赖</span>')) +
       kv('记录数', esc(d.senders_count) + ' 发石者 / ' + esc(d.records_count) + ' 搬运');
   }
   function kv(k, v) { return '<b>' + esc(k) + '</b><span>' + v + '</span>'; }
@@ -171,6 +174,12 @@
 
   $('btnRefresh').onclick = refreshAll;
   $('btnLogin').onclick = async () => { const d = await apiPost('login'); toast(d.detail || '已触发'); await refreshAll(); };
+  $('btnInstall').onclick = async () => {
+    toast('正在安装 @alemonjs/douyin …');
+    const d = await apiPost('install-alemonjs');
+    toast(d.detail || (d.ok ? '安装成功' : '安装失败'));
+    await refreshAll();
+  };
   $('btnLogout').onclick = async () => { const d = await apiPost('logout'); toast(d.detail || '已登出'); await refreshAll(); };
   $('btnClear').onclick = async () => { const d = await apiPost('records/clear'); toast(d.detail || '已清空'); await refreshRecords(); };
   $('btnLogRefresh').onclick = refreshLogs;

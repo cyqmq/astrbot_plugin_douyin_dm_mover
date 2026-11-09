@@ -4,6 +4,13 @@
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-11-09
+
+### Added
+- 登录依赖自动安装：插件内置 `package.json`/`package-lock.json`（锁定 `@alemonjs/douyin@2.1.1`），扫码登录前自动检测并 `npm install`（缺装时），零用户操作。
+- Web 配置页「安装登录依赖」按钮：`POST /douyin_dm_mover/install-alemonjs` 一键安装/重装；`status` 接口返回 `alemonjs_installed`，视图显示「已安装 / 缺依赖」徽标。
+- 登录后端与依赖安装说明写入 README（Node >= 20.19、自动安装、回退 `douyin_spider`）。
+
 ## [0.5.0] - 2026-11-09
 
 ### Changed

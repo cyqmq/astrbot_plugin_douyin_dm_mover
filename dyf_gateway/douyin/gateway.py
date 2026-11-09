@@ -256,6 +256,12 @@ class DouyinGateway(MessageGateway):
         """是否正在扫码登录（登录线程持锁期间为 True）。"""
         return bool(self._login_lock.locked())
 
+    async def install_login_backend(self) -> tuple[bool, str]:
+        """一键安装 @alemonjs/douyin（Node 依赖）。返回 (ok, msg)。"""
+        from .login.alemonjs import ensure_alemonjs
+
+        return await ensure_alemonjs()
+
     def trigger_mfa_send(self) -> None:
         self._code_waiter.trigger_send()
 

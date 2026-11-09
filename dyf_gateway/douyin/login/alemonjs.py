@@ -14,6 +14,46 @@ from pathlib import Path
 
 _PLUGIN_ROOT = Path(__file__).resolve().parents[3]
 _BRIDGE = Path(__file__).resolve().parent / "alemonjs_bridge.mjs"
+_NODE_MODULE = _PLUGIN_ROOT / "node_modules" / "@alemonjs" / "douyin"
+
+
+async def ensure_alemonjs(install: bool = True, timeout: int = 300) -> tuple[bool, str]:
+    """确保 @alemonjs/douyin 已安装。install=True 时缺装则自动 npm install。
+
+    返回 (ok, msg)。ok=False 且未安装时给出可操作提示。
+    """
+    if _NODE_MODULE.exists():
+        return True, "已安装"
+    node = shutil.which("node")
+    if not node:
+        return False, "未找到 node：请安装 Node.js >= 20.19"
+    if not install:
+        return False, "未安装 @alemonjs/douyin"
+    npm = shutil.which("npm")
+    if not npm:
+        return False, "未找到 npm：请安装 Node.js（自带 npm）"
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            npm,
+            "install",
+            "--no-audit",
+            "--no-fund",
+            cwd=str(_PLUGIN_ROOT),
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        try:
+            _out, _err = await asyncio.wait_for(proc.communicate(), timeout=timeout)
+        except TimeoutError:
+            proc.kill()
+            await proc.wait()
+            return False, "npm install 超时"
+        if proc.returncode == 0 and _NODE_MODULE.exists():
+            return True, "安装成功"
+        tail = (_err or b"").decode("utf-8", "replace").strip().splitlines()[-1:]
+        return False, f"npm install 失败 rc={proc.returncode}: {tail[0] if tail else ''}"
+    except Exception as e:
+        return False, f"npm install 异常: {e}"
 
 
 class AlemonjsResult:
@@ -51,6 +91,9 @@ class AlemonjsLogin:
             pass
 
     async def qrcode_login_async(self, timeout: int = 300) -> AlemonjsResult:
+        ok, msg = await ensure_alemonjs()
+        if not ok:
+            raise RuntimeError(msg)
         node = shutil.which("node")
         if not node:
             raise RuntimeError("未找到 node：请安装 Node.js >= 20.19")
