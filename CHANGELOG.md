@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [0.18.2] - 2026-11-10
+
+### Fixed
+- 修复自适应布局失效：`main` 移除 `max-width:1000px` 并加 `min-width:0`（flex 项不撑破容器）；`.app` 加 `width:100%`；`.topo` 加 `width:100%; box-sizing:border-box`；`.td-cols` 改 `1fr 1.4fr 1fr`（各列 `min-width:0`）自适应 iframe 宽度；`.topo-svg` 不再强制 CSS 宽高（随内容 scrollWidth/scrollHeight 扩展），画布/节点随之拉伸。
+
 ## [0.18.1] - 2026-11-10
 
 ### Fixed

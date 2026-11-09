@@ -13,7 +13,7 @@
   * { box-sizing:border-box; }
   body { margin:0; padding:0; background:var(--bg); color:var(--text);
          font:14px/1.5 -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif; }
-  .app { display:flex; min-height:100vh; }
+  .app { display:flex; min-height:100vh; width:100%; }
   aside { width:210px; background:var(--side); color:#e4e4e7; display:flex; flex-direction:column;
           flex-shrink:0; position:sticky; top:0; height:100vh; }
   .side-head { display:flex; align-items:center; gap:9px; padding:0 14px; height:52px;
@@ -38,7 +38,7 @@
   .side-user .lbl { font-size:11.5px; font-weight:600; color:#e4e4e7; }
   .side-user .sub { font-size:11px; color:#71717a; margin-top:1px; }
   .dot-ok { background:#34d399; } .dot-bad { background:#f87171; } .dot-warn { background:#fbbf24; } .dot-idle { background:#71717a; }
-  main { flex:1; padding:20px 24px; max-width:1000px; }
+  main { flex:1; min-width:0; padding:20px 24px; }
   .top { display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; }
   .top h1 { font-size:20px; font-weight:800; margin:0; letter-spacing:-.3px; }
   .top p { font-size:13px; color:var(--muted); margin:2px 0 0; }
@@ -107,15 +107,15 @@
   .type-chips .tc.on { background:var(--accent); border-color:var(--accent); color:#fff; }
   /* 拓扑图 */
   .topo { background:var(--bg); border:1px solid var(--border); border-radius:10px; padding:6px;
-    position:relative; overflow:auto; }
+    position:relative; overflow:auto; width:100%; box-sizing:border-box; }
   .topo.tall { min-height:440px; }
-  .topo-svg { position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:1; }
+  .topo-svg { position:absolute; top:0; left:0; pointer-events:none; z-index:1; }
   .topo-svg .tline { fill:none; stroke-width:1.4; }
   .topo-svg .tline.hit { stroke:var(--accent); }
   .topo-svg .tline.off { stroke:var(--muted); stroke-dasharray:3 3; }
   .topo-svg .tline.dim { stroke:var(--muted); opacity:.45; }
-  .td-cols { position:relative; z-index:2; display:grid; grid-template-columns:minmax(150px,1fr) minmax(250px,1.4fr) minmax(150px,1fr);
-    gap:14px; }
+  .td-cols { position:relative; z-index:2; display:grid; grid-template-columns:1fr 1.4fr 1fr;
+    gap:14px; width:100%; }
   .td-col { min-width:0; }
   .td-colhead { font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase;
     letter-spacing:.4px; margin-bottom:8px; }
