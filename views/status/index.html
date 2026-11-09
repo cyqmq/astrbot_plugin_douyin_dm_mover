@@ -114,6 +114,8 @@
   .rcard .senders-inline input { width:100px; }
   /* 拓扑图 */
   .topo { background:var(--bg); border:1px solid var(--border); border-radius:10px; padding:6px; }
+  .topo.tall { min-height:440px; }
+  .topo.tall .x6-graph { min-height:440px; }
   .topo svg { display:block; width:100%; height:auto; }
   .topo .tnd { cursor:pointer; }
   .topo .tnd rect { fill:var(--card); stroke:var(--border2); stroke-width:1.2; rx:8; }
@@ -161,6 +163,9 @@
   .modal-actions { flex:1; display:flex; flex-direction:column; gap:10px; min-width:0; }
   .modal-actions .note { font-size:12px; color:var(--muted); word-break:break-all; }
   .modal-foot { margin-top:16px; display:flex; gap:8px; align-items:center; }
+  /* 路由编辑弹窗 */
+  #routeEditor label.f { margin-bottom:12px; }
+  #reTypes .tc { font-size:12.5px; }
 </style>
 </head>
 <body>
@@ -237,16 +242,16 @@
       </div>
     </section>
 
-    <!-- 路由：拓扑图 + 编辑（合并单卡） -->
+    <!-- 路由：拓扑画布（编辑并入，点节点编辑） -->
     <section class="tab" id="tab-routes">
       <div class="card">
-        <h2>转发拓扑与路由编辑 <span class="muted">编辑实时预览 · 保存后自动重载生效 · ↑↓ 排序</span></h2>
-        <div class="topo" id="topo"></div>
-        <div class="rsep"></div>
-        <div class="muted" style="margin:8px 0 6px">路由项（点拓扑中的路由节点可定位）：</div>
-        <div id="routeCards"></div>
-        <div class="bar" style="margin-top:10px"><button id="btnAddRoute" class="ghost">+ 添加路由</button></div>
-        <div class="save-row"><button id="btnSaveRoutes" class="primary">保存路由</button></div>
+        <h2>转发拓扑与路由编辑 <span class="muted">双击/点击路由节点编辑 · Ctrl+⌘滚轮缩放 · 编辑实时预览</span></h2>
+        <div class="bar" style="margin-bottom:10px">
+          <button id="btnAddRoute" class="ghost">+ 添加路由</button>
+          <button id="btnSaveRoutes" class="primary">保存路由</button>
+          <span class="muted" id="routeHint"></span>
+        </div>
+        <div class="topo tall" id="topo"></div>
       </div>
     </section>
 
@@ -301,6 +306,28 @@
     <div class="modal-foot">
       <input id="mfaCode" placeholder="短信验证码" style="flex:1">
       <button id="btnMfa">提交</button>
+    </div>
+  </div>
+</div>
+<!-- 路由编辑弹窗 -->
+<div class="modal-mask" id="routeEditor">
+  <div class="modal">
+    <button class="modal-x" id="reClose" title="关闭">×</button>
+    <h2>编辑路由</h2>
+    <div id="reBody">
+      <label class="f"><span>名称</span><input id="reName" placeholder="路由名称"></label>
+      <label class="f"><span>目标</span><div class="umo-row">
+        <select id="reAdapter"></select><input id="reGroup" placeholder="群号">
+      </div></label>
+      <label class="f"><span>类型</span><div class="type-chips" id="reTypes"></div></label>
+      <label class="f"><span>发送者包含</span><input id="reInc" placeholder="逗号分隔 uid"></label>
+      <label class="f"><span>发送者排除</span><input id="reExc" placeholder="逗号分隔 uid"></label>
+    </div>
+    <div class="modal-foot">
+      <button id="reUp">上移</button><button id="reDown">下移</button>
+      <button id="reDel" class="danger">删除</button>
+      <span style="flex:1"></span>
+      <button id="reSave" class="primary">保存</button>
     </div>
   </div>
 </div>
@@ -580,59 +607,44 @@
     await loadConfig();
   }
 
-  // ---- 路由编辑器（卡片式） ----
+  // ---- 路由编辑态：JS 数组 + 弹窗（编辑并入拓扑画布） ----
   const ROUTE_TYPES = [['text','文本'],['video_card','视频卡片'],['image','图片'],['emoji','表情'],['voice','语音'],['other','其他']];
-  function routeCard(r) {
-    const match = r.match || {};
-    const types = match.types || [];
+  let _routes = [];
+  let _reIdx = -1;
+  const clone = o => JSON.parse(JSON.stringify(o || {}));
+  function renderRoutes(routes) { _routes = clone(routes) || []; renderTopo(true);
+    const h = $('routeHint'); if (h) h.textContent = _routes.length + ' 条路由'; }
+  function collectRoutes() { return clone(_routes); }
+  function splitLst(v) { return String(v || '').split(',').map(s => s.trim()).filter(Boolean); }
+  function openRouteEditor(i) {
+    const r = _routes[i]; if (!r) return;
+    _reIdx = i;
+    $('reName').value = r.name || '';
+    // 适配器下拉
     const u = umoSplit(r.target);
-    const inc = (match.senders_include || []).join(',');
-    const exc = (match.senders_exclude || []).join(',');
-    const card = document.createElement('div');
-    card.className = 'rcard';
-    card.innerHTML =
-      '<div class="rhead"><input data-rc="name" placeholder="路由名称" value="' + esc(r.name || '') + '">' +
-      '<button data-rmove="-1" title="上移">↑</button><button data-rmove="1" title="下移">↓</button>' +
-      '<button data-rdel="1" class="danger">删除</button></div>' +
-      '<div class="rrow"><span>目标</span><div class="umo-row">' +
-      '<select data-rc="adapter">' + (SELECTS.qq_adapter_id || []).map(([v, l]) =>
-        '<option value="' + esc(v) + '"' + (v === u.adapter ? ' selected' : '') + '>' + esc(l) + '</option>').join('') + '</select>' +
-      '<input data-rc="group" placeholder="群号" value="' + esc(u.group) + '"></div></div>' +
-      '<div class="rrow"><span>类型</span><div class="type-chips">' +
-      ROUTE_TYPES.map(([v, l]) => '<span class="tc' + (types.includes(v) ? ' on' : '') + '" data-rt="' + esc(v) + '">' + esc(l) + '</span>').join('') +
-      '</div></div>' +
-      '<div class="rrow"><span>发送者包含</span><div class="senders-inline"><input data-rc="sinc" placeholder="逗号分隔 uid" value="' + esc(inc) + '"></div></div>' +
-      '<div class="rrow"><span>发送者排除</span><div class="senders-inline"><input data-rc="sexc" placeholder="逗号分隔 uid" value="' + esc(exc) + '"></div></div>';
-    card.querySelector('[data-rdel]').onclick = () => { card.remove(); renderTopo(true); };
-    card.querySelectorAll('[data-rmove]').forEach(b => b.onclick = () => {
-      const list = document.getElementById('routeCards');
-      if (b.dataset.rmove === '-1' && card.previousElementSibling) list.insertBefore(card, card.previousElementSibling);
-      else if (b.dataset.rmove === '1' && card.nextElementSibling) list.insertBefore(card.nextElementSibling, card);
-      renderTopo(true);
-    });
-    card.querySelectorAll('[data-rt]').forEach(tc => tc.onclick = () => { tc.classList.toggle('on'); renderTopo(true); });
-    return card;
+    $('reAdapter').innerHTML = (SELECTS.qq_adapter_id || []).map(([v, l]) =>
+      '<option value="' + esc(v) + '"' + (v === u.adapter ? ' selected' : '') + '>' + esc(l) + '</option>').join('');
+    $('reGroup').value = u.group;
+    // 类型 chips
+    const types = (r.match && r.match.types) || [];
+    $('reTypes').innerHTML = ROUTE_TYPES.map(([v, l]) =>
+      '<span class="tc' + (types.includes(v) ? ' on' : '') + '" data-rt="' + esc(v) + '">' + esc(l) + '</span>').join('');
+    $('reTypes').querySelectorAll('[data-rt]').forEach(tc => tc.onclick = () => tc.classList.toggle('on'));
+    $('reInc').value = ((r.match && r.match.senders_include) || []).join(',');
+    $('reExc').value = ((r.match && r.match.senders_exclude) || []).join(',');
+    $('routeEditor').classList.add('open');
   }
-  function renderRoutes(routes) {
-    const list = document.getElementById('routeCards');
-    list.innerHTML = '';
-    (routes || []).forEach(r => list.appendChild(routeCard(r)));
-    if (!routes || !routes.length) list.innerHTML = '<div class="empty">暂无路由，点「+ 添加路由」新增</div>';
-    renderTopo();
-  }
-  function collectRoutes() {
-    const out = [];
-    document.querySelectorAll('#routeCards .rcard').forEach(card => {
-      const get = k => (card.querySelector('[data-rc="' + k + '"]') || {}).value || '';
-      const group = get('group').trim();
-      if (!group) return;
-      const adapter = get('adapter') || 'aiocqhttp';
-      const split = v => v.split(',').map(s => s.trim()).filter(Boolean);
-      const types = Array.from(card.querySelectorAll('[data-rt].on')).map(t => t.dataset.rt);
-      out.push({ name: get('name').trim() || 'route', target: adapter + ':GroupMessage:' + group, match: {
-        types, senders_include: split(get('sinc')), senders_exclude: split(get('sexc')) } });
-    });
-    return out;
+  function closeRouteEditor() { $('routeEditor').classList.remove('open'); _reIdx = -1; }
+  function readEditor() {
+    const r = _routes[_reIdx]; if (!r) return;
+    const g = $('reGroup').value.trim();
+    r.name = $('reName').value.trim() || 'route';
+    r.target = g ? ($('reAdapter').value + ':GroupMessage:' + g) : '';
+    r.match = {
+      types: Array.from($('reTypes').querySelectorAll('[data-rt].on')).map(t => t.dataset.rt),
+      senders_include: splitLst($('reInc').value),
+      senders_exclude: splitLst($('reExc').value)
+    };
   }
 
   // ---- 拓扑图（来源 → 路由 → 目标）：优先 AntV X6，回退手写 SVG ----
@@ -730,13 +742,9 @@
     });
     s += '</svg>';
     box.innerHTML = s;
-    // 点击路由节点 → 定位编辑卡片
+    // 点击路由节点 → 编辑
     box.querySelectorAll('[data-t="route"]').forEach(g => g.onclick = () => {
-      const i = parseInt(g.dataset.i, 10);
-      const card = document.querySelectorAll('#routeCards .rcard')[i];
-      if (card) { card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        card.style.borderColor = 'var(--accent)';
-        setTimeout(() => { card.style.borderColor = ''; }, 1400); }
+      openRouteEditor(parseInt(g.dataset.i, 10));
     });
   }
   let _x6 = null;
@@ -772,12 +780,7 @@
       });
       _x6.on('node:click', ({ node }) => {
         const id = node && node.id;
-        if (id && id.startsWith('route-')) {
-          const i = parseInt(id.slice(6), 10);
-          const card = document.querySelectorAll('#routeCards .rcard')[i];
-          if (card) { card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            card.style.borderColor = accent; setTimeout(() => { card.style.borderColor = ''; }, 1400); }
-        }
+        if (id && id.startsWith('route-')) openRouteEditor(parseInt(id.slice(6), 10));
       });
     } else {
       _x6.resize(W, H);
@@ -910,9 +913,22 @@
   $('mfaCode').addEventListener('keydown', e => { if (e.key === 'Enter') $('btnMfa').click(); });
   $('btnLogRefresh').onclick = refreshLogs;
   $('btnLogClear').onclick = async () => { const d = await apiPost('logs/clear'); toast(d.detail || '已清空'); await refreshLogs(); };
-  $('btnAddRoute').onclick = () => { const list = document.getElementById('routeCards'); const empty = list.querySelector('.empty'); if (empty) empty.remove(); list.appendChild(routeCard({})); renderTopo(true); };
-  document.getElementById('routeCards').addEventListener('input', () => renderTopo(true));
+  $('btnAddRoute').onclick = () => {
+    _routes.push({ name: 'route' + (_routes.length + 1), target: 'aiocqhttp:GroupMessage:',
+      match: { types: ['text','video_card'], senders_include: [], senders_exclude: [] } });
+    renderTopo(true);
+    openRouteEditor(_routes.length - 1);
+  };
   $('btnSaveRoutes').onclick = async () => { await saveConfig({ routes: collectRoutes() }); };
+  $('reClose').onclick = closeRouteEditor;
+  $('routeEditor').addEventListener('click', e => { if (e.target === $('routeEditor')) closeRouteEditor(); });
+  $('reSave').onclick = () => { readEditor(); renderTopo(true); closeRouteEditor(); toast('已更新，点「保存路由」生效'); };
+  $('reDel').onclick = () => {
+    if (_reIdx < 0) return;
+    _routes.splice(_reIdx, 1); renderTopo(true); closeRouteEditor();
+  };
+  $('reUp').onclick = () => { if (_reIdx > 0) { const t = _routes[_reIdx-1]; _routes[_reIdx-1] = _routes[_reIdx]; _routes[_reIdx] = t; renderTopo(true); } };
+  $('reDown').onclick = () => { if (_reIdx < _routes.length - 1) { const t = _routes[_reIdx+1]; _routes[_reIdx+1] = _routes[_reIdx]; _routes[_reIdx] = t; renderTopo(true); } };
   $('btnSavePolicy').onclick = async () => { await saveConfig(collectKeys(POLICY_KEYS)); };
   $('btnSaveSettings').onclick = async () => { await saveConfig(collectKeys(SETTINGS_KEYS)); };
 
