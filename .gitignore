@@ -174,3 +174,6 @@
 *.lz
 *.lzma
 *.iso
+
+# 本地 Agent 记忆，不随插件发布
+.monkeycode/
