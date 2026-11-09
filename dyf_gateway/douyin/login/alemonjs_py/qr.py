@@ -107,8 +107,7 @@ def get_qrcode(http: DouyinHttpPy) -> dict:
     query = _sign_passport_query(base_query, {}, sign_extras(http), "")
     url = desktop_passport_url("/passport/web/get_qrcode/", urlencode(query))
     res = http.request_json(url, "GET", headers=http.passport_headers(url))
-    data = res.get("data") or {}
-    d = data.get("data") or {}
+    d = res.get("data") or {}
     if d.get("error_code") != 0 or not d.get("qrcode"):
         raise RuntimeError(f"get_qrcode error_code={d.get('error_code')}")
     info = {"token": d["token"], "qrcodeBase64": d["qrcode"], "expireTime": d.get("expire_time")}
@@ -135,8 +134,7 @@ def check_qrconnect(
     url = desktop_passport_url("/passport/web/check_qrconnect/", urlencode(query))
     headers = {"Content-Type": "application/x-www-form-urlencoded", **http.passport_headers(url)}
     res = http.request_json(url, "POST", headers=headers, body=body_wire)
-    data = res.get("data") or {}
-    return data.get("data") or {}
+    return res.get("data") or {}
 
 
 def _desktop_lite_base_query(device_id: str | None) -> dict:
@@ -243,7 +241,7 @@ async def poll_qr_confirm(http: DouyinHttpPy, token: str, options: dict | None =
 
     async def status(s: str) -> None:
         if on_status:
-            on_status(s)
+            await _maybe_await(on_status(s))
 
     while time.time() * 1000 < deadline:
         try:
@@ -350,9 +348,9 @@ async def _maybe_await(value):
 async def _up_sms_mfa_flow(http: DouyinHttpPy, challenge: dict, way: dict, on_status) -> None:
     content = way.get("sms_content") or "YZ"
     if on_status:
-        on_status(
+        await _maybe_await(on_status(
             f"请用安全手机（{way.get('mobile') or ''}）编辑短信\"{content}\"发送到 {way.get('channel_mobile') or ''}"
-        )
+        ))
     deadline = time.time() * 1000 + 180000
     last = None
     while time.time() * 1000 < deadline:
@@ -365,7 +363,7 @@ async def _up_sms_mfa_flow(http: DouyinHttpPy, challenge: dict, way: dict, on_st
             continue
         if (last.get("data") or {}).get("ticket"):
             if on_status:
-                on_status("短信验证通过")
+                await _maybe_await(on_status("短信验证通过"))
             return
     raise RuntimeError(
         f"上行短信验证超时: {(last.get('data') or {}).get('error_code', '-')}"

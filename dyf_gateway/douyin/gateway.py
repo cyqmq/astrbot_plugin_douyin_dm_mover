@@ -177,10 +177,7 @@ class DouyinGateway(MessageGateway):
 
     # ---- 登录 / 登出 / MFA ----
     async def login(self, timeout: int = 300) -> None:
-        """扫码登录。默认 @alemonjs/douyin 后端（Node 桥接）；可回退 douyin_spider。"""
-        if self._login_task and not self._login_task.done():
-            self._emit_event(GatewayEvent("error", "已有登录进行中"))
-            return
+        """扫码登录。默认纯 Python 后端；可回退 Node 桥接 / douyin_spider。"""
         if not self._login_lock.acquire(blocking=False):
             self._emit_event(GatewayEvent("error", "已有登录进行中"))
             return

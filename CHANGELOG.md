@@ -4,6 +4,13 @@
 
 ## [Unreleased]
 
+## [0.7.1] - 2026-11-09
+
+### Fixed
+- 自动登录自锁：`login()` 删除 `_login_task` 自检（误判自己刚创建的 task 为"已有登录进行中"），仅保留 `threading.Lock` 并发守卫。
+- `get_qrcode` / `check_qrconnect` 响应多取一层 `data`（原版 `requestJson().data`=完整 body，扁平 data 就在 `res["data"]`），修后正常取到 `token`/`qrcode` 与扫码状态。
+- `on_status` 未 await（`status()` 与 `_up_sms_mfa_flow` 三处），状态日志不再静默、消除 coroutine 未 await 警告。
+
 ## [0.7.0] - 2026-11-09
 
 ### Added
