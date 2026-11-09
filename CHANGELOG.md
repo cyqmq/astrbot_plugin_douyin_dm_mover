@@ -4,6 +4,14 @@
 
 ## [Unreleased]
 
+## [0.19.0] - 2026-11-10
+
+### Changed
+- 前端重构为 Vue 3 + Vite 单页应用：`web/` 源码目录（`App.vue` + `Sidebar`/`LoginModal`/`ConfigField` 组件 + 6 个 Tab 组件），按职责拆分组件（二维码、拓扑图、侧边栏、配置表单等）。
+- 构建产物输出到 `views/status/`（`index.html` + 哈希化 `assets/index-*.js/css/logo`，约 96KB JS / 37KB gzip），AstrBot 页面服务直接服务，加载速度更快。
+- 拓扑编辑保持纯 DOM（SVG 连线层 + 三列 HTML 卡片），Vue 响应式驱动，目标群/结构变化自动重连。
+- 配置字段统一为 `ConfigField.vue`（select/bool/int/umo/senderlist/json 类型），设置/策略分组渲染。
+
 ## [0.18.2] - 2026-11-10
 
 ### Fixed

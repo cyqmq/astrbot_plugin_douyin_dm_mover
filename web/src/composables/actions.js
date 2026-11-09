@@ -1,0 +1,62 @@
+import { store, apiGet, apiPost, apiPostBody, toast, typeName, esc, fmtTs } from './store.js'
+
+export async function refreshStatus() {
+  const d = await apiGet('status')
+  store.status = d
+  store.authState = d.auth_state || 'idle'
+  store.authUid = d.self_uid || ''
+}
+
+export async function refreshSenders() {
+  const d = await apiGet('senders')
+  store.senders = d.senders || []
+}
+
+export async function refreshRecords() {
+  const d = await apiGet('records')
+  store.records = d.records || []
+}
+
+export async function refreshQr() {
+  const d = await apiGet('qrcode')
+  store.qrDetail = d.detail || ''
+  store.qr = d.qr || ''
+}
+
+export async function refreshLogs() {
+  const d = await apiGet('logs')
+  store.logs = d.logs || []
+}
+
+export async function refreshAll() {
+  await Promise.all([refreshStatus(), refreshSenders(), refreshRecords(), refreshQr(), refreshLogs()])
+}
+
+export async function loadConfig() {
+  const d = await apiGet('config/get')
+  if (!d.config) return
+  store.cfg = d.config
+  store.schema = d.schema || {}
+  store.routes = JSON.parse(JSON.stringify(d.config.routes || []))
+}
+
+export async function saveConfig(cfg) {
+  const d = await apiPostBody('config/set', { config: cfg })
+  toast(d.detail || (d.ok ? '已保存' : '保存失败'))
+}
+
+export async function addSender(key, uid) {
+  const cur = String(store.cfg[key] || '').split(',').map(s => s.trim()).filter(Boolean)
+  if (cur.includes(uid)) { toast('已在名单中'); return }
+  cur.push(uid)
+  await saveConfig({ [key]: cur.join(',') })
+  await loadConfig()
+}
+
+export function pill(k, cls, v) {
+  return `<span class="pill"><span class="dot dot-${cls}"></span>${esc(k)}：${v}</span>`
+}
+export function stat(k, cls, v) {
+  return `<div class="stat"><div class="k"><span class="dot dot-${cls}"></span>${esc(k)}</div><div class="v">${v}</div></div>`
+}
+export function listItems(arr, renderer) { return arr.length ? arr.map(renderer).join('') : '<li class="empty">暂无</li>' }
