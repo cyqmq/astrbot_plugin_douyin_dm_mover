@@ -87,6 +87,30 @@
   label.f > span { color:var(--muted); }
   .cfg h3 { font-size:12.5px; margin:12px 0 6px; color:var(--accent); }
   .cfg h3:first-child { margin-top:0; }
+  /* 配置分组卡片 */
+  .gcard { border:1px solid var(--border); border-radius:12px; padding:12px 14px; margin-bottom:12px; background:var(--card); }
+  .gcard > h2 { font-size:13px; font-weight:700; margin:0 0 10px; color:var(--text);
+                display:flex; align-items:center; gap:7px; }
+  .gcard > h2::before { content:""; width:3px; height:12px; background:var(--accent); border-radius:2px; }
+  label.f { display:grid; grid-template-columns:190px 1fr; gap:4px 8px; align-items:center;
+            margin-bottom:7px; font-size:13px; }
+  label.f > span { color:var(--muted); }
+  label.f .hint { grid-column:2; color:var(--muted); font-size:11px; line-height:1.4;
+                  margin-top:-3px; }
+  /* 路由卡片编辑器 */
+  .rcard { border:1px solid var(--border); border-radius:12px; padding:12px 14px; margin-bottom:10px; background:var(--card); }
+  .rcard .rhead { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+  .rcard .rhead input { flex:1; min-width:0; }
+  .rcard .rrow { display:flex; align-items:center; gap:6px; margin-bottom:7px; flex-wrap:wrap; }
+  .rcard .rrow > span { color:var(--muted); font-size:12px; flex:none; width:86px; }
+  .rcard .rrow .umo-row { flex:1; min-width:200px; }
+  .type-chips { display:flex; flex-wrap:wrap; gap:5px; }
+  .type-chips .tc { padding:3px 10px; border:1px solid var(--border); border-radius:999px;
+                    font-size:12px; color:var(--muted); cursor:pointer; user-select:none; transition:.1s; }
+  .type-chips .tc:hover { border-color:var(--accent); color:var(--accent); }
+  .type-chips .tc.on { background:var(--accent); border-color:var(--accent); color:#fff; }
+  .rcard .senders-inline { flex:1; display:flex; flex-wrap:wrap; gap:5px; align-items:center; min-width:200px; }
+  .rcard .senders-inline input { width:100px; }
   table.routes { width:100%; border-collapse:collapse; font-size:12px; margin-top:6px; }
   table.routes th,table.routes td { border:1px solid var(--border); padding:4px 6px; }
   table.routes input { width:100%; border:none; background:transparent; color:var(--text); }
@@ -199,11 +223,8 @@
     <!-- 路由 -->
     <section class="tab" id="tab-routes">
       <div class="card">
-        <h2>路由表 <span class="muted">保存后点「重载插件」生效</span></h2>
-        <table class="routes" id="routeTbl"><thead><tr>
-          <th style="width:90px">名称</th><th>目标</th><th>类型</th>
-          <th>发送者包含</th><th>发送者排除</th><th style="width:40px"></th>
-        </tr></thead><tbody></tbody></table>
+        <h2>路由表 <span class="muted">保存后点「重载插件」生效 · 支持 ↑↓ 排序</span></h2>
+        <div id="routeCards"></div>
         <div class="bar" style="margin-top:10px"><button id="btnAddRoute" class="ghost">+ 添加路由</button></div>
         <div class="save-row"><button id="btnSaveRoutes" class="primary">保存路由</button></div>
       </div>
@@ -247,7 +268,7 @@
 <div class="modal-mask" id="loginModal">
   <div class="modal">
     <button class="modal-x" id="modalClose" title="关闭">×</button>
-    <h2>扫码登录</h2>
+    <h2 id="mTitle">扫码登录</h2>
     <div class="modal-body">
       <div id="mQr"><div class="ph">暂无二维码</div></div>
       <div class="modal-actions">
@@ -307,10 +328,24 @@
   async function apiPost(ep) { try { return await V.apiPost(ep, {}); } catch (e) { toast('请求失败: ' + e); return {}; } }
   async function apiPostBody(ep, body) { try { return await V.apiPost(ep, body); } catch (e) { toast('请求失败: ' + e); return {}; } }
 
-  // ---- 登录弹窗显隐 ----
+  // ---- 登录弹窗显隐（随登录态切换内容） ----
   let modalOpen = false;
+  let _authState = 'idle';
+  let _authUid = '';
   function setModalOpen(v) { modalOpen = v; $('loginModal').classList.toggle('open', v); }
-  function openLogin() { setModalOpen(true); refreshQr(); }
+  function openLogin() {
+    setModalOpen(true);
+    if (_authState === 'ok') {
+      $('mTitle').textContent = '账号信息';
+      $('btnModalRefresh').style.display = 'none';
+      $('mQr').innerHTML = '<div class="ph" style="border-style:solid">已登录</div>';
+      $('mQrDetail').textContent = _authUid ? ('uid ' + _authUid) : '已连接，正常搬运转发';
+    } else {
+      $('mTitle').textContent = '扫码登录';
+      $('btnModalRefresh').style.display = '';
+      refreshQr();
+    }
+  }
   function closeLogin() { setModalOpen(false); }
   $('sideUser').onclick = openLogin;
   $('modalClose').onclick = closeLogin;
@@ -334,6 +369,7 @@
   };
   function renderStatus(d) {
     const st = d.auth_state || 'idle';
+    _authState = st; _authUid = d.self_uid || '';
     const [cls, label, sub] = ST_MAP[st] || ST_MAP.idle;
     $('sideDot').className = 'dot dot-' + cls;
     $('sideState').textContent = label;
@@ -450,6 +486,18 @@
   function chipHtml(v) {
     return '<span class="chip">' + esc(v) + '<button data-delv="' + esc(v) + '">×</button></span>';
   }
+  // 分组：设置/策略按语义分卡片
+  const SETTINGS_GROUPS = [
+    ['登录', ['douyin_cookies','douyin_web_protect','douyin_keys','self_uid','device_id','login_backend','mfa_mode','login_timeout','login_mfa_timeout','auth_watchdog_minutes','auth_failure_close_codes','auth_failure_keywords']],
+    ['转发', ['max_message_length','include_link','header_template','default_target_group','sources']]
+  ];
+  const POLICY_GROUPS = [
+    ['限流', ['rate_limit_global_enabled','rate_limit_global_max_per_min','rate_limit_sender_enabled','rate_limit_sender_max_per_min']],
+    ['去重', ['dedup_enabled','dedup_window_seconds']],
+    ['重试', ['retry_enabled','retry_interval_seconds']],
+    ['过滤', ['senders_whitelist','senders_blacklist','keyword_filters']],
+    ['告警与适配', ['alert_target','alert_only_once','qq_adapter_id']]
+  ];
   function fieldHtml(k, schema, val) {
     const t = fieldType(k, schema);
     if (t === 'select') return selectOptions(k, val);
@@ -460,19 +508,12 @@
     if (t === 'json') return '<textarea data-k="' + esc(k) + '" rows="3">' + esc(typeof val === 'string' ? val : JSON.stringify(val ?? '', null, 0)) + '</textarea>';
     return '<input type="text" data-k="' + esc(k) + '" value="' + esc(val ?? '') + '">';
   }
-  function renderFieldGroup(containerId, keys) {
-    const box = $(containerId);
-    let html = '';
-    for (const k of keys) html += '<label class="f"><span>' + esc(lbl(k)) + '</span>' + fieldHtml(k, _schema, _cfg[k]) + '</label>';
-    box.innerHTML = html || '<div class="empty">无配置项</div>';
-    // chips 删除
+  function bindChips(box) {
     box.querySelectorAll('[data-delv]').forEach(b => b.onclick = () => {
-      const wrap = b.closest('.chips'); const key = wrap.dataset.senders;
-      const v = b.dataset.delv;
+      const wrap = b.closest('.chips'); const key = wrap.dataset.senders; const v = b.dataset.delv;
       _cfg[key] = senderVals(wrap).filter(x => x !== v).join(',');
-      wrap.querySelectorAll('.chip').forEach(c => { if (c.dataset.v === v) c.remove(); });
+      const c = b.closest('.chip'); if (c) c.remove();
     });
-    // chips 添加
     box.querySelectorAll('[data-addbtn]').forEach(b => b.onclick = () => {
       const wrap = b.closest('.chips'); const key = b.dataset.addbtn;
       const inp = wrap.querySelector('[data-add]'); const v = inp.value.trim();
@@ -482,12 +523,27 @@
       inp.value = '';
       const span = document.createElement('span');
       span.className = 'chip'; span.innerHTML = esc(v) + '<button data-delv="' + esc(v) + '">×</button>';
-      span.querySelector('[data-delv]').onclick = () => { const s = senderVals(wrap).filter(x => x !== v).join(','); _cfg[key] = s; span.remove(); };
+      span.querySelector('[data-delv]').onclick = () => { _cfg[key] = senderVals(wrap).filter(x => x !== v).join(','); span.remove(); };
       wrap.insertBefore(span, wrap.querySelector('.add'));
     });
     box.querySelectorAll('[data-add]').forEach(inp => inp.addEventListener('keydown', e => {
       if (e.key === 'Enter') { const b = inp.closest('.chips').querySelector('[data-addbtn]'); b && b.click(); }
     }));
+  }
+  function renderFieldGroup(containerId, groups) {
+    const box = $(containerId);
+    let html = '';
+    for (const [gtitle, keys] of groups) {
+      html += '<div class="gcard"><h2>' + esc(gtitle) + '</h2>';
+      for (const k of keys) {
+        const hint = (_schema[k] && _schema[k].hint) ? _schema[k].hint : '';
+        html += '<label class="f"><span>' + esc(lbl(k)) + '</span>' + fieldHtml(k, _schema, _cfg[k]) +
+          (hint ? '<span class="hint">' + esc(hint) + '</span>' : '') + '</label>';
+      }
+      html += '</div>';
+    }
+    box.innerHTML = html || '<div class="empty">无配置项</div>';
+    bindChips(box);
   }
   function senderVals(wrap) {
     return Array.from(wrap.querySelectorAll('.chip')).map(c => c.textContent.replace('×', '').trim()).filter(Boolean);
@@ -501,36 +557,55 @@
     await loadConfig();
   }
 
-  // ---- 路由表编辑器 ----
-  function addRouteRow(r) {
-    const tbody = document.querySelector('#routeTbl tbody');
-    const tr = document.createElement('tr');
+  // ---- 路由编辑器（卡片式） ----
+  const ROUTE_TYPES = [['text','文本'],['video_card','视频卡片'],['image','图片'],['emoji','表情'],['voice','语音'],['other','其他']];
+  function routeCard(r) {
     const match = r.match || {};
-    tr.innerHTML =
-      '<td><input data-r="name" value="' + esc(r.name || '') + '"></td>' +
-      '<td><input data-r="target" value="' + esc(r.target || '') + '"></td>' +
-      '<td><input data-r="types" value="' + esc((match.types || []).join(',')) + '" placeholder="逗号分隔"></td>' +
-      '<td><input data-r="senders_include" value="' + esc((match.senders_include || []).join(',')) + '" placeholder="逗号分隔"></td>' +
-      '<td><input data-r="senders_exclude" value="' + esc((match.senders_exclude || []).join(',')) + '" placeholder="逗号分隔"></td>' +
-      '<td><button data-del="1">删</button></td>';
-    tr.querySelector('[data-del]').onclick = () => tr.remove();
-    tbody.appendChild(tr);
+    const types = match.types || [];
+    const u = umoSplit(r.target);
+    const inc = (match.senders_include || []).join(',');
+    const exc = (match.senders_exclude || []).join(',');
+    const card = document.createElement('div');
+    card.className = 'rcard';
+    card.innerHTML =
+      '<div class="rhead"><input data-rc="name" placeholder="路由名称" value="' + esc(r.name || '') + '">' +
+      '<button data-rmove="-1" title="上移">↑</button><button data-rmove="1" title="下移">↓</button>' +
+      '<button data-rdel="1" class="danger">删除</button></div>' +
+      '<div class="rrow"><span>目标</span><div class="umo-row">' +
+      '<select data-rc="adapter">' + (SELECTS.qq_adapter_id || []).map(([v, l]) =>
+        '<option value="' + esc(v) + '"' + (v === u.adapter ? ' selected' : '') + '>' + esc(l) + '</option>').join('') + '</select>' +
+      '<input data-rc="group" placeholder="群号" value="' + esc(u.group) + '"></div></div>' +
+      '<div class="rrow"><span>类型</span><div class="type-chips">' +
+      ROUTE_TYPES.map(([v, l]) => '<span class="tc' + (types.includes(v) ? ' on' : '') + '" data-rt="' + esc(v) + '">' + esc(l) + '</span>').join('') +
+      '</div></div>' +
+      '<div class="rrow"><span>发送者包含</span><div class="senders-inline"><input data-rc="sinc" placeholder="逗号分隔 uid" value="' + esc(inc) + '"></div></div>' +
+      '<div class="rrow"><span>发送者排除</span><div class="senders-inline"><input data-rc="sexc" placeholder="逗号分隔 uid" value="' + esc(exc) + '"></div></div>';
+    card.querySelector('[data-rdel]').onclick = () => card.remove();
+    card.querySelectorAll('[data-rmove]').forEach(b => b.onclick = () => {
+      const list = document.getElementById('routeCards');
+      if (b.dataset.rmove === '-1' && card.previousElementSibling) list.insertBefore(card, card.previousElementSibling);
+      else if (b.dataset.rmove === '1' && card.nextElementSibling) list.insertBefore(card.nextElementSibling, card);
+    });
+    card.querySelectorAll('[data-rt]').forEach(tc => tc.onclick = () => tc.classList.toggle('on'));
+    return card;
   }
   function renderRoutes(routes) {
-    const tbody = document.querySelector('#routeTbl tbody');
-    tbody.innerHTML = '';
-    (routes || []).forEach(addRouteRow);
+    const list = document.getElementById('routeCards');
+    list.innerHTML = '';
+    (routes || []).forEach(r => list.appendChild(routeCard(r)));
+    if (!routes || !routes.length) list.innerHTML = '<div class="empty">暂无路由，点「+ 添加路由」新增</div>';
   }
   function collectRoutes() {
     const out = [];
-    document.querySelectorAll('#routeTbl tbody tr').forEach(tr => {
-      const get = k => (tr.querySelector('[data-r="' + k + '"]') || {}).value || '';
-      const target = get('target').trim();
-      if (!target) return;
+    document.querySelectorAll('#routeCards .rcard').forEach(card => {
+      const get = k => (card.querySelector('[data-rc="' + k + '"]') || {}).value || '';
+      const group = get('group').trim();
+      if (!group) return;
+      const adapter = get('adapter') || 'aiocqhttp';
       const split = v => v.split(',').map(s => s.trim()).filter(Boolean);
-      out.push({ name: get('name').trim() || 'route', target, match: {
-        types: split(get('types')), senders_include: split(get('senders_include')),
-        senders_exclude: split(get('senders_exclude')) } });
+      const types = Array.from(card.querySelectorAll('[data-rt].on')).map(t => t.dataset.rt);
+      out.push({ name: get('name').trim() || 'route', target: adapter + ':GroupMessage:' + group, match: {
+        types, senders_include: split(get('sinc')), senders_exclude: split(get('sexc')) } });
     });
     return out;
   }
@@ -539,8 +614,8 @@
     const d = await apiGet('config/get');
     if (!d.config) { $('policyForm').innerHTML = $('settingsForm').innerHTML = '<div class="empty">配置读取失败</div>'; return; }
     _cfg = d.config; _schema = d.schema || {};
-    renderFieldGroup('policyForm', POLICY_KEYS);
-    renderFieldGroup('settingsForm', SETTINGS_KEYS);
+    renderFieldGroup('policyForm', POLICY_GROUPS);
+    renderFieldGroup('settingsForm', SETTINGS_GROUPS);
     renderRoutes(_cfg.routes || []);
   }
 
@@ -593,7 +668,7 @@
   $('mfaCode').addEventListener('keydown', e => { if (e.key === 'Enter') $('btnMfa').click(); });
   $('btnLogRefresh').onclick = refreshLogs;
   $('btnLogClear').onclick = async () => { const d = await apiPost('logs/clear'); toast(d.detail || '已清空'); await refreshLogs(); };
-  $('btnAddRoute').onclick = () => addRouteRow({});
+  $('btnAddRoute').onclick = () => { const list = document.getElementById('routeCards'); const empty = list.querySelector('.empty'); if (empty) empty.remove(); list.appendChild(routeCard({})); };
   $('btnSaveRoutes').onclick = async () => { await saveConfig({ routes: collectRoutes() }); };
   $('btnSavePolicy').onclick = async () => { await saveConfig(collectKeys(POLICY_KEYS)); };
   $('btnSaveSettings').onclick = async () => { await saveConfig(collectKeys(SETTINGS_KEYS)); };
