@@ -4,6 +4,16 @@
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-11-09
+
+### Added
+- 登录后端迁移为纯 Python：移植 `@alemonjs/douyin` 登录核心（desktop 扫码 + 2046 MFA）到 `dyf_gateway/douyin/login/alemonjs_py/`，含自实现 SM3、jumpbyte `a_bogus`、Passport 签名/表单、CookieJar、HTTP 客户端与扫码轮询编排；登录不再依赖 Node 运行时。
+- 新增 `AlemonsPyLogin`（`alemonjs_py_login.py`）作为默认登录后端；Node 桥接保留为可选回退（`login_backend=alemonjs_node`）。
+- 「安装登录依赖」入口现提示纯 Python 后端无需安装。
+
+### Verified
+- `a_bogus`、`check_qrconnect` URL、desktop-lite MFA URL 逐字节匹配 Node 参照（固定 `nowMs`/`random`）；`buildPassportSignQs` sign/qs 逐字节一致。
+
 ## [0.6.1] - 2026-11-09
 
 ### Changed

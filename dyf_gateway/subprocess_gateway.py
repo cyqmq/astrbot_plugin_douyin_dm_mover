@@ -52,6 +52,7 @@ class SubprocessGateway(MessageGateway):
         self._logging_in = False
         # ---- 登录（父进程编排，登录后会话 cookie 注入 worker 配置）----
         from .douyin.login.alemonjs import AlemonjsLogin
+        from .douyin.login.alemonjs_py_login import AlemonsPyLogin
         from .douyin.login.flow import LoginFlow
         from .douyin.login.mfa import MfaHandler
         from .douyin.login.waiter import CodeWaiter
@@ -62,9 +63,12 @@ class SubprocessGateway(MessageGateway):
         self._login_flow = LoginFlow(
             self._data_dir, mfa_handler=self._mfa, on_qrcode=self._on_qr, on_log=lambda m: None
         )
-        # ---- 登录后端：默认 @alemonjs/douyin（Node 桥接）----
+        # ---- 登录后端：默认纯 Python（@alemonjs/douyin 移植）；可选 Node 桥接 / douyin_spider ----
         self._login_backend = (config.get("login_backend") or "alemonjs").lower()
         self._alemonjs = AlemonjsLogin(
+            on_qrcode=self._on_qr_alemonjs, on_log=lambda m: None, code_waiter=self._code_waiter
+        )
+        self._alemonjs_py = AlemonsPyLogin(
             on_qrcode=self._on_qr_alemonjs, on_log=lambda m: None, code_waiter=self._code_waiter
         )
 
@@ -276,9 +280,9 @@ class SubprocessGateway(MessageGateway):
         backend = self._login_backend
 
         try:
-            if backend == "alemonjs":
-                logger.info("[dyf] 登录后端：@alemonjs/douyin（Node 桥接）")
-                result = await self._alemonjs.qrcode_login_async(timeout=timeout)
+            if backend in ("alemonjs", "alemonjs_py", "python"):
+                logger.info("[dyf] 登录后端：@alemonjs/douyin 纯 Python 移植")
+                result = await self._alemonjs_py.qrcode_login_async(timeout=timeout)
                 from .douyin.vendored.auth import DouyinAuth
 
                 auth = DouyinAuth(
@@ -291,6 +295,21 @@ class SubprocessGateway(MessageGateway):
                     auth.device_id = str(result.device_id)
                 auth._login_backend = "alemonjs"
                 self._login_flow.session.save(auth, backend="alemonjs")
+            elif backend in ("alemonjs_node", "node"):
+                logger.info("[dyf] 登录后端：@alemonjs/douyin（Node 桥接）")
+                result = await self._alemonjs.qrcode_login_async(timeout=timeout)
+                from .douyin.vendored.auth import DouyinAuth
+
+                auth = DouyinAuth(
+                    cookie_str=result.cookie_str,
+                    web_protect=self._config.get("douyin_web_protect", ""),
+                    keys=self._config.get("douyin_keys", ""),
+                )
+                auth.uid = int(result.uid) if result.uid else None
+                if result.device_id:
+                    auth.device_id = str(result.device_id)
+                auth._login_backend = "alemonjs_node"
+                self._login_flow.session.save(auth, backend="alemonjs_node")
             else:
                 auth = await loop.run_in_executor(
                     None, lambda: self._login_flow.qrcode_login(timeout=timeout)
@@ -330,6 +349,9 @@ class SubprocessGateway(MessageGateway):
         return self._logging_in
 
     async def install_login_backend(self) -> tuple[bool, str]:
+        backend = self._login_backend
+        if backend in ("alemonjs", "alemonjs_py", "python"):
+            return True, "登录后端为纯 Python 实现（@alemonjs/douyin 移植），无需安装依赖。"
         from .douyin.login.alemonjs import ensure_alemonjs
 
         return await ensure_alemonjs(install=True)
