@@ -31,6 +31,12 @@
     "default": "inprocess",
     "description": "网关模式: inprocess（默认，线程）| subprocess（进程隔离）"
   },
+  "login_backend": {
+    "type": "string",
+    "default": "alemonjs",
+    "description": "登录后端: alemonjs（默认，@alemonjs/douyin Node 桥接）| douyin_spider（旧 vendored）",
+    "hint": "alemonjs 需在插件根目录 npm install @alemonjs/douyin，且 Node >= 20.19"
+  },
   "mfa_mode": {
     "type": "string",
     "default": "auto_sms",

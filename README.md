@@ -29,6 +29,14 @@ https://github.com/cyqmq/astrbot_plugin_douyin_dm_mover
 
 > 需要 AstrBot 版本 `>=4.16,<5`。依赖：`websocket-client>=1.6.0`（安装时自动拉取）。
 
+> **登录后端（默认 `@alemonjs/douyin`）**：需 Node.js `>=20.19`，并在插件根目录执行：
+>
+> ```
+> npm install @alemonjs/douyin
+> ```
+>
+> 扫码登录（含 2046 短信二次验证）由 `@alemonjs/douyin` 的 SDK 完成。若无法安装 Node 或该包，可在配置中将 `login_backend` 设为 `douyin_spider` 回退到内置登录层。
+
 ## 配置
 
 在插件配置页填写（`_conf_schema.json` 含全部字段与说明）。核心字段：

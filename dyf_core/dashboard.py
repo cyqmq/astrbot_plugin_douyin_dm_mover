@@ -90,6 +90,8 @@ class DashboardApi:
         content = self.gateway.last_qr_content
         if not content:
             return {"qr": None, "detail": "尚未生成二维码，请点击「刷新登录二维码」"}
+        if content.startswith("data:image"):
+            return {"qr": content, "detail": "ok"}
         return {"qr": _qr_data_url(content), "detail": "ok"}
 
     async def qrcode_refresh(self):

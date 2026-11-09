@@ -23,8 +23,12 @@ class SessionStore:
         os.makedirs(data_dir, exist_ok=True)
         self.path = os.path.join(data_dir, _SESSION_FILE)
 
-    def save(self, auth) -> dict:
-        """从登录后的 auth 提取并落盘，返回持久化 dict。"""
+    def save(self, auth, backend: str | None = None) -> dict:
+        """从登录后的 auth 提取并落盘，返回持久化 dict。
+
+        ``backend`` 标记登录后端（alemonjs / douyin_spider）；alemonjs 会话
+        无 ticket/private_key（由 SDK cookie 直接建 WS），has_valid 据此放宽。
+        """
         cookie = dict(getattr(auth, "cookie", None) or {})
         data = {
             "cookie": cookie,
@@ -36,6 +40,7 @@ class SessionStore:
             "dtrait_blob": getattr(auth, "dtrait_blob", None) or "",
             "uid": getattr(auth, "uid", None),
             "device_id": cookie.get("device_id") or getattr(auth, "device_id", None),
+            "backend": backend or getattr(auth, "_login_backend", None) or "douyin_spider",
             "saved_at": int(time.time()),
         }
         self._write(data)
@@ -53,16 +58,16 @@ class SessionStore:
         return None
 
     def has_valid(self) -> bool:
-        """有效 = 有 sessionid 且 ticket/private_key 齐（对齐 DouYin_Spider get_login_auth 判定）。"""
+        """有效 = 有 sessionid（alemonjs 后端用 cookie 直连即可，其余还需 ticket/private_key）。"""
         data = self.load()
         if not data:
             return False
         cookie = data.get("cookie") or {}
-        return bool(
-            cookie.get("sessionid")
-            and data.get("ticket")
-            and data.get("private_key")
-        )
+        if not cookie.get("sessionid"):
+            return False
+        if data.get("backend") == "alemonjs":
+            return True
+        return bool(data.get("ticket") and data.get("private_key"))
 
     def build_auth(self):
         """按保存的会话重建 builder.auth.DouyinAuth；无效返回 None。"""

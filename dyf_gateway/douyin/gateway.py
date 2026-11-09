@@ -15,6 +15,7 @@ from ..base import MessageGateway
 from .converter import DouyinConverter
 from .detector import AuthFailureDetector
 from .device import resolve_device_id
+from .login.alemonjs import AlemonjsLogin
 from .login.flow import LoginFlow
 from .login.mfa import MfaHandler
 from .login.waiter import CodeWaiter
@@ -68,6 +69,13 @@ class DouyinGateway(MessageGateway):
             mfa_handler=self._mfa,
             on_qrcode=self._on_qr,
             on_log=self._log_login,
+        )
+        # ---- 登录后端：默认 @alemonjs/douyin（Node 桥接），可回退 douyin_spider ----
+        self._login_backend = (config.get("login_backend") or "alemonjs").lower()
+        self._alemonjs = AlemonjsLogin(
+            on_qrcode=self._on_qr_alemonjs,
+            on_log=self._log_login,
+            code_waiter=self._code_waiter,
         )
         self._login_task: asyncio.Task | None = None
         self._login_lock = threading.Lock()
@@ -163,7 +171,7 @@ class DouyinGateway(MessageGateway):
 
     # ---- 登录 / 登出 / MFA ----
     async def login(self, timeout: int = 300) -> None:
-        """扫码登录（阻塞 qrcode_login 放后台线程）。登录成功自动重启接收端。"""
+        """扫码登录。默认 @alemonjs/douyin 后端（Node 桥接）；可回退 douyin_spider。"""
         if self._login_task and not self._login_task.done():
             self._emit_event(GatewayEvent("error", "已有登录进行中"))
             return
@@ -174,23 +182,48 @@ class DouyinGateway(MessageGateway):
             self._state = AuthState.UNKNOWN
             self._emit_event(GatewayEvent("login_started", "开始扫码登录"))
             logger.info("[dyf] 扫码登录已启动，等待二维码")
-            loop = asyncio.get_running_loop()
-
-            def _run():
-                return self._login_flow.qrcode_login(timeout=timeout)
-
-            auth = await loop.run_in_executor(None, _run)
+            backend = self._login_backend
+            cookie_str = ""
+            uid = None
+            dev = None
+            auth = None
+            if backend == "alemonjs":
+                logger.info("[dyf] 登录后端：@alemonjs/douyin（Node 桥接）")
+                result = await self._alemonjs.qrcode_login_async(timeout=timeout)
+                cookie_str = result.cookie_str
+                uid = int(result.uid) if result.uid else None
+                dev = result.device_id
+                auth = DouyinAuth(
+                    cookie_str=cookie_str,
+                    web_protect=self._config.get("douyin_web_protect", ""),
+                    keys=self._config.get("douyin_keys", ""),
+                )
+                auth.uid = uid
+                if dev:
+                    auth.device_id = str(dev)
+                auth._login_backend = "alemonjs"
+            else:
+                loop = asyncio.get_running_loop()
+                auth = await loop.run_in_executor(
+                    None, lambda: self._login_flow.qrcode_login(timeout=timeout)
+                )
+                cookie_str = "; ".join(
+                    f"{k}={v}" for k, v in (auth.cookie or {}).items()
+                )
+                uid = getattr(auth, "uid", None)
+                dev = (auth.cookie or {}).get("device_id") or getattr(auth, "device_id", None)
             self._stop_receiver()
-            self._login_flow.session.save(auth)
+            self._login_flow.session.save(
+                auth, backend="alemonjs" if backend == "alemonjs" else None
+            )
             self._auth = DouyinAuth(
-                cookie_str="; ".join(f"{k}={v}" for k, v in (auth.cookie or {}).items()),
+                cookie_str=cookie_str,
                 web_protect=self._config.get("douyin_web_protect", ""),
                 keys=self._config.get("douyin_keys", ""),
             )
-            if getattr(auth, "uid", None):
-                self._self_uid = int(auth.uid)
+            if uid:
+                self._self_uid = int(uid)
                 self._resolver.cache(self._self_uid)
-            dev = (auth.cookie or {}).get("device_id") or getattr(auth, "device_id", None)
             if dev:
                 self._device_id = str(dev)
             self._auth.uid = self._self_uid
@@ -233,6 +266,15 @@ class DouyinGateway(MessageGateway):
         self._last_qr_content = url
         self._emit_event(GatewayEvent("qr", url))
         logger.info("[dyf] 登录二维码已生成，请用抖音扫码登录")
+
+    def _on_qr_alemonjs(self, ev: dict) -> None:
+        """Alemons 桥接二维码：qrcodeBase64 为 PNG base64，直接拼 data URL。"""
+        b64 = str(ev.get("qrcodeBase64") or "").strip()
+        data_url = f"data:image/png;base64,{b64}" if b64 else ""
+        if data_url:
+            self._last_qr_content = data_url
+            self._emit_event(GatewayEvent("qr", data_url))
+        logger.info("[dyf] 登录二维码已生成（@alemonjs/douyin），请用抖音扫码登录")
 
     @property
     def last_qr_content(self) -> str | None:

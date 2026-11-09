@@ -51,6 +51,7 @@ class SubprocessGateway(MessageGateway):
         self._reader_tasks: list[asyncio.Task] = []
         self._logging_in = False
         # ---- 登录（父进程编排，登录后会话 cookie 注入 worker 配置）----
+        from .douyin.login.alemonjs import AlemonjsLogin
         from .douyin.login.flow import LoginFlow
         from .douyin.login.mfa import MfaHandler
         from .douyin.login.waiter import CodeWaiter
@@ -60,6 +61,11 @@ class SubprocessGateway(MessageGateway):
         self._mfa = MfaHandler(self._mfa_mode, alert=self._mfa_alert, code_source=self._code_waiter.code_source)
         self._login_flow = LoginFlow(
             self._data_dir, mfa_handler=self._mfa, on_qrcode=self._on_qr, on_log=lambda m: None
+        )
+        # ---- 登录后端：默认 @alemonjs/douyin（Node 桥接）----
+        self._login_backend = (config.get("login_backend") or "alemonjs").lower()
+        self._alemonjs = AlemonjsLogin(
+            on_qrcode=self._on_qr_alemonjs, on_log=lambda m: None, code_waiter=self._code_waiter
         )
 
     @staticmethod
@@ -267,13 +273,29 @@ class SubprocessGateway(MessageGateway):
         self._logging_in = True
         loop = asyncio.get_running_loop()
         self._emit_event(GatewayEvent("login_started", "开始扫码登录"))
-
-        def _run():
-            return self._login_flow.qrcode_login(timeout=timeout)
+        backend = self._login_backend
 
         try:
-            auth = await loop.run_in_executor(None, _run)
-            self._login_flow.session.save(auth)
+            if backend == "alemonjs":
+                logger.info("[dyf] 登录后端：@alemonjs/douyin（Node 桥接）")
+                result = await self._alemonjs.qrcode_login_async(timeout=timeout)
+                from .douyin.vendored.auth import DouyinAuth
+
+                auth = DouyinAuth(
+                    cookie_str=result.cookie_str,
+                    web_protect=self._config.get("douyin_web_protect", ""),
+                    keys=self._config.get("douyin_keys", ""),
+                )
+                auth.uid = int(result.uid) if result.uid else None
+                if result.device_id:
+                    auth.device_id = str(result.device_id)
+                auth._login_backend = "alemonjs"
+                self._login_flow.session.save(auth, backend="alemonjs")
+            else:
+                auth = await loop.run_in_executor(
+                    None, lambda: self._login_flow.qrcode_login(timeout=timeout)
+                )
+                self._login_flow.session.save(auth)
             self._state = AuthState.OK
             self._emit_event(GatewayEvent("login_ok", "登录成功，会话已保存"))
             await self._restart_worker()
@@ -328,6 +350,13 @@ class SubprocessGateway(MessageGateway):
     def _on_qr(self, url: str) -> None:
         self._last_qr_content = url
         self._emit_event(GatewayEvent("qr", url))
+
+    def _on_qr_alemonjs(self, ev: dict) -> None:
+        b64 = str(ev.get("qrcodeBase64") or "").strip()
+        data_url = f"data:image/png;base64,{b64}" if b64 else ""
+        if data_url:
+            self._last_qr_content = data_url
+            self._emit_event(GatewayEvent("qr", data_url))
 
     @property
     def last_qr_content(self) -> str | None:

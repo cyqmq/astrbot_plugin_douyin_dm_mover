@@ -4,6 +4,15 @@
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-09
+
+### Changed
+- 登录后端重构：默认改用 `@alemonjs/douyin`（Node 桥接）作为唯一扫码登录后端，其 `getQrcode`/`checkQrconnect`/`sendQrMfaCode`/`validateQrMfaCode` 完整接管扫码 → 2046 短信二次验证 → 会话；内置 `DouYin_Spider` 登录仅作 `login_backend=douyin_spider` 回退。
+- 登录实现改为异步 Node 子进程桥接（`alemonjs_bridge.mjs` + `login/alemonjs.py`，NDJSON 行协议），二维码以 SDK 返回的 PNG base64 直接渲染，MFA 沿用 `/dyf mfa <验证码>` 喂码。
+- 会话持久化支持 alemons 后端：无 `ticket`/`private_key`（由 cookie 直连建 WS）时 `SessionStore.has_valid()` 放宽。
+- 新增配置项 `login_backend`（默认 `alemonjs`）；二维码接口兼容 `data:image` data URL。
+- 安装说明补充 Node.js >= 20.19 与 `npm install @alemonjs/douyin`。
+
 ## [0.4.1] - 2026-11-08
 
 ### Fixed
