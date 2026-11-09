@@ -3,167 +3,331 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>抖音私信搬运 · 状态</title>
+<title>抖音私信搬运</title>
 <script src="/api/plugin/page/bridge-sdk.js"></script>
 <style>
   :root { --bg:#f5f6f8; --card:#fff; --text:#1f2328; --muted:#6a737d; --border:#e1e4e8;
-          --ok:#2da44e; --bad:#cf222e; --warn:#9a6700; --accent:#0969da; }
+          --ok:#2da44e; --bad:#cf222e; --warn:#9a6700; --accent:#0969da; --side:#18181b; }
   html[data-theme="dark"] { --bg:#0d1117; --card:#161b22; --text:#e6edf3; --muted:#8b949e;
-          --border:#30363d; --ok:#3fb950; --bad:#f85149; --warn:#d29922; --accent:#58a6ff; }
+          --border:#30363d; --ok:#3fb950; --bad:#f85149; --warn:#d29922; --accent:#58a6ff; --side:#0b0d12; }
   * { box-sizing:border-box; }
-  body { margin:0; padding:16px; background:var(--bg); color:var(--text);
+  body { margin:0; padding:0; background:var(--bg); color:var(--text);
          font:14px/1.5 -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif; }
-  .wrap { max-width:1020px; margin:0 auto; }
-  h1 { font-size:18px; margin:0 0 12px; }
-  .bar { display:flex; gap:8px; align-items:center; margin-bottom:14px; flex-wrap:wrap; }
+  .app { display:flex; min-height:100vh; }
+  /* 侧栏 */
+  aside { width:210px; background:var(--side); color:#e4e4e7; display:flex; flex-direction:column;
+          flex-shrink:0; position:sticky; top:0; height:100vh; }
+  .side-head { display:flex; align-items:center; gap:9px; padding:0 14px; height:52px;
+               border-bottom:1px solid rgba(255,255,255,.09); }
+  .side-logo { width:28px; height:28px; border-radius:8px; background:#06b6d4; display:flex;
+               align-items:center; justify-content:center; color:#0b0d12; font-weight:800; font-size:13px; }
+  .side-title { font-weight:700; font-size:14px; color:#fff; letter-spacing:-.2px; }
+  nav.side-nav { flex:1; padding:12px 10px; }
+  .nav-item { display:flex; align-items:center; gap:10px; padding:8px 11px; border-radius:8px;
+              font-size:13px; color:#a1a1aa; cursor:pointer; transition:.12s; margin-bottom:2px; }
+  .nav-item:hover { background:rgba(255,255,255,.06); color:#e4e4e7; }
+  .nav-item.active { background:rgba(255,255,255,.10); color:#fff; font-weight:600; }
+  .nav-item .ic { width:15px; height:15px; flex:none; }
+  .side-foot { padding:10px; }
+  .side-card { border:1px solid rgba(255,255,255,.10); border-radius:10px; padding:9px 11px; background:rgba(255,255,255,.05); }
+  .side-card .dot { width:7px; height:7px; border-radius:999px; display:inline-block; margin-right:6px; }
+  .dot-ok { background:#34d399; } .dot-bad { background:#f87171; } .dot-warn { background:#fbbf24; } .dot-idle { background:#71717a; }
+  .side-card .lbl { font-size:11.5px; font-weight:600; color:#e4e4e7; }
+  .side-card .sub { font-size:11px; color:#71717a; margin-top:2px; }
+  /* 主区 */
+  main { flex:1; padding:20px 24px; max-width:1000px; }
+  .top { display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; }
+  .top h1 { font-size:20px; font-weight:800; margin:0; letter-spacing:-.3px; }
+  .top p { font-size:13px; color:var(--muted); margin:2px 0 0; }
+  .bar { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
   button { border:1px solid var(--border); background:var(--card); color:var(--text);
-           padding:6px 12px; border-radius:6px; cursor:pointer; font-size:13px; }
+           padding:6px 12px; border-radius:8px; cursor:pointer; font-size:13px; }
   button:hover { border-color:var(--accent); color:var(--accent); }
   button.primary { background:var(--accent); border-color:var(--accent); color:#fff; }
   button.danger:hover { border-color:var(--bad); color:var(--bad); }
-  .grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
-  @media (max-width:720px){ .grid{ grid-template-columns:1fr; } }
-  .card { background:var(--card); border:1px solid var(--border); border-radius:8px; padding:12px 14px; }
-  .card h2 { font-size:14px; margin:0 0 8px; }
-  .kv { display:grid; grid-template-columns:auto 1fr; gap:4px 10px; font-size:13px; }
-  .kv b { color:var(--muted); font-weight:500; }
-  .pill { display:inline-block; padding:1px 8px; border-radius:999px; font-size:12px; color:#fff; }
-  .ok { background:var(--ok); } .bad { background:var(--bad); } .warn { background:var(--warn); }
+  button.ghost { border-color:transparent; background:transparent; color:var(--muted); }
+  input[type=text],input[type=number],input[type=password],textarea,select {
+    border:1px solid var(--border); background:var(--bg); color:var(--text);
+    padding:5px 8px; border-radius:6px; font-size:13px; }
+  textarea { font-family:ui-monospace,SFMono-Regular,Consolas,monospace; font-size:12px; }
+  .card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:14px 16px; }
+  .card h2 { font-size:13.5px; font-weight:700; margin:0 0 10px; }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  @media (max-width:820px){ .grid2{ grid-template-columns:1fr; } }
+  .pills { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:16px; }
+  .pill { display:inline-flex; align-items:center; gap:6px; padding:4px 11px; border-radius:999px;
+          font-size:12px; color:var(--text); background:var(--card); border:1px solid var(--border); }
+  .pill .dot { width:7px; height:7px; border-radius:999px; display:inline-block; }
+  .stats { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:16px; }
+  @media (max-width:820px){ .stats{ grid-template-columns:repeat(2,1fr); } }
+  .stat { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:12px 14px; }
+  .stat .k { display:flex; align-items:center; gap:7px; font-size:12px; color:var(--muted); }
+  .stat .v { font-size:22px; font-weight:800; margin-top:6px; }
   .list { list-style:none; margin:0; padding:0; font-size:13px; }
-  .list li { padding:5px 0; border-bottom:1px dashed var(--border); }
+  .list li { padding:6px 0; border-bottom:1px dashed var(--border); }
   .list li:last-child { border-bottom:none; }
   .muted { color:var(--muted); font-size:12px; }
-  .empty { color:var(--muted); padding:8px 0; }
-  .qr img { max-width:220px; width:100%; border:1px solid var(--border); border-radius:6px; }
-  .qr .ph { width:220px; height:220px; display:flex; align-items:center; justify-content:center;
-            border:1px dashed var(--border); border-radius:6px; color:var(--muted); font-size:12px; }
-  .logs { max-height:280px; overflow:auto; margin:0; padding:8px 10px; background:var(--bg);
-          border:1px solid var(--border); border-radius:6px;
+  .empty { color:var(--muted); padding:14px 0; text-align:center; font-size:12.5px; }
+  .clickable { cursor:pointer; }
+  .qr img { max-width:210px; width:100%; border:1px solid var(--border); border-radius:8px; }
+  .qr .ph { width:210px; height:210px; display:flex; align-items:center; justify-content:center;
+            border:1px dashed var(--border); border-radius:8px; color:var(--muted); font-size:12.5px; }
+  .logs { max-height:360px; overflow:auto; margin:0; padding:8px 10px; background:var(--bg);
+          border:1px solid var(--border); border-radius:8px;
           font:12px/1.6 ui-monospace,SFMono-Regular,Consolas,monospace; white-space:pre-wrap;
           word-break:break-all; }
   .lvl-error { color:var(--bad); } .lvl-warning { color:var(--warn); } .lvl-info { color:var(--muted); }
-  input[type=text],input[type=number],input[type=password],textarea,select {
-    border:1px solid var(--border); background:var(--bg); color:var(--text);
-    padding:5px 8px; border-radius:5px; font-size:13px; }
-  textarea { font-family:ui-monospace,SFMono-Regular,Consolas,monospace; font-size:12px; }
-  label.f { display:grid; grid-template-columns:200px 1fr; gap:8px; align-items:center;
+  label.f { display:grid; grid-template-columns:190px 1fr; gap:8px; align-items:center;
             margin-bottom:6px; font-size:13px; }
   label.f > span { color:var(--muted); }
-  .cfg h3 { font-size:13px; margin:12px 0 6px; color:var(--accent); }
+  .cfg h3 { font-size:12.5px; margin:12px 0 6px; color:var(--accent); }
   .cfg h3:first-child { margin-top:0; }
   table.routes { width:100%; border-collapse:collapse; font-size:12px; margin-top:6px; }
   table.routes th,table.routes td { border:1px solid var(--border); padding:4px 6px; }
   table.routes input { width:100%; border:none; background:transparent; color:var(--text); }
   table.routes th { color:var(--muted); font-weight:500; }
-  .clickable { cursor:pointer; }
+  .tab { display:none; } .tab.active { display:block; }
+  .save-row { margin-top:12px; }
+  .qr-wrap { display:flex; gap:16px; align-items:flex-start; flex-wrap:wrap; }
   #toast { position:fixed; bottom:18px; left:50%; transform:translateX(-50%);
-           background:var(--text); color:var(--bg); padding:7px 14px; border-radius:6px;
+           background:var(--text); color:var(--bg); padding:7px 14px; border-radius:7px;
            font-size:13px; opacity:0; transition:opacity .3s; pointer-events:none; }
 </style>
 </head>
 <body>
-<div class="wrap">
-  <h1>抖音私信搬运 · 状态</h1>
-  <div class="bar">
-    <button id="btnRefresh" class="primary">刷新</button>
-    <label class="muted"><input type="checkbox" id="auto" checked> 自动刷新</label>
-    <input type="number" id="autoSec" value="5" min="2" max="120" style="width:64px" title="自动刷新间隔(秒)">
-    <button id="btnLogin" class="primary">登录 / 刷新二维码</button>
-    <button id="btnReload" class="primary">重载插件</button>
-    <button id="btnLogout" class="danger">登出</button>
-    <input id="mfaCode" placeholder="短信验证码" style="width:120px">
-    <button id="btnMfa">提交验证码</button>
-  </div>
+<div class="app">
+  <aside>
+    <div class="side-head">
+      <div class="side-logo">搬</div>
+      <span class="side-title">抖音私信搬运</span>
+    </div>
+    <nav class="side-nav">
+      <div class="nav-item" data-tab="overview">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/>
+          <rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>
+        </svg>总览
+      </div>
+      <div class="nav-item" data-tab="login">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="4" y="5" width="16" height="14" rx="2"/><circle cx="12" cy="11" r="2.5"/>
+          <path d="M7 17c1.5-2 3-3 5-3s3.5 1 5 3" stroke-linecap="round"/>
+        </svg>登录
+      </div>
+      <div class="nav-item" data-tab="routes">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M9 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>路由
+      </div>
+      <div class="nav-item" data-tab="policy">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M4 7h16M4 12h16M4 17h9" stroke-linecap="round"/>
+        </svg>策略
+      </div>
+      <div class="nav-item" data-tab="monitor">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2" stroke-linecap="round"/>
+        </svg>监控
+      </div>
+      <div class="nav-item" data-tab="logs">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M4 6h16M4 12h16M4 18h10" stroke-linecap="round"/>
+        </svg>日志
+      </div>
+      <div class="nav-item" data-tab="settings">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9L17 7M7 17l-2.1 2.1"/>
+        </svg>设置
+      </div>
+    </nav>
+    <div class="side-foot">
+      <div class="side-card">
+        <div><span class="dot" id="sideDot"></span><span class="lbl" id="sideState">未知</span></div>
+        <div class="sub" id="sideUid">uid —</div>
+      </div>
+    </div>
+  </aside>
 
-  <div class="grid">
-    <div class="card">
-      <h2>连接状态</h2>
-      <div class="kv" id="status"></div>
+  <main>
+    <div class="top">
+      <div>
+        <h1 id="pageTitle">总览</h1>
+        <p id="pageSub">登录态与最近搬运概览</p>
+      </div>
+      <div class="bar">
+        <label class="muted"><input type="checkbox" id="auto" checked> 自动</label>
+        <input type="number" id="autoSec" value="5" min="2" max="120" style="width:58px" title="自动刷新间隔(秒)">
+        <button id="btnRefresh">刷新</button>
+        <button id="btnLoginTop" class="primary">扫码登录</button>
+      </div>
     </div>
-    <div class="card qr">
-      <h2>登录二维码</h2>
-      <div id="qr"><div class="ph">暂无二维码</div></div>
-      <div class="muted" id="qrDetail"></div>
-    </div>
-    <div class="card">
-      <h2>最近发石者</h2>
-      <ul class="list" id="senders"></ul>
-    </div>
-    <div class="card">
-      <h2>最近搬运记录</h2>
-      <ul class="list" id="records"></ul>
-    </div>
-  </div>
 
-  <div class="card cfg" style="margin-top:12px">
-    <h2>配置 <span class="muted">保存后需点「重载插件」生效</span></h2>
-    <div id="cfgForm"><div class="empty">加载配置中…</div></div>
-    <div style="margin-top:10px"><button id="btnSaveCfg" class="primary">保存配置</button></div>
-  </div>
+    <!-- 总览 -->
+    <section class="tab active" id="tab-overview">
+      <div class="pills" id="ovPills"></div>
+      <div class="stats" id="ovStats"></div>
+      <div class="grid2">
+        <div class="card"><h2>最近发石者</h2><ul class="list" id="senders"></ul></div>
+        <div class="card"><h2>最近搬运记录</h2><ul class="list" id="records"></ul></div>
+      </div>
+    </section>
 
-  <div class="card" style="margin-top:12px">
-    <h2>运行日志 <span class="muted" id="logCount"></span></h2>
-    <div class="bar" style="margin-bottom:8px">
-      <button id="btnLogRefresh">刷新日志</button>
-      <button id="btnLogClear">清空日志</button>
-    </div>
-    <pre class="logs" id="logs"></pre>
-  </div>
+    <!-- 登录 -->
+    <section class="tab" id="tab-login">
+      <div class="card">
+        <h2>登录二维码</h2>
+        <div class="qr-wrap">
+          <div id="qr"><div class="ph">暂无二维码</div></div>
+          <div style="flex:1;min-width:220px">
+            <div class="muted" id="qrDetail"></div>
+            <div class="bar" style="margin-top:12px">
+              <button id="btnLogin">刷新二维码</button>
+              <button id="btnLogout" class="danger">登出</button>
+              <button id="btnReload">重载插件</button>
+            </div>
+            <div style="margin-top:12px">
+              <input id="mfaCode" placeholder="短信验证码" style="width:150px">
+              <button id="btnMfa">提交验证码</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 路由 -->
+    <section class="tab" id="tab-routes">
+      <div class="card">
+        <h2>路由表 <span class="muted">保存后点「重载插件」生效</span></h2>
+        <table class="routes" id="routeTbl"><thead><tr>
+          <th style="width:90px">name</th><th>target</th><th>types</th>
+          <th>senders_include</th><th>senders_exclude</th><th style="width:40px"></th>
+        </tr></thead><tbody></tbody></table>
+        <div class="bar" style="margin-top:10px"><button id="btnAddRoute" class="ghost">+ 添加路由</button></div>
+        <div class="save-row"><button id="btnSaveRoutes" class="primary">保存路由</button></div>
+      </div>
+    </section>
+
+    <!-- 策略 -->
+    <section class="tab" id="tab-policy">
+      <div class="card cfg" id="policyForm"><div class="empty">加载配置中…</div></div>
+      <div class="save-row"><button id="btnSavePolicy" class="primary">保存策略</button></div>
+    </section>
+
+    <!-- 监控 -->
+    <section class="tab" id="tab-monitor">
+      <div class="grid2">
+        <div class="card"><h2>发石者明细</h2><ul class="list" id="monSenders"></ul></div>
+        <div class="card"><h2>搬运记录明细</h2><ul class="list" id="monRecords"></ul></div>
+      </div>
+    </section>
+
+    <!-- 日志 -->
+    <section class="tab" id="tab-logs">
+      <div class="card">
+        <h2>运行日志 <span class="muted" id="logCount"></span></h2>
+        <div class="bar" style="margin-bottom:8px">
+          <button id="btnLogRefresh">刷新日志</button>
+          <button id="btnLogClear">清空日志</button>
+        </div>
+        <pre class="logs" id="logs"></pre>
+      </div>
+    </section>
+
+    <!-- 设置 -->
+    <section class="tab" id="tab-settings">
+      <div class="card cfg" id="settingsForm"><div class="empty">加载配置中…</div></div>
+      <div class="save-row"><button id="btnSaveSettings" class="primary">保存设置</button></div>
+    </section>
+  </main>
 </div>
 <div id="toast"></div>
 
 <script>
 (function () {
   const V = window.AstrBotPluginView || window.AstrBotPluginPage;
-  if (!V) { document.getElementById('status').innerHTML = '<b>bridge SDK 未加载</b>'; return; }
-
+  if (!V) { document.getElementById('toast').textContent = 'bridge SDK 未加载'; return; }
   const $ = id => document.getElementById(id);
   const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   const fmtTs = ts => ts ? new Date(ts * 1000).toLocaleString('zh-CN', {hour12:false}) : '—';
   const TYPE_NAMES = { text:'文本', video_card:'视频卡片', image:'图片', emoji:'表情', voice:'语音', other:'其他' };
   const typeName = t => TYPE_NAMES[t] || t || '其他';
+  const TITLES = { overview:['总览','登录态与最近搬运概览'], login:['登录','扫码登录与二次验证'],
+    routes:['路由','转发路由表'], policy:['策略','限流 / 去重 / 过滤 / 告警'],
+    monitor:['监控','发石者与搬运明细'], logs:['日志','运行日志'], settings:['设置','登录 / 转发 / 来源配置'] };
+  let _schema = {};
+  let _cfg = {};
 
-  function toast(msg) {
-    const t = $('toast'); t.textContent = msg; t.style.opacity = 1;
-    setTimeout(() => { t.style.opacity = 0; }, 2400);
-  }
-
-  function statePill(state) {
-    const map = { ok:['ok','已连接'], expired:['bad','登录态失效'], unknown:['warn','未知'] };
-    const [cls, label] = map[state] || ['warn', state || '未知'];
-    return '<span class="pill ' + cls + '">' + esc(label) + '</span>';
-  }
-
+  function toast(msg) { const t = $('toast'); t.textContent = msg; t.style.opacity = 1;
+    setTimeout(() => { t.style.opacity = 0; }, 2400); }
   async function apiGet(ep) { try { return await V.apiGet(ep); } catch (e) { toast('请求失败: ' + e); return {}; } }
   async function apiPost(ep) { try { return await V.apiPost(ep, {}); } catch (e) { toast('请求失败: ' + e); return {}; } }
   async function apiPostBody(ep, body) { try { return await V.apiPost(ep, body); } catch (e) { toast('请求失败: ' + e); return {}; } }
-
   function kv(k, v) { return '<b>' + esc(k) + '</b><span>' + v + '</span>'; }
+
+  // ---- Tab 切换 ----
+  function showTab(name) {
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.tab === name));
+    document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.id === 'tab-' + name));
+    $('pageTitle').textContent = TITLES[name][0];
+    $('pageSub').textContent = TITLES[name][1];
+  }
+  document.querySelectorAll('.nav-item').forEach(n => n.onclick = () => showTab(n.dataset.tab));
+
+  // ---- 状态 ----
+  const ST_MAP = { ok:['ok','已连接'], expired:['bad','登录态失效'], unknown:['warn','未知'] };
+  function renderStatus(d) {
+    const [cls, label] = ST_MAP[d.auth_state] || ['idle', d.auth_state || '未知'];
+    $('sideState').textContent = label;
+    $('sideDot').className = 'dot dot-' + cls;
+    $('sideUid').textContent = 'uid ' + (d.self_uid ?? '—');
+    $('ovPills').innerHTML =
+      pill('登录态', d.auth_state === 'ok' ? 'ok' : (d.auth_state === 'expired' ? 'bad' : 'warn'), label) +
+      pill('抖音来源', d.douyin_enabled ? 'ok' : 'idle', d.douyin_enabled ? '启用' : '停用') +
+      pill('MFA', 'idle', esc(d.mfa_mode)) +
+      pill('路由', 'ok', esc(d.routes) + ' 条') +
+      pill('网关', 'idle', esc(d.gateway_mode)) +
+      pill('失败缓存', (d.failed_cache ? 'warn' : 'idle'), esc(d.failed_cache));
+    $('ovStats').innerHTML =
+      stat('发石者', 'ok', esc(d.senders_count)) +
+      stat('搬运', 'idle', esc(d.records_count)) +
+      stat('路由', 'ok', esc(d.routes)) +
+      stat('去重', d.dedup ? 'ok' : 'idle', d.dedup ? '开' : '关');
+  }
+  function pill(k, cls, v) { return '<span class="pill"><span class="dot dot-' + cls + '"></span>' + esc(k) + '：' + v + '</span>'; }
+  function stat(k, cls, v) { return '<div class="stat"><div class="k"><span class="dot dot-' + cls + '"></span>' + esc(k) + '</div><div class="v">' + v + '</div></div>'; }
+
+  function listItems(arr, renderer) {
+    return arr.length ? arr.map(renderer).join('') : '<li class="empty">暂无</li>';
+  }
+
+  async function refreshStatus() {
+    const d = await apiGet('status');
+    renderStatus(d);
+    if (d.auth_state === 'ok') { $('qr').innerHTML = '<div class="ph">已登录</div>'; $('qrDetail').textContent = ''; }
+  }
 
   async function refreshSenders() {
     const d = await apiGet('senders');
     const list = d.senders || [];
-    $('senders').innerHTML = list.length ? list.map(s =>
-      '<li class="clickable" title="peer_id=' + esc(s.peer_id) + '">' +
+    const r = s => '<li class="clickable" title="peer_id=' + esc(s.peer_id) + '">' +
       esc(fmtTs(s.ts)) + ' · ' + esc(s.peer_name || ('用户 ' + s.peer_id)) +
       ' <span class="muted">[' + esc(typeName(s.type)) + ']</span>' +
-      (s.text ? '<br><span class="muted">' + esc(s.text) + '</span>' : '') + '</li>'
-    ).join('') : '<li class="empty">暂无</li>';
+      (s.text ? '<br><span class="muted">' + esc(s.text) + '</span>' : '') + '</li>';
+    $('senders').innerHTML = listItems(list, r);
+    $('monSenders').innerHTML = listItems(list, r);
   }
 
   async function refreshRecords() {
     const d = await apiGet('records');
     const list = d.records || [];
-    $('records').innerHTML = list.length ? list.map(r =>
-      '<li class="clickable" title="' + esc(r.error || (r.detail || '')) + '">' +
-      esc(fmtTs(r.ts)) + ' · [' + esc(r.type) + '] ' + esc(r.peer) +
-      ' → ' + esc(r.target) +
-      ' <span class="muted">' + (r.ok ? '<span style="color:var(--ok)">成功</span>' : '<span style="color:var(--bad)">失败</span> ' + esc(r.error)) + '</span></li>'
-    ).join('') : '<li class="empty">暂无</li>';
+    const r = x => '<li class="clickable" title="' + esc(x.error || '') + '">' +
+      esc(fmtTs(x.ts)) + ' · [' + esc(x.type) + '] ' + esc(x.peer) + ' → ' + esc(x.target) +
+      ' <span class="muted">' + (x.ok ? '<span style="color:var(--ok)">成功</span>' : '<span style="color:var(--bad)">失败</span> ' + esc(x.error)) + '</span></li>';
+    $('records').innerHTML = listItems(list, r);
+    $('monRecords').innerHTML = listItems(list, r);
   }
 
-  async function refreshQr(state) {
-    if (state && state === 'ok') { $('qr').innerHTML = '<div class="ph">已登录</div>'; $('qrDetail').textContent = ''; return; }
+  async function refreshQr() {
     const d = await apiGet('qrcode');
     $('qrDetail').textContent = d.detail || '';
     if (d.qr) { $('qr').innerHTML = '<img src="' + d.qr + '" alt="登录二维码">'; }
@@ -181,59 +345,38 @@
   }
 
   // ---- 配置表单 ----
-  const GROUPS = [
-    ['login', '登录', ['douyin_cookies','douyin_web_protect','douyin_keys','self_uid','device_id','gateway_mode','login_backend','mfa_mode','login_timeout','login_mfa_timeout','auth_watchdog_minutes','auth_failure_close_codes','auth_failure_keywords']],
-    ['forward', '转发', ['max_message_length','include_link','header_template','default_target_group']],
-    ['rate', '限流', ['rate_limit_global_enabled','rate_limit_global_max_per_min','rate_limit_sender_enabled','rate_limit_sender_max_per_min']],
-    ['dedup', '去重 / 重试', ['dedup_enabled','dedup_window_seconds','retry_enabled','retry_interval_seconds']],
-    ['filter', '过滤', ['senders_whitelist','senders_blacklist','keyword_filters']],
-    ['alert', '告警', ['alert_target','alert_only_once','qq_adapter_id']],
-  ];
-  const JSON_KEYS = ['sources','routes','keyword_filters'];
-  let _schema = {};
-  let _cfg = {};
+  const JSON_KEYS = ['sources','keyword_filters'];
+  const POLICY_KEYS = ['rate_limit_global_enabled','rate_limit_global_max_per_min','rate_limit_sender_enabled',
+    'rate_limit_sender_max_per_min','dedup_enabled','dedup_window_seconds','retry_enabled',
+    'retry_interval_seconds','senders_whitelist','senders_blacklist','keyword_filters',
+    'alert_target','alert_only_once','qq_adapter_id'];
+  const SETTINGS_KEYS = ['douyin_cookies','douyin_web_protect','douyin_keys','self_uid','device_id',
+    'gateway_mode','login_backend','mfa_mode','login_timeout','login_mfa_timeout',
+    'auth_watchdog_minutes','auth_failure_close_codes','auth_failure_keywords',
+    'max_message_length','include_link','header_template','default_target_group','sources'];
 
   function fieldType(key, schema) {
     const s = (schema[key] || {});
     if (JSON_KEYS.includes(key)) return 'json';
-    const t = s.type;
-    if (t === 'bool') return 'bool';
-    if (t === 'int') return 'int';
+    if (s.type === 'bool') return 'bool';
+    if (s.type === 'int') return 'int';
     return 'text';
   }
-
-  function renderConfig(cfg, schema) {
-    _cfg = cfg; _schema = schema;
+  function fieldHtml(k, schema, val) {
+    const t = fieldType(k, schema);
+    if (t === 'bool') return '<input type="checkbox" data-k="' + esc(k) + '" ' + (val ? 'checked' : '') + '>';
+    if (t === 'int') return '<input type="number" data-k="' + esc(k) + '" value="' + esc(val ?? '') + '" style="width:130px">';
+    if (t === 'json') return '<textarea data-k="' + esc(k) + '" rows="3">' + esc(typeof val === 'string' ? val : JSON.stringify(val ?? '', null, 0)) + '</textarea>';
+    return '<input type="text" data-k="' + esc(k) + '" value="' + esc(val ?? '') + '">';
+  }
+  function renderFieldGroup(containerId, keys) {
+    const box = $(containerId);
     let html = '';
-    for (const [gid, title, keys] of GROUPS) {
-      html += '<h3>' + esc(title) + '</h3>';
-      for (const k of keys) {
-        const t = fieldType(k, schema);
-        const val = cfg[k];
-        const input = t === 'bool'
-          ? '<input type="checkbox" data-k="' + esc(k) + '" ' + (val ? 'checked' : '') + '>'
-          : t === 'int'
-            ? '<input type="number" data-k="' + esc(k) + '" value="' + esc(val ?? '') + '" style="width:120px">'
-            : t === 'json'
-              ? '<textarea data-k="' + esc(k) + '" rows="3">' + esc(typeof val === 'string' ? val : JSON.stringify(val ?? '', null, 0)) + '</textarea>'
-              : '<input type="text" data-k="' + esc(k) + '" value="' + esc(val ?? '') + '">';
-        html += '<label class="f"><span>' + esc(k) + '</span>' + input + '</label>';
-      }
-    }
-    html += '<h3>路由表（routes）</h3>';
-    html += '<table class="routes" id="routeTbl"><thead><tr><th style="width:100px">name</th><th>target</th><th>types</th><th>senders_include</th><th>senders_exclude</th><th style="width:40px"></th></tr></thead><tbody></tbody></table>';
-    html += '<button id="btnAddRoute" class="muted">+ 添加路由</button>';
-    $('cfgForm').innerHTML = html;
-    renderRoutes(cfg.routes || []);
-    $('btnAddRoute').onclick = () => { addRouteRow({}); };
+    for (const k of keys) html += '<label class="f"><span>' + esc(k) + '</span>' + fieldHtml(k, _schema, _cfg[k]) + '</label>';
+    box.innerHTML = html || '<div class="empty">无配置项</div>';
   }
 
-  function renderRoutes(routes) {
-    const tbody = document.querySelector('#routeTbl tbody');
-    tbody.innerHTML = '';
-    for (const r of routes) addRouteRow(r);
-  }
-
+  // ---- 路由表编辑器 ----
   function addRouteRow(r) {
     const tbody = document.querySelector('#routeTbl tbody');
     const tr = document.createElement('tr');
@@ -248,99 +391,84 @@
     tr.querySelector('[data-del]').onclick = () => tr.remove();
     tbody.appendChild(tr);
   }
-
+  function renderRoutes(routes) {
+    const tbody = document.querySelector('#routeTbl tbody');
+    tbody.innerHTML = '';
+    (routes || []).forEach(addRouteRow);
+  }
   function collectRoutes() {
-    const rows = document.querySelectorAll('#routeTbl tbody tr');
     const out = [];
-    for (const tr of rows) {
+    document.querySelectorAll('#routeTbl tbody tr').forEach(tr => {
       const get = k => (tr.querySelector('[data-r="' + k + '"]') || {}).value || '';
       const target = get('target').trim();
-      if (!target) continue;
+      if (!target) return;
       const split = v => v.split(',').map(s => s.trim()).filter(Boolean);
-      out.push({
-        name: get('name').trim() || 'route',
-        target: target,
-        match: {
-          types: split(get('types')),
-          senders_include: split(get('senders_include')),
-          senders_exclude: split(get('senders_exclude')),
-        }
-      });
-    }
+      out.push({ name: get('name').trim() || 'route', target, match: {
+        types: split(get('types')), senders_include: split(get('senders_include')),
+        senders_exclude: split(get('senders_exclude')) } });
+    });
     return out;
   }
 
   async function loadConfig() {
     const d = await apiGet('config/get');
-    if (!d.config) { $('cfgForm').innerHTML = '<div class="empty">配置读取失败</div>'; return; }
-    renderConfig(d.config, d.schema || {});
+    if (!d.config) { $('policyForm').innerHTML = $('settingsForm').innerHTML = '<div class="empty">配置读取失败</div>'; return; }
+    _cfg = d.config; _schema = d.schema || {};
+    renderFieldGroup('policyForm', POLICY_KEYS);
+    renderFieldGroup('settingsForm', SETTINGS_KEYS);
+    renderRoutes(_cfg.routes || []);
   }
 
-  $('btnSaveCfg').onclick = async () => {
+  function collectKeys(keys) {
     const cfg = {};
-    document.querySelectorAll('#cfgForm [data-k]').forEach(el => {
-      const k = el.getAttribute('data-k');
+    keys.forEach(k => {
+      const el = document.querySelector('[data-k="' + k + '"]');
+      if (!el) return;
       const t = fieldType(k, _schema);
       if (t === 'bool') cfg[k] = el.checked;
       else if (t === 'int') cfg[k] = parseInt(el.value, 10) || 0;
-      else if (t === 'json') {
-        try { cfg[k] = JSON.parse(el.value || 'null'); } catch { cfg[k] = el.value; }
-      } else cfg[k] = el.value;
+      else if (t === 'json') { try { cfg[k] = JSON.parse(el.value || 'null'); } catch { cfg[k] = el.value; } }
+      else cfg[k] = el.value;
     });
-    cfg.routes = collectRoutes();
+    return cfg;
+  }
+  async function saveConfig(cfg) {
     const d = await apiPostBody('config/set', { config: cfg });
     toast(d.detail || (d.ok ? '已保存' : '保存失败'));
-  };
+  }
 
   async function refreshAll() {
-    const [st] = await Promise.all([apiGet('status'), refreshSenders(), refreshRecords(), refreshLogs()]);
-    refreshStatusFrom(st);
-    refreshQr(st.auth_state);
-  }
-  function refreshStatusFrom(d) {
-    $('status').innerHTML =
-      kv('登录态', statePill(d.auth_state) + (d.login_in_progress ? ' <span class="pill warn">登录进行中</span>' : '')) +
-      kv('self_uid', esc(d.self_uid ?? '未设置')) +
-      kv('网关模式', esc(d.gateway_mode)) +
-      kv('抖音来源', d.douyin_enabled ? '启用' : '停用') +
-      kv('路由数', esc(d.routes)) +
-      kv('默认目标', esc(d.default_target_group || '未配置')) +
-      kv('去重/限流', (d.dedup ? '开' : '关') + ' / ' + (d.rate_limit_global ? '开' : '关')) +
-      kv('重试', d.retry_enabled ? '开' : '关') +
-      kv('失败缓存', esc(d.failed_cache)) +
-      kv('告警目标', esc(d.alert_target || '未配置')) +
-      kv('MFA 模式', esc(d.mfa_mode)) +
-      kv('记录数', esc(d.senders_count) + ' 发石者 / ' + esc(d.records_count) + ' 搬运');
+    await Promise.all([refreshStatus(), refreshSenders(), refreshRecords(), refreshQr(), refreshLogs()]);
   }
 
+  // ---- 事件 ----
   $('btnRefresh').onclick = refreshAll;
-  $('btnLogin').onclick = async () => { const d = await apiPost('login'); toast(d.detail || '已触发'); await refreshAll(); };
-  $('btnReload').onclick = async () => {
-    toast('正在重载插件 …');
-    const d = await apiPost('reload');
-    toast(d.detail || (d.ok ? '重载中' : '重载失败'));
-  };
+  $('btnLogin').onclick = async () => { const d = await apiPost('login'); toast(d.detail || '已触发'); await refreshQr(); };
+  $('btnLoginTop').onclick = async () => { const d = await apiPost('login'); toast(d.detail || '已触发'); await refreshQr(); };
+  $('btnLogout').onclick = async () => { const d = await apiPost('logout'); toast(d.detail || '已登出'); await refreshAll(); };
+  $('btnReload').onclick = async () => { toast('正在重载插件 …');
+    const d = await apiPost('reload'); toast(d.detail || (d.ok ? '重载中' : '重载失败')); };
   $('btnMfa').onclick = async () => {
     const code = $('mfaCode').value.trim();
     if (!code) { toast('请输入验证码'); return; }
-    const d = await apiPostBody('mfa', { code: code });
-    toast(d.detail || (d.ok ? '已提交' : '提交失败'));
-    $('mfaCode').value = '';
+    const d = await apiPostBody('mfa', { code }); toast(d.detail || (d.ok ? '已提交' : '提交失败')); $('mfaCode').value = '';
   };
-  $('btnLogout').onclick = async () => { const d = await apiPost('logout'); toast(d.detail || '已登出'); await refreshAll(); };
-  $('btnClear').onclick = async () => { const d = await apiPost('records/clear'); toast(d.detail || '已清空'); await refreshRecords(); };
   $('btnLogRefresh').onclick = refreshLogs;
   $('btnLogClear').onclick = async () => { const d = await apiPost('logs/clear'); toast(d.detail || '已清空'); await refreshLogs(); };
+  $('btnAddRoute').onclick = () => addRouteRow({});
+  $('btnSaveRoutes').onclick = async () => { await saveConfig({ routes: collectRoutes() }); };
+  $('btnSavePolicy').onclick = async () => { await saveConfig(collectKeys(POLICY_KEYS)); };
+  $('btnSaveSettings').onclick = async () => { await saveConfig(collectKeys(SETTINGS_KEYS)); };
 
   V.ready().then(() => {
+    showTab('overview');
     refreshAll();
     loadConfig();
     let _tick = 0;
     setInterval(() => {
       if (!$('auto').checked) return;
       const sec = Math.max(2, parseInt($('autoSec').value, 10) || 5);
-      _tick++;
-      if (_tick >= sec) { _tick = 0; refreshAll(); }
+      if (++_tick >= sec) { _tick = 0; refreshAll(); }
     }, 1000);
   });
 })();
