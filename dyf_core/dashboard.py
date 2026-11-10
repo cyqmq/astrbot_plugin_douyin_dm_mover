@@ -248,6 +248,10 @@ class DashboardApi:
         if "routes" in updates:
             for line in _route_diff(old_routes, updates.get("routes") or []):
                 logger.info(f"[dyf] {line}")
+            # 路由即时生效：router 只在 __init__ 建一次，更新 routes 后需重建
+            from dyf_core.router import RouteResolver
+
+            self.fm.router = RouteResolver(updates.get("routes") or [])
         logger.info(f"[dyf] 配置已更新: {sorted(str(k) for k in updates)}")
         if self._config_obj is not None:
             # 同步写本体（AstrBotConfig 是 dict 子类）：cfg=dict(config) 是副本，

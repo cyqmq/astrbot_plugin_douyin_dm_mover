@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+## [1.2.2] - 2026-11-10
+
+### Fixed
+- **更新路由后「无匹配路由 VIDEO_CARD」**：`config_set` 更新 `routes` 后即时重建 `ForwardManager.router`（此前 router 只在 `__init__` 建一次，更新路由目标不生效——`RouteResolver` 里空 target 被过滤 → 无匹配路由）。
+- **视频详情 `desc_len=0`**：`_enrich_video` 的 desc 为空时用视频卡自带标题（`content_title`/`title`）兜底，不再正文缺失。
+
 ## [1.2.1] - 2026-11-10
 
 ### Fixed

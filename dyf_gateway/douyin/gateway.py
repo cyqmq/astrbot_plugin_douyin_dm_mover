@@ -487,6 +487,9 @@ class DouyinGateway(MessageGateway):
         if not detail:
             return
         desc = (detail.get("desc") or "").strip()
+        if not desc:
+            # 详情 desc 为空时用视频卡自带标题兜底（content_title）
+            desc = (card.get("content_title") or card.get("title") or "").strip()
         if desc:
             link = f"https://www.douyin.com/video/{item_id}"
             body = f"{msg.text}\n{desc}".strip() if msg.text else desc
