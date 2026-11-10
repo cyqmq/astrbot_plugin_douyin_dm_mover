@@ -1,22 +1,24 @@
 <script setup>
+import { computed } from 'vue'
 import { Handle, Position } from '@vue-flow/core'
-import { store, ROUTE_TYPES, SELECTS, umoSplit } from '../../composables/store.js'
+import { ROUTE_TYPES } from '../../composables/store.js'
 
 const props = defineProps({ data: { type: Object, required: true } })
-const i = props.data.index
-const r = store.routes[i] || props.data.route
-const types = (r.match && r.match.types) || []
+const d = props.data
+const i = d.index
+const r = d.route
+const types = computed(() => (r.match && r.match.types) || [])
 
 function toggleType(v) {
+  if (!r.match) r.match = { types: [], senders_include: [], senders_exclude: [] }
   const t = r.match.types
   const k = t.indexOf(v)
   if (k >= 0) t.splice(k, 1); else t.push(v)
 }
+function setTarget(e) { r.target = e.target.value; d.sync() }
 function splitLst(v) { return String(v || '').split(',').map(s => s.trim()).filter(Boolean) }
-function setInc(e) { r.match.senders_include = splitLst(e.target.value) }
-function setExc(e) { r.match.senders_exclude = splitLst(e.target.value) }
-function setAdapter(e) { r.target = e.target.value + ':GroupMessage:' + umoSplit(r.target).group }
-function setGroup(e) { r.target = umoSplit(r.target).adapter + ':GroupMessage:' + e.target.value.trim() }
+function setInc(e) { if (!r.match) r.match = { types: [], senders_include: [], senders_exclude: [] }; r.match.senders_include = splitLst(e.target.value) }
+function setExc(e) { if (!r.match) r.match = { types: [], senders_include: [], senders_exclude: [] }; r.match.senders_exclude = splitLst(e.target.value) }
 </script>
 
 <template>
@@ -24,17 +26,19 @@ function setGroup(e) { r.target = umoSplit(r.target).adapter + ':GroupMessage:' 
     <div class="rc-head">
       <input :value="r.name" placeholder="路由名称" class="nodrag" @input="r.name = $event.target.value || ('route' + (i+1))">
       <span class="rc-btns">
-        <button title="上移" class="nodrag" @click="data.move(i, -1)">↑</button>
-        <button title="下移" class="nodrag" @click="data.move(i, 1)">↓</button>
-        <button class="danger nodrag" title="删除" @click="data.del(i)">×</button>
+        <button title="上移" class="nodrag" @click="d.move(i, -1)">↑</button>
+        <button title="下移" class="nodrag" @click="d.move(i, 1)">↓</button>
+        <button class="danger nodrag" title="删除" @click="d.del(i)">×</button>
       </span>
     </div>
-    <div class="rc-row"><span>目标</span><div class="umo-row">
-      <select :value="umoSplit(r.target).adapter" class="nodrag" @change="setAdapter($event)">
-        <option v-for="[v, l] in SELECTS.qq_adapter_id" :key="v" :value="v">{{ l }}</option>
+    <div class="rc-row"><span>目标</span>
+      <select :value="r.target" class="nodrag" @change="setTarget($event)">
+        <option value="">选择目标…</option>
+        <option v-for="t in d.targets" :key="t.id" :value="t.adapter + ':GroupMessage:' + t.group">
+          {{ t.adapter }}:{{ t.group || '（未填群号）' }}
+        </option>
       </select>
-      <input :value="umoSplit(r.target).group" placeholder="群号" class="nodrag" @change="setGroup($event)">
-    </div></div>
+    </div>
     <div class="rc-row"><span>类型</span><div class="type-chips">
       <span v-for="[v, l] in ROUTE_TYPES" :key="v" class="tc nodrag" :class="{ on: types.includes(v) }" @click="toggleType(v)">{{ l }}</span>
     </div></div>

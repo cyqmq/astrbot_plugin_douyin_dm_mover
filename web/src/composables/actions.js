@@ -39,6 +39,7 @@ export async function loadConfig() {
   store.schema = d.schema || {}
   store.routes = JSON.parse(JSON.stringify(d.config.routes || []))
   store.customSources = JSON.parse(JSON.stringify(d.config.custom_sources || []))
+  store.customTargets = JSON.parse(JSON.stringify(d.config.custom_targets || []))
 }
 
 export async function saveConfig(cfg, opts) {
@@ -52,7 +53,8 @@ export function scheduleLiveSave(delay = 1200) {
   clearTimeout(liveTimer)
   liveTimer = setTimeout(async () => {
     await saveConfig({ routes: JSON.parse(JSON.stringify(store.routes)),
-      custom_sources: JSON.parse(JSON.stringify(store.customSources)) }, { no_reload: true, silent: true })
+      custom_sources: JSON.parse(JSON.stringify(store.customSources)),
+      custom_targets: JSON.parse(JSON.stringify(store.customTargets)) }, { no_reload: true, silent: true })
     store.liveSavedAt = new Date().toLocaleTimeString('zh-CN', { hour12: false })
   }, delay)
 }

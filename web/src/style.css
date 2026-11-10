@@ -234,3 +234,6 @@ label.f .hint { grid-column:2; color:var(--muted); font-size:11px; line-height:1
 .vf-src .src-nick { flex:1; min-width:70px; }
 .vf-src .src-uid { flex:1; min-width:90px; }
 .vf-src .src-nick, .vf-src .src-uid { font-size:12px; padding:3px 6px; }
+/* 来源卡下拉选择器（最近发石者 / 抖音好友） */
+.vf-src .src-pick { max-width:170px; font-size:12px; }
+.vf-src .src-picked { font-size:12px; font-weight:600; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:110px; }
