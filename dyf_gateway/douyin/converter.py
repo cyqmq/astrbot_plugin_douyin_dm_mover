@@ -114,7 +114,7 @@ class DouyinConverter:
             return MessageType.TEXT, str(content.get("text", "")), [], None
         if msg_type in VIDEO_CARD_TYPES:  # 分享视频卡片
             item_id = str(content.get("itemId") or content.get("item_id") or "")
-            title = str(content.get("title") or content.get("desc") or "抖音视频")
+            title = str(content.get("content_title") or content.get("title") or content.get("desc") or "抖音视频")
             link = f"https://www.douyin.com/video/{item_id}" if item_id else ""
             text = f"{title}\n{link}".strip()
             # 封面：cover_url.url_list[0]（douyin-im）或 coverUrl（cards.ts）直链

@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [0.61.0] - 2026-11-10
+
+### Fixed
+- **视频卡标题未显示**：`converter._classify` 的 title 提取加 `content_title` 优先（视频卡 content 无 `title`/`desc`，实际字段是 `content_title`，如 `#恋爱技巧`），转发显示真实卡内标题而非默认「抖音视频」（不依赖 `aweme/detail`）。
+
 ## [0.60.0] - 2026-11-10
 
 ### Fixed
