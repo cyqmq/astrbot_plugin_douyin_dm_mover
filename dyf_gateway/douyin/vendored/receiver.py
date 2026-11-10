@@ -134,8 +134,14 @@ class DouyinReceiver:
         except Exception as e:  # 单帧解析失败不拖垮连接
             self._emit("error", f"frame decode error: {e}")
 
-    def _handle_frame(self, message: bytes) -> None:
+    def _handle_frame(self, message) -> None:
         self._emit_frame()
+        if isinstance(message, str):
+            # 文本帧：服务端心跳应答 'hi'/'ok'（douyin-im isHeartbeat），非业务
+            if message in ("hi", "ok"):
+                return
+            self._emit("info", f"text frame: {message[:200]}")
+            return
         frame = decode_fields(message)
         payload_type = field_str(frame, 7)
         if payload_type == "pb":

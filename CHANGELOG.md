@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [0.50.0] - 2026-11-10
+
+### Fixed
+- **心跳文本帧解码错误**：`_handle_frame` 开头按类型分流——`isinstance(message, str)` 时心跳应答 `'hi'`/`'ok'` 直接返回（非业务），其它文本帧仅记录 info；不再被 `decode_fields` 按 protobuf varint 解码导致 `str & int` TypeError（此前每 15s 报 frame decode error，心跳保活形同失效）。
+
 ## [0.49.0] - 2026-11-10
 
 ### Fixed
