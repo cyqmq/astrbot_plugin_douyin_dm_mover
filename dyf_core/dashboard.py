@@ -62,6 +62,7 @@ class DashboardApi:
         reg("douyin_dm_mover/config/set", self.config_set, ["POST"], "dyf 保存配置")
         reg("douyin_dm_mover/profile", self.profile, ["GET"], "dyf 账户昵称/头像")
         reg("douyin_dm_mover/friends", self.friends, ["GET"], "dyf 好友列表（familiar-list）")
+        reg("douyin_dm_mover/groups", self.groups, ["GET"], "dyf 可发送群列表（AstrBot get_group_list）")
 
     async def install_alemonjs(self):
         """一键安装 @alemonjs/douyin（Node 依赖）。"""
@@ -272,6 +273,32 @@ class DashboardApi:
         except Exception as e:
             logger.warning(f"[dyf] 拉取好友列表失败: {e}")
             return {"friends": [], "detail": f"拉取失败: {e}"}
+
+    async def groups(self):
+        """机器人可访问的群列表（AstrBot 适配器统一 get_group_list）。
+
+        返回 [{group_id, group_name}]；平台/版本不支持时优雅降级为手动输入。
+        """
+        try:
+            ctx = getattr(self, "context", None)
+            gl = getattr(ctx, "get_group_list", None)
+            if gl is None:
+                return {"groups": [], "detail": "当前 AstrBot 版本无 get_group_list，请手动输入群号"}
+            raw = await gl()
+            groups = []
+            for item in raw or []:
+                if isinstance(item, dict):
+                    gid = item.get("group_id") or item.get("id") or item.get("group_id_str")
+                    name = item.get("group_name") or item.get("name") or ""
+                else:
+                    gid = getattr(item, "group_id", None) or getattr(item, "id", None)
+                    name = getattr(item, "group_name", None) or getattr(item, "name", None) or ""
+                if gid:
+                    groups.append({"group_id": str(gid), "group_name": str(name or "")})
+            return {"groups": groups}
+        except Exception as e:
+            logger.warning(f"[dyf] 获取群列表失败: {e}")
+            return {"groups": [], "detail": f"获取群列表失败: {e}"}
 
     async def logout(self):
         ok = await self.gateway.logout()

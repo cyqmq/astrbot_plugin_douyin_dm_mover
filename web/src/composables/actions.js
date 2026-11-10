@@ -80,6 +80,15 @@ export async function loadFriends() {
   store.friends = d.friends || []
 }
 
+export async function loadGroups() {
+  store.groupsLoading = true
+  store.groupsDetail = ''
+  const d = await apiGet('groups')
+  store.groupsLoading = false
+  if (d.detail) store.groupsDetail = d.detail
+  store.groups = d.groups || []
+}
+
 export function pill(k, cls, v) {
   return `<span class="pill"><span class="dot dot-${cls}"></span>${esc(k)}：${v}</span>`
 }

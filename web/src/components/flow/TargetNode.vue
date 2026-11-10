@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { Handle, Position } from '@vue-flow/core'
 import { store } from '../../composables/store.js'
+import { loadGroups } from '../../composables/actions.js'
 
 const props = defineProps({ data: { type: Object, required: true } })
 const t = props.data.target
@@ -16,9 +17,13 @@ function setAdapter(e) {
   if (v === 'qq_official' && kind.value === 'private') props.data.update(t, { adapter: v, kind: 'group' })
   else props.data.update(t, { adapter: v })
 }
-function setKind(e) { props.data.update(t, { kind: e.target.value }) }
+function setKind(e) {
+  props.data.update(t, { kind: e.target.value })
+  if (e.target.value !== 'private' && !store.groups.length && !store.groupsLoading) loadGroups()
+}
 function setValue(e) { props.data.update(t, { value: e.target.value }) }
 function setGroup(e) { props.data.update(t, { group: e.target.value }) }
+function onGroupFocus() { if (!store.groups.length && !store.groupsLoading) loadGroups() }
 </script>
 
 <template>
@@ -49,7 +54,16 @@ function setGroup(e) { props.data.update(t, { group: e.target.value }) }
         </select>
       </div>
       <div class="rc-row"><span>{{ kind === 'private' ? 'OpenID' : '群号' }}</span>
-        <input :value="t.value" :placeholder="kind === 'private' ? 'OpenID' : '群号'" class="nodrag" @change="setValue($event)">
+        <template v-if="kind === 'group' && store.groups.length">
+          <select :value="t.value" class="nodrag" @focus="onGroupFocus" @change="setValue($event)">
+            <option value="">选择群…</option>
+            <option v-for="g in store.groups" :key="g.group_id" :value="g.group_id">{{ g.group_name || ('群 ' + g.group_id) }}（{{ g.group_id }}）</option>
+          </select>
+          <button class="mini nodrag" title="刷新群列表" @click="loadGroups()">↻</button>
+        </template>
+        <input v-else :value="t.value"
+          :placeholder="kind === 'private' ? 'OpenID' : (store.groupsDetail || '群号（无群列表，手动输入）')"
+          class="nodrag" @change="setValue($event)">
       </div>
     </template>
     <div class="tc-sub">{{ count }} 条路由指向</div>

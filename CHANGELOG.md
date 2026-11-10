@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [0.30.0] - 2026-11-10
+
+### Added
+- 目标卡群聊模式下群号改为下拉选择真实群列表：新端点 `douyin_dm_mover/groups` 调用 AstrBot 适配器统一 `context.get_group_list()`，归一化 `{group_id, group_name}`；下拉 value=群号、label=群名（群号）。无群列表（版本/平台不支持）优雅降级为手动输入，附刷新按钮。
+
 ## [0.29.0] - 2026-11-10
 
 ### Changed
