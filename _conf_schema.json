@@ -123,6 +123,31 @@
     "default": [],
     "description": "消息路由规则：命中则转发到对应目标，留空仅按 default_target_group"
   },
+  "custom_sources": {
+    "type": "list",
+    "default": [],
+    "description": "自定义来源卡（uid/nickname/pos）"
+  },
+  "custom_targets": {
+    "type": "list",
+    "default": [],
+    "description": "高级目标卡（adapter/group/pos）"
+  },
+  "simple_targets": {
+    "type": "list",
+    "default": [],
+    "description": "简单目标卡（adapter/kind/value/pos）"
+  },
+  "advanced_target_cards": {
+    "type": "bool",
+    "default": false,
+    "description": "是否使用高级目标卡（adapter+群号）而非简单卡"
+  },
+  "float_log_enabled": {
+    "type": "bool",
+    "default": false,
+    "description": "启用调试浮窗日志"
+  },
   "retry_enabled": {
     "type": "bool",
     "default": true,

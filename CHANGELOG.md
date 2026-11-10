@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.2.11] - 2026-11-10
+
+### Fixed
+- **路由页来源/目标卡不保留**：`_conf_schema.json` 缺 `custom_sources`/`custom_targets`/`simple_targets`/`advanced_target_cards`/`float_log_enabled`——AstrBot `check_config_integrity` 读盘时删这些 schema 之外的磁盘键，重载后来源/目标卡与连线（`pos`/连接关系在卡内）清空。已补全 5 键（list/bool），设备更新重启后不再删，来源/目标卡及布局恢复。
+
 ## [1.2.10] - 2026-11-10
 
 ### Added
