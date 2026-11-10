@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+## [0.47.0] - 2026-11-10
+
+### Fixed
+- **接收端心跳保活**：`receiver` 补应用层心跳（douyin-im ws-client 协议），`_on_open` 后每 15s `ws.send('hi')` 文本帧，`_on_close`/`_on_error`/`stop` 停止，重连后 `_on_open` 自动重启——修复服务器 ~30s 无心跳断开、1s 重连又断的死循环。
+- **路由目标群号为空**：前端连接路由→目标时校验 UMO 会话 id，为空则告警「目标未填写群号/OpenID」且不连接；`scheduleLiveSave` 落盘前清空会话为空的 target（形如 `adapter:GroupMessage:`），避免发送必失败。
+
 ## [0.46.0] - 2026-11-10
 
 ### Fixed

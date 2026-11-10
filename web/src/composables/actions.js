@@ -57,7 +57,15 @@ let liveTimer = null
 export function scheduleLiveSave(delay = 1200) {
   clearTimeout(liveTimer)
   liveTimer = setTimeout(async () => {
-    await saveConfig({ routes: JSON.parse(JSON.stringify(store.routes)),
+    // 落盘前清空会话为空的 target（UMO 形如 adapter:GroupMessage: 群号空，发送必失败）
+    const routes = JSON.parse(JSON.stringify(store.routes)).map(r => {
+      if (r && r.target) {
+        const p = String(r.target).split(':')
+        if (p.length === 3 && !p[2]) r.target = ''
+      }
+      return r
+    })
+    await saveConfig({ routes,
       custom_sources: JSON.parse(JSON.stringify(store.customSources)),
       custom_targets: JSON.parse(JSON.stringify(store.customTargets)),
       simple_targets: JSON.parse(JSON.stringify(store.simpleTargets)),

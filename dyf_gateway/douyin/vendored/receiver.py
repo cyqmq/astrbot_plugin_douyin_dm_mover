@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import threading
 import time
 from collections.abc import Callable
 
@@ -61,7 +62,44 @@ class DouyinReceiver:
         self._should_reconnect = False
         self._stopped = False
         self._opened = False
+        self._hb_timer: threading.Timer | None = None
+        self._hb_stop = threading.Event()
         self._build_url()
+
+    # ---- 应用层心跳（douyin-im ws-client.ts：连接后每 15s 发文本 'hi'） ----
+    HEARTBEAT_INTERVAL = 15.0
+
+    def _start_heartbeat(self) -> None:
+        self._stop_heartbeat()
+        self._hb_stop = threading.Event()
+        self._schedule_heartbeat()
+
+    def _schedule_heartbeat(self) -> None:
+        if self._hb_stop.is_set():
+            return
+        timer = threading.Timer(self.HEARTBEAT_INTERVAL, self._send_heartbeat)
+        timer.daemon = True
+        self._hb_timer = timer
+        timer.start()
+
+    def _send_heartbeat(self) -> None:
+        if self._hb_stop.is_set():
+            return
+        try:
+            if self.ws is not None:
+                self.ws.send("hi")
+        except Exception:
+            pass
+        self._schedule_heartbeat()
+
+    def _stop_heartbeat(self) -> None:
+        self._hb_stop.set()
+        if self._hb_timer is not None:
+            try:
+                self._hb_timer.cancel()
+            except Exception:
+                pass
+            self._hb_timer = None
 
     def _build_url(self) -> None:
         access_key = hashlib.md5(
@@ -87,6 +125,7 @@ class DouyinReceiver:
 
     def _on_open(self, ws) -> None:
         self._opened = True
+        self._start_heartbeat()
         self._emit("open", "WebSocket connection open")
 
     def _on_message(self, ws, message: bytes) -> None:
@@ -147,6 +186,7 @@ class DouyinReceiver:
                 pass
 
     def _on_error(self, ws, error) -> None:
+        self._stop_heartbeat()
         self._emit("error", str(error))
         if not self.auto_reconnect:
             return
@@ -157,6 +197,7 @@ class DouyinReceiver:
             self._should_reconnect = True
 
     def _on_close(self, ws, close_status_code, close_msg) -> None:
+        self._stop_heartbeat()
         self._emit("close", f"status_code={close_status_code}, msg={close_msg}")
 
     def _new_ws(self) -> WebSocketApp:
@@ -213,4 +254,5 @@ class DouyinReceiver:
     def stop(self) -> None:
         self._stopped = True
         self.auto_reconnect = False
+        self._stop_heartbeat()
         self._close_ws()

@@ -86,7 +86,12 @@ function onConnect(c) {
     const ri = +s.split('|')[1], tid = t.split('|')[1]
     const tgt = targetList.value.find(x => x.id === tid)
     const r = store.routes[ri]
-    if (r && tgt) { r.target = umoOf(tgt); scheduleLiveSave(); buildEdges() }
+    if (r && tgt) {
+      const umo = umoOf(tgt)
+      const sess = String(umo).split(':')[2] || ''
+      if (!sess) { toast('目标未填写群号/OpenID，请先填写目标再连接'); return }
+      r.target = umo; scheduleLiveSave(); buildEdges()
+    }
   }
 }
 function onEdgesDelete(list) {
