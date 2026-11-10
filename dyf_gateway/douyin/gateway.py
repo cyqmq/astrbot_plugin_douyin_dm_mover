@@ -458,10 +458,12 @@ class DouyinGateway(MessageGateway):
         self._loop.call_soon_threadsafe(self._msg_queue.put_nowait, msg)
 
     async def enrich_video(self, msg: InboundMessage) -> None:
-        """视频卡补详情（消费循环调用）：非视频卡/关闭时直接返回；to_thread 避免阻塞接收。"""
+        """视频卡/图集分享补详情（消费循环调用）：非媒体分享时直接返回；to_thread 避免阻塞接收。"""
         if not bool(self._config.get("video_detail_enabled", True)):
             return
-        if msg.type != MessageType.VIDEO_CARD:
+        if msg.type != MessageType.VIDEO_CARD and not (
+            msg.type == MessageType.IMAGE and (msg.card or {}).get("share_item_id")
+        ):
             return
         await asyncio.to_thread(self._enrich_video, msg)
 
@@ -476,9 +478,12 @@ class DouyinGateway(MessageGateway):
         return self._http
 
     def _enrich_video(self, msg: InboundMessage) -> None:
-        """视频卡补详情（L2）：aweme/detail 拿 desc + 封面，转发内容变 标题+desc+链接+封面。"""
+        """视频卡/图集分享补详情（L2）：aweme/detail 拿 desc + 封面/图片，转发内容变 标题+desc+链接+媒体。"""
         card = msg.card or {}
-        item_id = str(card.get("itemId") or card.get("item_id") or "")
+        is_album = bool(card.get("share_item_id"))
+        item_id = str(
+            card.get("share_item_id") or card.get("itemId") or card.get("item_id") or ""
+        )
         if not item_id:
             return
         if not (self._auth.cookie_str or "").strip():
@@ -491,7 +496,11 @@ class DouyinGateway(MessageGateway):
             # 详情 desc 为空时用视频卡自带标题兜底（content_title）
             desc = (card.get("content_title") or card.get("title") or "").strip()
         if desc:
-            link = f"https://www.douyin.com/video/{item_id}"
+            link = (
+                f"https://www.douyin.com/note/{item_id}"
+                if is_album
+                else f"https://www.douyin.com/video/{item_id}"
+            )
             body = f"{msg.text}\n{desc}".strip() if msg.text else desc
             if link and link not in body:
                 body = f"{body}\n{link}".strip()
@@ -499,7 +508,13 @@ class DouyinGateway(MessageGateway):
         cover = detail.get("cover") or ""
         if cover and cover not in msg.media_urls:
             msg.media_urls = msg.media_urls + [cover]
-        logger.info(f"[dyf] 视频详情已补: {item_id} desc_len={len(desc)} cover={'有' if cover else '无'}")
+        for _img in detail.get("images") or []:
+            if _img and _img not in msg.media_urls:
+                msg.media_urls = msg.media_urls + [_img]
+        logger.info(
+            f"[dyf] 视频详情已补: {item_id} desc_len={len(desc)} "
+            f"cover={'有' if cover else '无'} images={len(detail.get('images') or [])}"
+        )
 
     def _on_status(self, kind: str, detail: str = "") -> None:
         if kind in ("error", "close") and (

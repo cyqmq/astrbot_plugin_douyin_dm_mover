@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+## [1.2.10] - 2026-11-10
+
+### Added
+- **77（图集分享）转发**：`receiver._extract_share_item_id` 从 `proto 9` 找 `a:share_item_id`（图集 id）；`converter._classify` 加 77 分支（`IM_SHARE_PHOTOS` → `IMAGE`，文本 `图集分享\n/note/` 链接，card 带 share_item_id）；`fetch_aweme_detail` 补 `images`（图集图片 url_list）；`gateway` 放宽 enrich 条件（IMAGE+share_item_id 也补详情）、itemId 取 share_item_id、图集用 `/note` 链接 + 填 images。
+- **50002 跳过**：`MESSAGE_TYPE_UPDATE_MESSAGE_EXT` 非独立媒体，`_SKIP_TYPES={50001,50002}`（converter 层再拦一道）。
+
 ## [1.2.9] - 2026-11-10
 
 ### Fixed

@@ -14,7 +14,7 @@ from dyf_core.model import InboundMessage, MessageType
 
 from .peer import is_outgoing, resolve_peer
 
-_SKIP_TYPES = {50001}  # 对方已读
+_SKIP_TYPES = {50001, 50002}  # 50001 对方已读 / 50002 消息更新扩展，均非独立媒体
 
 VIDEO_CARD_TYPES = {8}
 
@@ -71,7 +71,9 @@ class DouyinConverter:
         conversation_id = raw.get("conversation_id", "")
         sender = raw.get("sender")
 
-        mtype, text, media_urls, card = self._classify(msg_type, content)
+        mtype, text, media_urls, card = self._classify(
+            msg_type, content, str(raw.get("share_item_id", "") or "")
+        )
 
         # 临时诊断：非白名单消息（图片合集/分享卡等未知类型）dump 完整 raw，供定位后修复
         if mtype == MessageType.OTHER:
@@ -109,9 +111,15 @@ class DouyinConverter:
         )
 
     @staticmethod
-    def _classify(msg_type, content) -> tuple[MessageType, str, list[str], dict | None]:
+    def _classify(msg_type, content, share_item_id: str = "") -> tuple[MessageType, str, list[str], dict | None]:
         if msg_type == 7:  # 文本
             return MessageType.TEXT, str(content.get("text", "")), [], None
+        if msg_type == 77:  # IM_SHARE_PHOTOS 图集分享
+            link = f"https://www.douyin.com/note/{share_item_id}" if share_item_id else ""
+            card = dict(content)
+            if share_item_id:
+                card["share_item_id"] = share_item_id
+            return MessageType.IMAGE, f"图集分享\n{link}".strip(), [], card
         if msg_type in VIDEO_CARD_TYPES:  # 分享视频卡片
             item_id = str(content.get("itemId") or content.get("item_id") or "")
             title = str(content.get("content_title") or content.get("title") or content.get("desc") or "抖音视频")

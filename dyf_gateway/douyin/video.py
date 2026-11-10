@@ -108,6 +108,12 @@ def fetch_aweme_detail(http: DouyinHttpPy, aweme_id: str, timeout: int = 8) -> d
         return {"desc": "", "cover": "", "play_url": "", "error": "no detail"}
     video = detail.get("video") or {}
     vi = parse_video_info(video) if isinstance(video, dict) and video else {}
+    images: list[str] = []
+    for _im in detail.get("images") or []:
+        if isinstance(_im, dict):
+            _u = _first_url(_im.get("url_list"))
+            if _u:
+                images.append(_u)
     return {
         "desc": str(detail.get("desc") or ""),
         "cover": vi.get("thumb_url")
@@ -118,5 +124,6 @@ def fetch_aweme_detail(http: DouyinHttpPy, aweme_id: str, timeout: int = 8) -> d
         "width": vi.get("width", 0),
         "height": vi.get("height", 0),
         "duration": vi.get("duration", 0),
+        "images": images,
         "error": "",
     }

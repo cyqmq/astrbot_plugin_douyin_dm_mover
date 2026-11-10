@@ -161,6 +161,7 @@ class DouyinReceiver:
             # douyin-im/DouYin_Spider 均未视作视频消息）→ 跳过，不转发
             if msg_type in (MSG_TYPE_READ, MSG_TYPE_UPDATE_EXT):
                 return
+            share_item_id = self._extract_share_item_id(msg_body)
             # 临时诊断：未知类型（77 分享图集等）dump 全部字段，供定位 itemId 后修复。
             # msg_body 已是 dict（field_sub 返回），直接 .items()；误传 decode_fields（期望
             # bytes）会让 _read_varint 取 data[0] 抛 KeyError -> frame decode error: 0。
@@ -179,6 +180,7 @@ class DouyinReceiver:
                     "message_type": msg_type,
                     "sender": sender,
                     "content": content_json,
+                    "share_item_id": share_item_id,
                     "conversation_id": field_str(msg_body, 1),
                     "server_message_id": field_int(msg_body, 3),
                     "index_in_conversation": field_int(msg_body, 4),
@@ -189,6 +191,18 @@ class DouyinReceiver:
         elif payload_type == "text/json":
             # 非业务帧（如握手/控制），仅记录
             self._emit("info", f"json frame: {field_str(frame, 8)[:200]}")
+
+    @staticmethod
+    def _extract_share_item_id(msg_body) -> str:
+        """proto 9 是 a:xxx/s:xxx 键值对列表，找 a:share_item_id（图集/视频分享 id）。"""
+        try:
+            for _item in msg_body.get(9, []) or []:
+                _d = decode_fields(_item)
+                if field_str(_d, 1) == "a:share_item_id":
+                    return field_str(_d, 2)
+        except Exception:
+            pass
+        return ""
 
     def _emit_raw(self, raw: dict) -> None:
         if self.on_raw_message:
