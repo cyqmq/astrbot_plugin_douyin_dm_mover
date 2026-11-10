@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [0.49.0] - 2026-11-10
+
+### Fixed
+- **视频详情不再阻塞接收线程**：`_on_raw_message`（receiver 线程）移除同步 `_enrich_video`，改为 `listener.consume_messages`（async 消费循环）里 `gateway.enrich_video(msg)`（`asyncio.to_thread`，内部校验 `video_detail_enabled` 与 VIDEO_CARD）。接收线程立即入队不阻塞；单条视频补详情最多 ~8s 延迟，不影响后续帧/心跳/断线检测。
+
 ## [0.48.0] - 2026-11-10
 
 ### Fixed

@@ -424,11 +424,18 @@ class DouyinGateway(MessageGateway):
         msg = self._converter.convert(raw)
         if msg is None:
             return
-        if msg.type == MessageType.VIDEO_CARD and bool(self._config.get("video_detail_enabled", True)):
-            self._enrich_video(msg)
+        # 视频详情不再在此同步拉取（会阻塞 receiver 线程）；由监听消费循环 enrich_video 处理
         if self._loop is None:
             return
         self._loop.call_soon_threadsafe(self._msg_queue.put_nowait, msg)
+
+    async def enrich_video(self, msg: InboundMessage) -> None:
+        """视频卡补详情（消费循环调用）：非视频卡/关闭时直接返回；to_thread 避免阻塞接收。"""
+        if not bool(self._config.get("video_detail_enabled", True)):
+            return
+        if msg.type != MessageType.VIDEO_CARD:
+            return
+        await asyncio.to_thread(self._enrich_video, msg)
 
     def _get_http(self) -> DouyinHttpPy:
         if self._http is None:

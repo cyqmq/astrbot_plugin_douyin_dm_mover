@@ -13,6 +13,11 @@ class MessageListener:
     async def consume_messages(self) -> None:
         async for msg in self.gateway.stream():
             try:
+                # 视频卡补详情（to_thread）在此执行：接收线程只入队不阻塞，
+                # 单条视频最多 ~8s 延迟，不影响后续帧/心跳/断线检测。
+                enrich = getattr(self.gateway, "enrich_video", None)
+                if enrich is not None:
+                    await enrich(msg)
                 await self.forward_manager.handle(msg)
             except Exception:
                 # 单条消息处理失败不拖垮消费循环
