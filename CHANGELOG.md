@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+## [0.51.0] - 2026-11-10
+
+### Fixed
+- **发送失败原因空白**：`message_sender.send` 用 `err = str(e) or type(e).__name__`——异常 `str(e)` 为空时至少暴露异常类型，日志/重试队列不再空白。
+- **日志自动清空（重载重建）**：`LogRing` 落盘持久化（`data/<插件>/logs.jsonl` JSONL，append + 启动加载最近 maxlen 条，>2MB 重写截断，clear 截断文件）——插件自动重载不再清空日志，重载后恢复最近 200 条。
+
 ## [0.50.0] - 2026-11-10
 
 ### Fixed

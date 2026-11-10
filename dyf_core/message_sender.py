@@ -45,8 +45,9 @@ class MessageSender:
             await self.context.send_message(origin, chain)
             return True, ""
         except Exception as e:
-            logger.warning(f"[dyf] 发送到 {origin} 失败: {e}")
-            return False, str(e)
+            err = str(e) or type(e).__name__  # str(e) 可能为空，至少暴露异常类型
+            logger.warning(f"[dyf] 发送到 {origin} 失败: {err}")
+            return False, err
 
     async def send_raw_text(self, target: str, text: str) -> tuple[bool, str]:
         from astrbot.api.message_components import Plain
