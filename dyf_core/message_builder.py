@@ -72,7 +72,7 @@ class MessageBuilder:
         for url in msg.media_urls:
             if not url:
                 continue
-            if msg.type == MessageType.IMAGE:
+            if msg.type in (MessageType.IMAGE, MessageType.VIDEO_CARD):
                 try:
                     parts.append(Image.fromURL(url))
                 except Exception:

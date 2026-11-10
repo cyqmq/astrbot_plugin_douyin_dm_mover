@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [0.42.0] - 2026-11-10
+
+### Added
+- **视频卡转发带封面图**：`converter` 视频卡分支提取封面（`content.cover_url.url_list[0]` 或 `content.coverUrl` 直链）加入 `media_urls`；`message_builder` 的 `VIDEO_CARD` 媒体 URL 也走 `Image.fromURL`（原先仅 `IMAGE`），转发不再是「标题+链接」无封面。
+
 ## [0.41.0] - 2026-11-10
 
 ### Fixed

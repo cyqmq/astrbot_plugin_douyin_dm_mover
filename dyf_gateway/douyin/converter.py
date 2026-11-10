@@ -95,7 +95,17 @@ class DouyinConverter:
             title = str(content.get("title") or content.get("desc") or "抖音视频")
             link = f"https://www.douyin.com/video/{item_id}" if item_id else ""
             text = f"{title}\n{link}".strip()
-            return MessageType.VIDEO_CARD, text, [], content
+            # 封面：cover_url.url_list[0]（douyin-im）或 coverUrl（cards.ts）直链
+            cover_urls: list[str] = []
+            cu = content.get("cover_url")
+            if isinstance(cu, dict):
+                cu = _first_url(cu)
+            elif not isinstance(cu, str):
+                cu = None
+            cu = cu or content.get("coverUrl")
+            if isinstance(cu, str) and cu:
+                cover_urls = [cu]
+            return MessageType.VIDEO_CARD, text, cover_urls, content
         if msg_type == 27:  # 图片
             url = (
                 content.get("resource_url", {}).get("origin_url_list")
