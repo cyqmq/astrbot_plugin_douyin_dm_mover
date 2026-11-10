@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+## [1.2.7] - 2026-11-10
+
+### Fixed
+- **AstrBot 官方审查日志规范合规**：全插件统一改用 `from astrbot.api import logger`（子进程经 stdout 协议回传日志）——`dyf_core/logs.py`（loguru sink → `logging.Handler` 挂 astrbot.api.logger）、`dyf_gateway/douyin/self_uid.py` 与 `worker.py`（`logging.getLogger` → astrbot.api.logger）、`vendored/login/dy_apis/login_api.py`（loguru → astrbot.api.logger）。
+- **self_uid 同步阻塞网络 I/O**：`SelfIdentityResolver` 新增 `resolve_async`（`urllib.request.urlopen` 兜底经 `asyncio.to_thread`）；`gateway._apply_session_or_config` 改 async，启动路径用 `await resolve_async`，不再阻塞事件循环。同步 `resolve` 保留（子进程 worker / set_self_uid 同步上下文用）。
+
 ## [1.2.6] - 2026-11-10
 
 ### Fixed

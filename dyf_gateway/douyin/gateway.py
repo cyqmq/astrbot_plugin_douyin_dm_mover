@@ -183,7 +183,7 @@ class DouyinGateway(MessageGateway):
 
     async def start(self) -> None:
         self._loop = asyncio.get_running_loop()
-        self._apply_session_or_config()
+        await self._apply_session_or_config()
         if not self._auth.sessionid:
             self._emit_event(
                 GatewayEvent(
@@ -206,7 +206,7 @@ class DouyinGateway(MessageGateway):
         self._watchdog_task = asyncio.create_task(self._watchdog())
         logger.info(f"[dyf] DouyinGateway 已启动 (device_id={self._device_id})")
 
-    def _apply_session_or_config(self) -> None:
+    async def _apply_session_or_config(self) -> None:
         """会话优先：有有效 session 用其 cookie/uid/device；否则用配置 cookie。"""
         data = self._login_flow.session.load()
         if data and self._login_flow.session.has_valid():
@@ -220,12 +220,12 @@ class DouyinGateway(MessageGateway):
                 self._self_uid = int(data["uid"])
                 self._resolver.cache(self._self_uid)
             else:
-                self._self_uid = self._resolver.resolve(self._auth)
+                self._self_uid = await self._resolver.resolve_async(self._auth)
             if data.get("device_id"):
                 self._device_id = str(data["device_id"])
             logger.info("[dyf] 使用已保存的登录会话")
         else:
-            self._self_uid = self._resolver.resolve(self._auth)
+            self._self_uid = await self._resolver.resolve_async(self._auth)
         self._auth.uid = self._self_uid
         if self._self_uid is None:
             logger.warning("[dyf] self_uid 未解析，对端判定将受限")

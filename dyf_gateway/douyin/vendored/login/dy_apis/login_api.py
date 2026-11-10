@@ -27,8 +27,10 @@ import urllib.parse
 import uuid
 
 from utils import http_client as requests
-requests.packages.urllib3.disable_warnings()
-from loguru import logger
+
+# AstrBot 审查：统一使用 astrbot.api 日志器（子进程经 stdout 协议回传），
+# 不再直接使用 loguru
+from astrbot.api import logger
 
 from builder.auth import DouyinAuth
 from builder.header import Header, HeaderBuilder, HeaderType
