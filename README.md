@@ -93,6 +93,12 @@ https://github.com/cyqmq/astrbot_plugin_douyin_dm_mover
   需重新登录并更新 `douyin_cookies`。
 - **subprocess 模式**：独立子进程跑接收端，崩溃/内存泄漏不拖垮 AstrBot；`/dyf uid` 会实时下发到子进程。
 
+## 许可
+
+- **插件本体**：MIT License（见 [LICENSE](LICENSE)，Copyright © 2026 contributors）。
+- **`vendored/` 例外**：`dyf_gateway/douyin/vendored/` 来自 DouYin_Spider（无开源许可、
+  默认保留所有权利），**不在 MIT 许可范围内**，仅限学习与技术研究（详见 LICENSE 例外声明）。
+
 ## 借鉴与致谢
 
 - **信息卡片渲染 / delivery 失败记账 / media 分批 / budget 与 dedupe / feedback 反馈设计**：
