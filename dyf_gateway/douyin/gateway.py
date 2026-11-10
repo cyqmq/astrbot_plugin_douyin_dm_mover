@@ -495,7 +495,7 @@ class DouyinGateway(MessageGateway):
         if not desc:
             # 详情 desc 为空时用视频卡自带标题兜底（content_title）
             desc = (card.get("content_title") or card.get("title") or "").strip()
-        if desc:
+        if desc and desc not in msg.text:
             link = (
                 f"https://www.douyin.com/note/{item_id}"
                 if is_album

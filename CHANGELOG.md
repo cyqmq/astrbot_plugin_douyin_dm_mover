@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+## [1.2.13] - 2026-11-10
+
+### Fixed
+- **视频简介发两遍**：`_enrich_video` 的 `if desc:` 加 `and desc not in msg.text`——详情 desc 与视频卡 content_title 相同（都是简介）时不再追加，text 保持 `简介\n链接`。
+- **图集发两遍（去重失效）**：`_dedup_key` 的 IMAGE 分支先按 `album:{share_item_id}` 去重（抖音推两帧、`media_urls` 可能未填充时两帧 message_id 不同拦不住），有 share_item_id 即按图集 id 去重，否则回退内容指纹/message_id。
+
 ## [1.2.12] - 2026-11-10
 
 ### Fixed

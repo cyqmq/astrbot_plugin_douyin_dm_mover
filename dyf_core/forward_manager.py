@@ -100,11 +100,16 @@ class ForwardManager:
             item = str(msg.card.get("itemId") or msg.card.get("item_id") or "")
             if item:
                 return f"video:{item}"
-        # 图片合集：两帧 media_urls 相同，内容指纹去重
-        if msg.type == MessageType.IMAGE and msg.media_urls:
-            return "img:" + hashlib.md5(
-                "|".join(sorted(str(u) for u in msg.media_urls)).encode()
-            ).hexdigest()
+        # 图片合集：图集按分享 id 去重（抖音推两帧、media_urls 可能未填充）；
+        # 否则两帧 media_urls 相同用内容指纹
+        if msg.type == MessageType.IMAGE:
+            si = str((msg.card or {}).get("share_item_id") or "")
+            if si:
+                return f"album:{si}"
+            if msg.media_urls:
+                return "img:" + hashlib.md5(
+                    "|".join(sorted(str(u) for u in msg.media_urls)).encode()
+                ).hexdigest()
         if msg.message_id:
             return msg.message_id
         return hashlib.md5(
