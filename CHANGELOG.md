@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.1.2] - 2026-11-10
+
+### Fixed
+- **好友列表/档案 status_code=8（签名失败）**：`contact.fetch_friend_list`（familiar/list）与 `profile.fetch_desktop_self_profile` 补 `a_bogus` 签名（`generate_jumpbyte_abogus`，同 `video.fetch_aweme_detail` 路径）——桌面 REST 需签名，无签名返回 `status_code=8`。
+
 ## [1.1.1] - 2026-11-10
 
 ### Fixed

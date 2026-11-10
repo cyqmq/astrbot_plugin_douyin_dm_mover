@@ -1,12 +1,13 @@
 """账户档案（@alemonjs/douyin fetchDesktopSelfProfile / douyin-im getSelfProfile 移植）。
 
-桌面接口：GET /aweme/v1/web/user/profile/self/，靠 Cookie + 桌面参数，无 a_bogus。
+桌面接口：GET /aweme/v1/web/user/profile/self/，靠 Cookie + 桌面参数 + a_bogus 签名。
 参数按官方桌面指纹：device_platform=win32、screen 1707x1067、UA 去 Mozilla/ 作 browser_version。
 """
 from __future__ import annotations
 
-from urllib.parse import urlencode
+from urllib.parse import quote, urlencode
 
+from .abogus import generate_jumpbyte_abogus
 from .http import DouyinHttpPy
 
 PROFILE_URL = "https://imdesktop.douyin.com/aweme/v1/web/user/profile/self/"
@@ -42,7 +43,13 @@ def fetch_desktop_self_profile(http: DouyinHttpPy) -> dict:
     失败抛 RuntimeError（由调用方按需吞掉）。
     """
     query = desktop_rest_base_query(http)
-    data = http.request_json(f"{PROFILE_URL}?{urlencode(query)}", "GET")
+    query_wire = urlencode(query)
+    abogus = generate_jumpbyte_abogus(
+        query=query_wire, body="", user_agent=http.get_user_agent()
+    )
+    data = http.request_json(
+        f"{PROFILE_URL}?{query_wire}&a_bogus={quote(abogus, safe='')}", "GET"
+    )
     user = ((data.get("data") or {}).get("user")) or {}
     uid = (
         user.get("user_id_str")

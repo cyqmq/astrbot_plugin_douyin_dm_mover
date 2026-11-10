@@ -2,12 +2,13 @@
 
 GET /aweme/v1/web/familiar/list/，移动端 familiar-list 形状（version_code=21.6.0），
 分页 count≤100、cursor 循环拉全量；过滤 user_canceled=0、uid 非空非 0。
-依赖 Cookie + 桌面参数（无 a_bogus），复用 ``profile.desktop_rest_base_query``。
+依赖 Cookie + 桌面参数 + a_bogus 签名，复用 ``profile.desktop_rest_base_query``。
 """
 from __future__ import annotations
 
-from urllib.parse import urlencode
+from urllib.parse import quote, urlencode
 
+from .abogus import generate_jumpbyte_abogus
 from .http import DouyinHttpPy
 from .profile import desktop_rest_base_query
 
@@ -39,7 +40,13 @@ def fetch_friend_list(
                 "only_total": "0",
             }
         )
-        data = http.request_json(f"{FAMILIAR_URL}?{urlencode(query)}", "GET")
+        query_wire = urlencode(query)
+        abogus = generate_jumpbyte_abogus(
+            query=query_wire, body="", user_agent=http.get_user_agent()
+        )
+        data = http.request_json(
+            f"{FAMILIAR_URL}?{query_wire}&a_bogus={quote(abogus, safe='')}", "GET"
+        )
         if data.get("status_code") not in (0, None):
             raise RuntimeError(f"familiar/list status_code={data.get('status_code')}")
         for u in data.get("user_list") or []:
