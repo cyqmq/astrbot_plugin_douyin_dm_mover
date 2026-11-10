@@ -162,10 +162,11 @@ class DouyinReceiver:
             if msg_type in (MSG_TYPE_READ, MSG_TYPE_UPDATE_EXT):
                 return
             share_item_id = self._extract_share_item_id(msg_body)
-            # 临时诊断：未知类型（77 分享图集等）dump 全部字段，供定位 itemId 后修复。
+            # 诊断：仅真正未知类型（非 7/8/27/5/17/50001/50002/77/110）dump 全部字段，
+            # 供发现新分享类型。已处理类型（77/110 图集/作品分享、50002 更新扩展）不再 dump。
             # msg_body 已是 dict（field_sub 返回），直接 .items()；误传 decode_fields（期望
             # bytes）会让 _read_varint 取 data[0] 抛 KeyError -> frame decode error: 0。
-            if msg_type not in (7, 8, 27, 5, 17, 50001):
+            if msg_type not in (7, 8, 27, 5, 17, 50001, 50002, 77, 110):
                 for _fn, _fv in msg_body.items():
                     logger.info(f"[dyf] proto {_fn}: {_fv!s}")
             sender = field_int(msg_body, 7)
