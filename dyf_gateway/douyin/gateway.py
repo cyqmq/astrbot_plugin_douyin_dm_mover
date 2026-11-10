@@ -491,6 +491,9 @@ class DouyinGateway(MessageGateway):
         detail = fetch_aweme_detail(self._get_http(), item_id)
         if not detail:
             return
+        if detail.get("error"):
+            logger.info(f"[dyf] 详情拉取失败 {item_id}: {detail['error']}")
+            return
         desc = (detail.get("desc") or "").strip()
         if not desc:
             # 详情 desc 为空时用视频卡自带标题兜底（content_title）

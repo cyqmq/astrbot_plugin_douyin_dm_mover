@@ -10,9 +10,41 @@ from urllib.parse import quote, urlencode
 
 from .login.alemonjs_py import DouyinHttpPy
 from .login.alemonjs_py.abogus import generate_jumpbyte_abogus
-from .login.alemonjs_py.profile import desktop_rest_base_query
 
-DETAIL_URL = "https://imdesktop.douyin.com/aweme/v1/web/aweme/detail/"
+DETAIL_URL = "https://www.douyin.com/aweme/v1/web/aweme/detail/"
+
+
+def _web_detail_query(aweme_id: str) -> dict:
+    """网页端详情参数（对齐 ParseHub DouyinWebCrawler.fetch_one_video）。
+
+    www.douyin.com 为公开接口，游客可访问；a_bogus 签名需完整浏览器指纹参数。
+    """
+    return {
+        "device_platform": "webapp",
+        "aid": "6383",
+        "channel": "channel_pc_web",
+        "pc_client_type": "1",
+        "version_code": "290100",
+        "version_name": "29.1.0",
+        "cookie_enabled": "true",
+        "screen_width": "1920",
+        "screen_height": "1080",
+        "browser_language": "zh-CN",
+        "browser_platform": "Win32",
+        "browser_name": "Chrome",
+        "browser_version": "130.0.0.0",
+        "browser_online": "true",
+        "engine_name": "Blink",
+        "engine_version": "130.0.0.0",
+        "os_name": "Windows",
+        "os_version": "10",
+        "cpu_core_num": "12",
+        "device_memory": "8",
+        "platform": "PC",
+        "downlink": "10",
+        "effective_type": "4g",
+        "aweme_id": str(aweme_id),
+    }
 
 
 def _first_url(obj) -> str:
@@ -90,8 +122,7 @@ def fetch_aweme_detail(http: DouyinHttpPy, aweme_id: str, timeout: int = 8) -> d
     if not aweme_id:
         return None
     try:
-        query = desktop_rest_base_query(http)
-        query["aweme_id"] = str(aweme_id)
+        query = _web_detail_query(aweme_id)
         query_wire = urlencode(query)
         abogus = generate_jumpbyte_abogus(
             query=query_wire, body="", user_agent=http.get_user_agent()
@@ -109,13 +140,24 @@ def fetch_aweme_detail(http: DouyinHttpPy, aweme_id: str, timeout: int = 8) -> d
     video = detail.get("video") or {}
     vi = parse_video_info(video) if isinstance(video, dict) and video else {}
     images: list[str] = []
-    for _im in detail.get("images") or []:
-        if isinstance(_im, dict):
-            _u = _first_url(_im.get("url_list"))
-            if _u:
-                images.append(_u)
+    # 新版图集格式：image_post_info.images 兜底
+    for _src in (
+        detail.get("images") or [],
+        (detail.get("image_post_info") or {}).get("images") or [],
+    ):
+        for _im in _src:
+            if isinstance(_im, dict):
+                _u = _first_url(_im.get("url_list"))
+                if _u:
+                    images.append(_u)
+    desc = str(
+        detail.get("desc")
+        or detail.get("text")
+        or detail.get("title")
+        or ""
+    )
     return {
-        "desc": str(detail.get("desc") or ""),
+        "desc": desc,
         "cover": vi.get("thumb_url")
         or _first_url(video.get("cover"))
         or _first_url(video.get("origin_cover")),

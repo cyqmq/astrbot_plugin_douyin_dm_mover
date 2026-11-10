@@ -4,6 +4,16 @@
 
 ## [Unreleased]
 
+## [1.2.14] - 2026-11-10
+
+### Changed
+- **详情接口切 www.douyin.com（公开、游客可访问）**：`DETAIL_URL` imdesktop → `www.douyin.com/aweme/v1/web/aweme/detail/`；query 改用网页端参数 `_web_detail_query`（24 项，对齐 ParseHub `fetch_one_video`：aid=6383、device_platform=webapp、浏览器指纹等）；a_bogus 签名保留（www 有效）。登录态零改动（内容详情独立走 www）。
+- **images 兜底**：`image_post_info.images`（新版图集格式）+ `images` 两处提取。
+- **desc 兜底**：`desc` 空时试 `text`/`title`。
+
+### Added
+- **`gateway._enrich_video` 失败日志**：`detail.get("error")` 时打 `[dyf] 详情拉取失败 {item_id}: {error}`（不再静默空，可定位 www 接口风控/拒绝原因）。
+
 ## [1.2.13] - 2026-11-10
 
 ### Fixed
