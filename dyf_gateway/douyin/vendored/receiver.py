@@ -133,7 +133,9 @@ class DouyinReceiver:
         try:
             self._handle_frame(message)
         except Exception as e:  # 单帧解析失败不拖垮连接
-            self._emit("error", f"frame decode error: {e}")
+            import traceback
+
+            self._emit("error", f"frame decode error: {e}\n{traceback.format_exc()}")
 
     def _handle_frame(self, message) -> None:
         self._emit_frame()

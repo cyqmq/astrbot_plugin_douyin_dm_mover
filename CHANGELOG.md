@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.2.3] - 2026-11-10
+
+### Changed
+- **帧解码错误带完整栈**：`receiver._on_message` 的 `except` 打 `traceback.format_exc()`（`frame decode error: 0` 只见 `0`，加栈定位 `_handle_frame` 内抛的 `ValueError("0")`/`IndexError` 源头）。
+
 ## [1.2.2] - 2026-11-10
 
 ### Fixed
