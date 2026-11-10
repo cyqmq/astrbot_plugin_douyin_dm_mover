@@ -21,6 +21,43 @@ from astrbot.api import logger
 from dyf_core.logs import LogRing
 
 
+def _route_diff(old_list, new_list) -> list[str]:
+    """路由表结构化 diff（按 name 匹配）：增/删/目标变更/来源连接±/类型±；忽略 pos。
+
+    返回人类可读行列表（不含 [dyf] 前缀），供 config_set 逐条日志。
+    """
+    old = {r.get("name"): r for r in old_list or [] if isinstance(r, dict) and r.get("name")}
+    new = {r.get("name"): r for r in new_list or [] if isinstance(r, dict) and r.get("name")}
+    lines: list[str] = []
+    for name, nr in new.items():
+        if name not in old:
+            lines.append(f'+ 路由 "{name}" → {nr.get("target") or "未连接目标"}')
+            continue
+        orr = old[name]
+        ot = orr.get("target") or ""
+        nt = nr.get("target") or ""
+        if ot != nt:
+            lines.append(f'~ 路由 "{name}" 目标: {ot or "(无)"} → {nt or "(无)"}')
+        om = orr.get("match") or {}
+        nm = nr.get("match") or {}
+        oinc = set(om.get("senders_include") or [])
+        ninc = set(nm.get("senders_include") or [])
+        for u in sorted(ninc - oinc, key=str):
+            lines.append(f'~ 路由 "{name}" 来源 +{u}')
+        for u in sorted(oinc - ninc, key=str):
+            lines.append(f'~ 路由 "{name}" 来源 -{u}')
+        otypes = set(om.get("types") or [])
+        ntypes = set(nm.get("types") or [])
+        for t in sorted(ntypes - otypes, key=str):
+            lines.append(f'~ 路由 "{name}" 类型 +{t}')
+        for t in sorted(otypes - ntypes, key=str):
+            lines.append(f'~ 路由 "{name}" 类型 -{t}')
+    for name in old:
+        if name not in new:
+            lines.append(f'- 路由 "{name}"')
+    return lines
+
+
 def _qr_data_url(content: str) -> str | None:
     """把二维码内容渲染成 PNG data URL；失败返回 None。"""
     try:
@@ -193,8 +230,15 @@ class DashboardApi:
         if not isinstance(updates, dict) or not updates:
             return {"ok": False, "detail": "缺少 config 更新"}
         cfg = self.fm.config
+        old_routes = None
+        if "routes" in updates:
+            import copy
+            old_routes = copy.deepcopy(cfg.get("routes") or [])
         for k, v in updates.items():
             cfg[k] = v
+        if "routes" in updates:
+            for line in _route_diff(old_routes, updates.get("routes") or []):
+                logger.info(f"[dyf] {line}")
         logger.info(f"[dyf] 配置已更新: {sorted(str(k) for k in updates)}")
         if self._config_obj is not None:
             save = getattr(self._config_obj, "save_config", None)
