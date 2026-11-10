@@ -92,6 +92,17 @@ class ForwardManager:
         return bool(self.config.get(key, True))
 
     def _dedup_key(self, msg: InboundMessage) -> str:
+        # 视频卡：抖音 WS 同一作品推两帧（server_message_id 不同、conv 一标准一纯数字），
+        # 用作品 itemId 去重（同视频窗口内只转一次）
+        if msg.type == MessageType.VIDEO_CARD and msg.card:
+            item = str(msg.card.get("itemId") or msg.card.get("item_id") or "")
+            if item:
+                return f"video:{item}"
+        # 图片合集：两帧 media_urls 相同，内容指纹去重
+        if msg.type == MessageType.IMAGE and msg.media_urls:
+            return "img:" + hashlib.md5(
+                "|".join(sorted(str(u) for u in msg.media_urls)).encode()
+            ).hexdigest()
         if msg.message_id:
             return msg.message_id
         return hashlib.md5(
