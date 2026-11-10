@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [0.59.0] - 2026-11-10
+
+### Fixed
+- **视频卡转发崩溃（requests 响应属性误用）**：`alemonjs_py/http.py:254` 用 `resp.status`（`requests.Response` 无此属性）改为 `resp.status_code`。此前视频详情/封面接口返回非 2xx（403 防盗链）时抛 `AttributeError`（不在 `fetch_aweme_detail` 捕获元组内）→ 崩到 listener 的「处理消息异常」。修复后非 2xx 走 `RuntimeError("HTTP <code> ...")`，被 `fetch_aweme_detail:44` 捕获返回 error dict，`_enrich_video` 不崩（标题+链接照发，封面缺失）。
+
 ## [0.58.0] - 2026-11-10
 
 ### Added

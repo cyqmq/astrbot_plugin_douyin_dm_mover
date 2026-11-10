@@ -251,7 +251,7 @@ class DouyinHttpPy:
     def request_json(self, url: str, method: str = "GET", headers: dict | None = None, body: str | None = None, timeout: int | None = None) -> dict:
         resp = self.request_raw(url, method, headers, body, timeout)
         if not resp.ok:
-            raise RuntimeError(f"HTTP {resp.status} {urlparse(url).path}: {resp.text[:200]}")
+            raise RuntimeError(f"HTTP {resp.status_code} {urlparse(url).path}: {resp.text[:200]}")
         try:
             data = resp.json()
         except Exception:
