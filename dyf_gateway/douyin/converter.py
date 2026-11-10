@@ -7,6 +7,8 @@ from __future__ import annotations
 
 import time
 
+from astrbot.api import logger
+
 from dyf_core.model import InboundMessage, MessageType
 
 from .peer import is_outgoing, resolve_peer
@@ -69,6 +71,12 @@ class DouyinConverter:
         sender = raw.get("sender")
 
         mtype, text, media_urls, card = self._classify(msg_type, content)
+
+        # 临时诊断：非白名单消息（图片合集/链接/分享等未知类型）记录原始字段，供定位后修复
+        if mtype == MessageType.OTHER:
+            logger.info(
+                f"[dyf] raw: msg_type={raw.get('message_type')!r} conv={raw.get('conversation_id')!r} content={str(content)[:200]}"
+            )
 
         peer_id = resolve_peer(conversation_id, self_uid)
         # 昵称：content.name/nick_name → 发送者昵称（好友/会话）→ 才回退 peer_id（不裸显示 uid）

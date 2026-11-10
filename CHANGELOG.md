@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [0.53.0] - 2026-11-10
+
+### Added
+- **图片合集/未知消息临时诊断**：`converter.convert` 对非白名单消息（`MessageType.OTHER`，图片合集/链接/分享候选）记录 `[dyf] raw: msg_type/conv/content(前200)`，供复现后确定真实 msg_type、多图结构与 conversation_id 字段，再精准修复 `_classify`/`resolve_peer`。
+
 ## [0.52.0] - 2026-11-10
 
 ### Fixed
