@@ -195,6 +195,7 @@ class DashboardApi:
         cfg = self.fm.config
         for k, v in updates.items():
             cfg[k] = v
+        logger.info(f"[dyf] 配置已更新: {sorted(str(k) for k in updates)}")
         if self._config_obj is not None:
             save = getattr(self._config_obj, "save_config", None)
             if save is not None:

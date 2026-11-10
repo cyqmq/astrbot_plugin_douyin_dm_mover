@@ -96,12 +96,12 @@ class ForwardManager:
             f"{msg.source_platform}:{msg.peer_id}:{msg.type}:{msg.text}".encode()
         ).hexdigest()
 
-    def _resolve_targets(self, msg: InboundMessage) -> list[str]:
-        targets = self.router.resolve(msg)
-        if targets:
-            return targets
+    def _resolve_targets(self, msg: InboundMessage) -> list[tuple[str, str]]:
+        hits = self.router.resolve(msg)
+        if hits:
+            return hits
         if self.default_target_group:
-            return [self.sender.build_origin(self.default_target_group)]
+            return [("default", self.sender.build_origin(self.default_target_group))]
         return []
 
     async def handle(self, msg: InboundMessage) -> None:
@@ -134,7 +134,8 @@ class ForwardManager:
         if chain is None:
             return
 
-        for target in targets:
+        for name, target in targets:
+            logger.info(f"[dyf] 命中路由 {name} -> {target}")
             if target in self._in_flight:
                 continue
             self._in_flight.add(target)

@@ -57,12 +57,13 @@ class RouteResolver:
                 )
             )
 
-    def resolve(self, msg: InboundMessage) -> list[str]:
-        targets: list[str] = []
+    def resolve(self, msg: InboundMessage) -> list[tuple[str, str]]:
+        """按序命中路由，返回 [(路由名, target)]；未命中返回空列表。"""
+        hits: list[tuple[str, str]] = []
         for r in self.routes:
             if r.matches(msg):
-                targets.append(r.target)
-        return targets
+                hits.append((r.name, r.target))
+        return hits
 
     def __bool__(self) -> bool:
         return bool(self.routes)
