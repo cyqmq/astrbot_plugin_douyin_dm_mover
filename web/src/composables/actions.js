@@ -38,7 +38,9 @@ export async function loadConfig() {
   store.cfg = d.config
   store.schema = d.schema || {}
   store.routes = JSON.parse(JSON.stringify(d.config.routes || []))
-  store.customSources = JSON.parse(JSON.stringify(d.config.custom_sources || []))
+  store.customSources = (d.config.custom_sources || []).map((s, i) => ({
+    id: s.id || ('srcm' + (i + 1)), uid: s.uid || '', nickname: s.nickname || '', pos: s.pos || null
+  }))
   store.customTargets = JSON.parse(JSON.stringify(d.config.custom_targets || []))
   store.simpleTargets = JSON.parse(JSON.stringify(d.config.simple_targets || []))
   store.advancedTargets = !!d.config.advanced_target_cards
@@ -71,10 +73,10 @@ export async function addSender(key, uid) {
   await loadConfig()
 }
 
-export async function loadFriends() {
+export async function loadFriends(refresh) {
   store.friendsLoading = true
   store.friendsDetail = ''
-  const d = await apiGet('friends')
+  const d = await apiGet(refresh ? 'friends?refresh=1' : 'friends')
   store.friendsLoading = false
   if (d.detail) store.friendsDetail = d.detail
   store.friends = d.friends || []

@@ -25,7 +25,8 @@ const umoOf = t => ('kind' in t)
 const findTargetByUmo = umo => targetList.value.find(t => umoOf(t) === umo)
 
 // ---- 添加 / 删除 ----
-function addSource() { store.customSources.push({ uid: '', nickname: '' }); scheduleLiveSave() }
+let srcSeq = 0
+function addSource() { store.customSources.push({ id: 'src' + (++srcSeq), uid: '', nickname: '' }); scheduleLiveSave() }
 function delSource(source) {
   const i = store.customSources.indexOf(source)
   if (i >= 0) { store.customSources.splice(i, 1); scheduleLiveSave() }
@@ -67,7 +68,9 @@ function delRoute(i) { store.routes.splice(i, 1); scheduleLiveSave() }
 function onConnect(c) {
   const s = c.source || '', t = c.target || ''
   if (s.startsWith('src|') && t.startsWith('route|')) {
-    const uid = s.split('|')[1], ri = +t.split('|')[1]
+    const sid = s.split('|')[1], ri = +t.split('|')[1]
+    const srcObj = sources.value.find(x => x.id === sid)
+    const uid = srcObj ? (srcObj.uid || '') : ''
     const r = store.routes[ri]
     if (r && !uid) { toast('请先在来源卡选择来源，再连接到路由'); return }
     if (r && uid) {
@@ -106,7 +109,7 @@ function onDragStop({ node }) {
   if (!node) return
   const id = node.id || '', p = { x: Math.round(node.position.x), y: Math.round(node.position.y) }
   if (id.startsWith('src|')) {
-    const src = sources.value[+id.split('|')[2]]
+    const src = sources.value.find(x => x.id === id.split('|')[1])
     if (src) src.pos = p
   } else if (id.startsWith('route|')) {
     const r = store.routes[+id.split('|')[1]]
@@ -121,7 +124,7 @@ function onDragStop({ node }) {
 // ---- 节点 / 边 ----
 const posOf = id => { const n = getNodes.value.find(x => x.id === id); return n ? { x: n.position.x, y: n.position.y } : null }
 function sourceNode(s, i) {
-  const n = { id: 'src|' + (s.uid || '') + '|' + i, type: 'source', data: { custom: true, source: s, del: delSource } }
+  const n = { id: 'src|' + s.id, type: 'source', data: { custom: true, source: s, del: delSource } }
   n.position = s.pos || posOf(n.id) || { x: X[0], y: i * 150 }
   return n
 }
@@ -149,12 +152,12 @@ function buildNodes() {
 }
 function buildEdges() {
   const es = []
-  sources.value.forEach((s, si) => {
+  sources.value.forEach(s => {
     const uid = s.uid || ''
     if (!uid) return
     store.routes.forEach((r, ri) => {
       if ((r.match && r.match.senders_include || []).includes(uid))
-        es.push(edgeTo(`e|src|${uid}|${si}|${ri}`, 'src|' + uid + '|' + si, 'route|' + ri, 'hit',
+        es.push(edgeTo(`e|src|${s.id}|${ri}`, 'src|' + s.id, 'route|' + ri, 'hit',
           { kind: 'src-route', uid, ri }))
     })
   })

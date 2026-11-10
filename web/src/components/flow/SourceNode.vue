@@ -36,6 +36,7 @@ function setNick(e) { src.value.nickname = e.target.value; scheduleLiveSave() }
       <span class="src-picked">{{ src.nickname || src.uid }}</span>
     </template>
     <input :value="src.nickname" placeholder="昵称（可选）" class="nodrag src-nick" @change="setNick($event)">
+    <button class="mini nodrag" title="刷新好友列表" @click="loadFriends(true)">↻</button>
     <button class="mini danger nodrag" title="移除该来源" @click="d.del(src)">×</button>
     <Handle type="source" :position="Position.Right" title="拖到路由卡左侧连接桩（连入路由）" />
   </div>

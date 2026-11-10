@@ -247,12 +247,21 @@ class DashboardApi:
         return {"profile": {"uid": str(uid or ""), "nickname": "", "avatar": ""}}
 
     async def friends(self):
-        """好友列表（familiar-list 全量）：未登录返回空；已缓存直接返回。"""
+        """好友列表（familiar-list 全量）：未登录返回空；已缓存（TTL 300s）直接返回，?refresh=1 强制重拉。"""
         gw = self.gateway
         if gw.auth_state.value != "ok":
             return {"friends": [], "detail": "未登录"}
+        refresh = False
+        try:
+            from astrbot.api.web import request as web_request
+            q = getattr(web_request, "args", None)
+            refresh = bool(q and str(q.get("refresh", "0")) in ("1", "true", "True"))
+        except Exception:
+            refresh = False
         cached = getattr(gw, "_friends", None) or []
-        if cached:
+        ts = getattr(gw, "_friends_ts", 0) or 0
+        import time
+        if cached and not refresh and (time.time() - ts) < 300:
             return {"friends": cached, "cached": True}
         try:
             from dyf_gateway.douyin.login.alemonjs_py import (
@@ -269,6 +278,7 @@ class DashboardApi:
             http.set_device({"deviceId": dev, "installId": "0", "guid": "0"})
             friends = await asyncio.to_thread(fetch_friend_list, http)
             gw._friends = friends
+            gw._friends_ts = time.time()
             return {"friends": friends}
         except Exception as e:
             logger.warning(f"[dyf] 拉取好友列表失败: {e}")
