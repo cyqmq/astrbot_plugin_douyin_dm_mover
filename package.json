@@ -1,6 +1,6 @@
 {
   "name": "astrbot-plugin-douyin-dm-mover",
-  "version": "0.42.0",
+  "version": "0.43.0",
   "private": true,
   "type": "module",
   "description": "AstrBot 抖音个人号私信转发插件（@alemonjs/douyin 扫码登录后端）",

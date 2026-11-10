@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [0.43.0] - 2026-11-10
+
+### Added
+- **视频详情 L2 增强**：新增 `video.fetch_aweme_detail`（`GET /aweme/v1/web/aweme/detail/`，a_bogus 签名），视频卡转发前补拉 `desc`（视频文案）+ 详情封面，转发内容变 `标题 + desc + 链接 + 封面图`（卡内无 desc）。开关 `video_detail_enabled`（默认开，关闭则仅 标题+链接+卡内封面）；失败/无 Cookie 优雅回退原内容。
+
 ## [0.42.0] - 2026-11-10
 
 ### Added

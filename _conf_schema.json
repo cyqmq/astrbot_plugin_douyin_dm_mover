@@ -78,6 +78,11 @@
     "default": true,
     "description": "登录态失效仅告警一次，避免刷屏"
   },
+  "video_detail_enabled": {
+    "type": "bool",
+    "default": true,
+    "description": "视频卡转发时调用 aweme/detail 补充视频文案（desc）与封面图（L2 增强）。关闭则仅转发 标题+链接+卡内封面"
+  },
   "qq_adapter_id": {
     "type": "string",
     "default": "aiocqhttp",

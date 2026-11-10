@@ -9,13 +9,14 @@ from collections.abc import AsyncIterator
 
 from astrbot.api import logger
 
-from dyf_core.model import AuthState, GatewayEvent, InboundMessage
+from dyf_core.model import AuthState, GatewayEvent, InboundMessage, MessageType
 
 from ..base import MessageGateway
 from .converter import DouyinConverter
 from .detector import AuthFailureDetector
 from .device import resolve_device_id
 from .login.alemonjs import AlemonjsLogin
+from .login.alemonjs_py import DouyinHttpPy
 from .login.alemonjs_py_login import AlemonsPyLogin
 from .login.flow import LoginFlow
 from .login.mfa import MfaHandler
@@ -23,6 +24,7 @@ from .login.waiter import CodeWaiter
 from .self_uid import SelfIdentityResolver
 from .vendored.auth import DouyinAuth
 from .vendored.receiver import DouyinReceiver
+from .video import fetch_aweme_detail
 
 _DEFAULT_UA = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
@@ -90,6 +92,7 @@ class DouyinGateway(MessageGateway):
         self._profile: dict = {}          # 账户档案 {uid,nickname,avatar}（登录后拉取）
         self._friends: list[dict] = []    # 好友列表缓存（familiar-list 全量）
         self._friends_ts: float = 0.0     # 好友缓存时间戳（TTL 300s）
+        self._http: DouyinHttpPy | None = None  # 视频详情/好友列表 HTTP（懒建，随会话 Cookie）
 
     @staticmethod
     def _parse_list(value) -> list[str]:
@@ -373,9 +376,44 @@ class DouyinGateway(MessageGateway):
         msg = self._converter.convert(raw)
         if msg is None:
             return
+        if msg.type == MessageType.VIDEO_CARD and bool(self._config.get("video_detail_enabled", True)):
+            self._enrich_video(msg)
         if self._loop is None:
             return
         self._loop.call_soon_threadsafe(self._msg_queue.put_nowait, msg)
+
+    def _get_http(self) -> DouyinHttpPy:
+        if self._http is None:
+            self._http = DouyinHttpPy(
+                initial_cookies=self._auth.cookie_str,
+                user_agent=self._config.get("ua") or _DEFAULT_UA,
+            )
+            if self._device_id and self._device_id.isdigit():
+                self._http.set_device({"deviceId": self._device_id, "installId": self._device_id, "guid": ""})
+        return self._http
+
+    def _enrich_video(self, msg: InboundMessage) -> None:
+        """视频卡补详情（L2）：aweme/detail 拿 desc + 封面，转发内容变 标题+desc+链接+封面。"""
+        card = msg.card or {}
+        item_id = str(card.get("itemId") or card.get("item_id") or "")
+        if not item_id:
+            return
+        if not (self._auth.cookie_str or "").strip():
+            return
+        detail = fetch_aweme_detail(self._get_http(), item_id)
+        if not detail:
+            return
+        desc = (detail.get("desc") or "").strip()
+        if desc:
+            link = f"https://www.douyin.com/video/{item_id}"
+            body = f"{msg.text}\n{desc}".strip() if msg.text else desc
+            if link and link not in body:
+                body = f"{body}\n{link}".strip()
+            msg.text = body
+        cover = detail.get("cover") or ""
+        if cover and cover not in msg.media_urls:
+            msg.media_urls = msg.media_urls + [cover]
+        logger.info(f"[dyf] 视频详情已补: {item_id} desc_len={len(desc)} cover={'有' if cover else '无'}")
 
     def _on_status(self, kind: str, detail: str = "") -> None:
         if kind in ("error", "close") and (
