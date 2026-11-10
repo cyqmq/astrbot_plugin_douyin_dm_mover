@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import { Handle, Position } from '@vue-flow/core'
 import { store, sendersTop } from '../../composables/store.js'
-import { addSender, loadFriends, scheduleLiveSave } from '../../composables/actions.js'
+import { loadFriends, scheduleLiveSave } from '../../composables/actions.js'
 
 const props = defineProps({ data: { type: Object, required: true } })
 const d = props.data
@@ -34,10 +34,6 @@ function setNick(e) { src.value.nickname = e.target.value; scheduleLiveSave() }
     </select>
     <template v-if="src.uid">
       <span class="src-picked">{{ src.nickname || src.uid }}</span>
-      <div class="sender-actions">
-        <button class="mini" @click="addSender('senders_whitelist', src.uid)">+白</button>
-        <button class="mini" @click="addSender('senders_blacklist', src.uid)">+黑</button>
-      </div>
     </template>
     <input :value="src.nickname" placeholder="昵称（可选）" class="nodrag src-nick" @change="setNick($event)">
     <button class="mini danger nodrag" title="移除该来源" @click="d.del(src)">×</button>

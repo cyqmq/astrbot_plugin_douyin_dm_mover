@@ -20,13 +20,14 @@ const stateSub = computed(() => {
 })
 const avatar = computed(() => store.profile.avatar || logo)
 
-// 登录后拉一次账户档案
-watch(() => store.authState, async (s, o) => {
-  if (s === 'ok' && s !== o) {
-    const d = await apiGet('profile')
-    if (d.profile) store.profile = d.profile
-  }
-})
+async function loadProfile() {
+  if (store.authState !== 'ok') return
+  const d = await apiGet('profile')
+  if (d.profile) store.profile = d.profile
+}
+// 已登录即拉一次账户档案（含挂载时已是登录态）
+watch(() => store.authState, s => { if (s === 'ok') loadProfile() }, { immediate: true })
+
 </script>
 
 <template>
@@ -44,7 +45,7 @@ watch(() => store.authState, async (s, o) => {
     </nav>
     <div class="side-foot">
       <div class="side-user" title="点击扫码登录" @click="store.modalOpen = true">
-        <img v-if="store.authState === 'ok'" :src="avatar" class="side-avatar" alt="">
+        <img v-if="store.authState === 'ok'" :src="avatar" class="side-avatar" alt="" @error="$event.target.src = logo">
         <span v-else class="dot" :class="'dot-' + st[0]"></span>
         <div style="flex:1;min-width:0">
           <div class="lbl">{{ stateLabel }}</div>

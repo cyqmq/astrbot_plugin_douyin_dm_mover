@@ -219,12 +219,30 @@ class DashboardApi:
             logger.warning(f"[dyf] 自动重载失败（可手动点「重载插件」）: {e}")
 
     async def profile(self):
-        """账户档案（昵称/头像）：登录后缓存于 gateway，未登录返回空。"""
-        p = getattr(self.gateway, "_profile", None) or {}
+        """账户档案（昵称/头像）：已登录但无缓存时主动拉取一次并缓存。"""
+        gw = self.gateway
+        if gw.auth_state.value == "ok" and not (getattr(gw, "_profile", None) or {}):
+            try:
+                from dyf_gateway.douyin.login.alemonjs_py import (
+                    DouyinHttpPy,
+                    fetch_desktop_self_profile,
+                )
+
+                auth = getattr(gw, "_auth", None)
+                cookie_str = getattr(auth, "cookie_str", "") or ""
+                if cookie_str:
+                    dev = getattr(gw, "_device_id", "") or "0"
+                    http = DouyinHttpPy(cookie_str)
+                    http.set_device({"deviceId": dev, "installId": "0", "guid": "0"})
+                    prof = await asyncio.to_thread(fetch_desktop_self_profile, http)
+                    gw._profile = prof
+            except Exception as e:
+                logger.warning(f"[dyf] 拉取账户档案失败: {e}")
+        p = getattr(gw, "_profile", None) or {}
         if p:
             return {"profile": p}
         # 未登录/无缓存：回退到登录态基本字段
-        uid = getattr(self.gateway, "self_uid", None)
+        uid = getattr(gw, "self_uid", None)
         return {"profile": {"uid": str(uid or ""), "nickname": "", "avatar": ""}}
 
     async def friends(self):
