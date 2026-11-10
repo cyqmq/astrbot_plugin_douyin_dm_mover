@@ -31,6 +31,7 @@ class RateLimiter:
         self.sender_max_per_min = max(1, sender_max_per_min)
         self._global = _Window(global_max_per_min)
         self._senders: dict[str, _Window] = {}
+        self._last_prune = 0.0
 
     def allow(self, peer_id: str | None) -> bool:
         if self.global_enabled and not self._global.allow():
@@ -43,4 +44,19 @@ class RateLimiter:
                 self._senders[key] = window
             if not window.allow():
                 return False
+        # 懒清理：超过阈值且距上次清理 >60s 时回收静默发送者窗口，防止长期内存增长
+        if len(self._senders) > 100 and time.time() - self._last_prune > 60:
+            self.prune()
         return True
+
+    def prune(self) -> None:
+        """删除超过 60s 无活跃的发送者窗口，限制 _senders 无限增长。"""
+        now = time.time()
+        stale = [
+            key
+            for key, w in self._senders.items()
+            if not any(now - t < 60 for t in w.stamps)
+        ]
+        for key in stale:
+            del self._senders[key]
+        self._last_prune = now

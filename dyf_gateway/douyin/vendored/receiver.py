@@ -46,6 +46,7 @@ class DouyinReceiver:
         ua: str = "",
         on_raw_message: Callable[[dict], None] | None = None,
         on_status: Callable[[str, str], None] | None = None,
+        on_frame: Callable[[], None] | None = None,
         auto_reconnect: bool = True,
     ):
         self.sessionid = sessionid
@@ -54,6 +55,7 @@ class DouyinReceiver:
         self.ua = ua
         self.on_raw_message = on_raw_message
         self.on_status = on_status
+        self.on_frame = on_frame
         self.auto_reconnect = auto_reconnect
         self.ws: WebSocketApp | None = None
         self._should_reconnect = False
@@ -94,6 +96,7 @@ class DouyinReceiver:
             self._emit("error", f"frame decode error: {e}")
 
     def _handle_frame(self, message: bytes) -> None:
+        self._emit_frame()
         frame = decode_fields(message)
         payload_type = field_str(frame, 7)
         if payload_type == "pb":
@@ -133,6 +136,13 @@ class DouyinReceiver:
         if self.on_raw_message:
             try:
                 self.on_raw_message(raw)
+            except Exception:
+                pass
+
+    def _emit_frame(self) -> None:
+        if self.on_frame:
+            try:
+                self.on_frame()
             except Exception:
                 pass
 

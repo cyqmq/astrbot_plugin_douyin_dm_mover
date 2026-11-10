@@ -4,6 +4,13 @@
 
 ## [Unreleased]
 
+## [0.41.0] - 2026-11-10
+
+### Fixed
+- **看门狗静默误报**：`DouyinReceiver` 新增 `on_frame` 回调，`_handle_frame` 入口对任意帧（含心跳/控制帧）触发，gateway `_on_any_frame` 刷新 `_last_frame_ts`；`_start_receiver` 起始即初始化时间戳。无私信（私信机器人）不再误报「连接僵死」。
+- **重试队列永久卡死**：`retry_failed` 捕获 `(TypeError, ValueError, KeyError)`，`failed_sends.json` 单条坏数据（如非法 type 抛 ValueError）不再中断整批重试，重试队列不卡死。
+- **限流发送者窗口无上限**：`RateLimiter` 新增 `prune()`，`allow()` 懒触发（>100 窗口且距上次清理 >60s）回收 60s 无活跃的发送者窗口，防长期内存增长。
+
 ## [0.40.0] - 2026-11-10
 
 ### Fixed

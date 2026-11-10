@@ -161,6 +161,7 @@ class DouyinGateway(MessageGateway):
             logger.info(f"[dyf] self_uid = {self._self_uid}")
 
     def _start_receiver(self) -> None:
+        self._last_frame_ts = time.time()
         self._receiver = DouyinReceiver(
             sessionid=self._auth.sessionid,
             device_id=self._device_id,
@@ -168,6 +169,7 @@ class DouyinGateway(MessageGateway):
             ua=self._config.get("ua") or _DEFAULT_UA,
             on_raw_message=self._on_raw_message,
             on_status=self._on_status,
+            on_frame=self._on_any_frame,
             auto_reconnect=True,
         )
         self._thread = threading.Thread(
@@ -362,6 +364,10 @@ class DouyinGateway(MessageGateway):
 
 
     # ---- 线程回调（经 call_soon_threadsafe 切回事件循环） ----
+    def _on_any_frame(self) -> None:
+        # 任意帧（含心跳/控制帧）都刷新看门狗时间戳，避免无私信时误报僵死
+        self._last_frame_ts = time.time()
+
     def _on_raw_message(self, raw: dict) -> None:
         self._last_frame_ts = time.time()
         msg = self._converter.convert(raw)

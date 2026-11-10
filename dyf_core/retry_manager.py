@@ -44,7 +44,7 @@ class RetryManager:
                 continue
             try:
                 msg = InboundMessage.from_dict(data)
-            except TypeError:
+            except (TypeError, ValueError, KeyError):
                 continue
             chain = self.builder.build_chain(msg)
             if chain is None:

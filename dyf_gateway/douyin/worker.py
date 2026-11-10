@@ -102,6 +102,9 @@ def main() -> int:
             return
         _emit({"kind": "message", "data": msg.to_dict()})
 
+    def _on_frame() -> None:
+        state["last_frame"] = time.time()
+
     def _on_status(kind: str, detail: str) -> None:
         if kind in ("error", "close") and (
             detector.check_error(detail) or detector.check_text(detail)
@@ -125,6 +128,7 @@ def main() -> int:
         ua=config.get("ua") or _DEFAULT_UA,
         on_raw_message=_on_raw_message,
         on_status=_on_status,
+        on_frame=_on_frame,
         auto_reconnect=True,
     )
 
