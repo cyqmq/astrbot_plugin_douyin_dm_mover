@@ -1,11 +1,11 @@
 <script setup>
-import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { VueFlow, useVueFlow, MarkerType } from '@vue-flow/core'
 import { Background } from '@vue-flow/background'
 import SourceNode from './SourceNode.vue'
 import RouteNode from './RouteNode.vue'
 import TargetNode from './TargetNode.vue'
-import { store, sendersTop, SELECTS } from '../../composables/store.js'
+import { store, sendersTop } from '../../composables/store.js'
 import { loadFriends, scheduleLiveSave } from '../../composables/actions.js'
 
 const { getNodes } = useVueFlow()
@@ -30,33 +30,20 @@ const targets = computed(() => {
   return t
 })
 
-// ---- 添加来源 / 目标弹窗 ----
-const srcOpen = ref(false), tgtOpen = ref(false)
-const srcForm = reactive({ nickname: '', uid: '' })
-const tgtForm = reactive({ adapter: 'aiocqhttp', group: '' })
+// ---- 添加来源 / 目标：直接生成卡片（卡上可编辑字段） ----
 function addSource() {
-  const uid = srcForm.uid.trim()
-  if (!uid) return
-  if (!store.customSources.some(c => c.uid === uid)) {
-    store.customSources.push({ uid, nickname: srcForm.nickname.trim() || uid })
-    scheduleLiveSave()
-  }
-  srcOpen.value = false; srcForm.uid = ''; srcForm.nickname = ''
+  store.customSources.push({ uid: '', nickname: '' })
+  scheduleLiveSave()
 }
-function delSource(uid) {
-  const i = store.customSources.findIndex(c => c.uid === uid)
+function delSource(source) {
+  const i = store.customSources.indexOf(source)
   if (i >= 0) { store.customSources.splice(i, 1); scheduleLiveSave() }
 }
 function addTarget() {
-  const g = tgtForm.group.trim()
-  if (!g) return
-  const target = tgtForm.adapter + ':GroupMessage:' + g
-  if (!store.routes.some(r => r.target === target)) {
-    store.routes.push({ name: '目标' + (targets.value.length + 1), target,
-      match: { types: ['text', 'video_card'], senders_include: [], senders_exclude: [] } })
-    scheduleLiveSave()
-  }
-  tgtOpen.value = false; tgtForm.group = ''
+  const target = 'aiocqhttp:GroupMessage:'
+  store.routes.push({ name: '目标' + (targets.value.length + 1), target,
+    match: { types: ['text', 'video_card'], senders_include: [], senders_exclude: [] } })
+  scheduleLiveSave()
 }
 function addRoute() {
   store.routes.push({ name: 'route' + (store.routes.length + 1), target: 'aiocqhttp:GroupMessage:',
@@ -87,8 +74,10 @@ const edges = ref([])
 const posOf = id => { const n = getNodes.value.find(x => x.id === id); return n ? { x: n.position.x, y: n.position.y } : null }
 const sidOf = s => s.uid
 function friendOf(s, i) {
-  return { id: 'src|' + sidOf(s) + '|' + i, type: 'source',
-    data: { name: s.name, sub: s.sub, avatar: s.avatar || '', uid: sidOf(s), custom: !!s.custom, del: delSource } }
+  const id = 'src|' + sidOf(s) + '|' + i
+  if (s.custom) return { id, type: 'source', data: { custom: true, source: s, del: delSource } }
+  return { id, type: 'source',
+    data: { custom: false, name: s.name, sub: s.sub, avatar: s.avatar || '', uid: sidOf(s) } }
 }
 function routeOf(r, i) {
   return { id: 'route|' + i, type: 'route', data: { route: r, index: i, move: moveRoute, del: delRoute } }
@@ -161,26 +150,11 @@ onMounted(() => { build(); setTimeout(() => { liveReady = true }, 600) })
 <template>
   <div class="vf-wrap">
     <div class="bar" style="margin-bottom:10px">
-      <button class="ghost" @click="srcOpen = !srcOpen">+ 添加来源</button>
+      <button class="ghost" @click="addSource">+ 添加来源</button>
       <button class="ghost" @click="addRoute">+ 添加路由</button>
-      <button class="ghost" @click="tgtOpen = !tgtOpen">+ 添加目标</button>
+      <button class="ghost" @click="addTarget">+ 添加目标</button>
       <span class="muted">{{ store.routes.length }} 条路由 · 拖拽节点布局</span>
       <span v-if="store.liveSavedAt" class="muted save-state">已保存 {{ store.liveSavedAt }}</span>
-    </div>
-
-    <div v-if="srcOpen" class="add-form card-inline">
-      <input v-model="srcForm.nickname" placeholder="昵称（可选）">
-      <input v-model="srcForm.uid" placeholder="uid（必填，用于连线匹配）" @keyup.enter="addSource">
-      <button class="primary" @click="addSource">添加来源</button>
-      <button class="ghost" @click="srcOpen = false">取消</button>
-    </div>
-    <div v-if="tgtOpen" class="add-form card-inline">
-      <select v-model="tgtForm.adapter">
-        <option v-for="[v, l] in SELECTS.qq_adapter_id" :key="v" :value="v">{{ l }}</option>
-      </select>
-      <input v-model="tgtForm.group" placeholder="目标群号" @keyup.enter="addTarget">
-      <button class="primary" @click="addTarget">添加目标</button>
-      <button class="ghost" @click="tgtOpen = false">取消</button>
     </div>
 
     <div class="topo tall">

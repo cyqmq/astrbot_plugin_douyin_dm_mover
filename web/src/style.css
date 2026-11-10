@@ -229,3 +229,8 @@ label.f .hint { grid-column:2; color:var(--muted); font-size:11px; line-height:1
 .vf-colbar select { font-size:11px; text-transform:none; }
 .vf-colbar .mini { text-transform:none; }
 .save-state { font-size:11px; color:var(--ok); }
+/* 来源卡可编辑字段 */
+.vf-src { display:flex; align-items:center; gap:6px; }
+.vf-src .src-nick { flex:1; min-width:70px; }
+.vf-src .src-uid { flex:1; min-width:90px; }
+.vf-src .src-nick, .vf-src .src-uid { font-size:12px; padding:3px 6px; }
