@@ -35,6 +35,7 @@ RECONNECT_BACKOFF_MAX = 30.0
 
 # 上游对端已读消息类型
 MSG_TYPE_READ = 50001
+MSG_TYPE_UPDATE_EXT = 50002
 
 
 class DouyinReceiver:
@@ -156,14 +157,16 @@ class DouyinReceiver:
             if not msg_body:
                 return
             msg_type = field_int(msg_body, 6)
-            if msg_type == MSG_TYPE_READ:
-                return  # 已读回执，跳过
-            # 临时诊断：未知类型（50002/77 分享卡等）dump 全部字段，供定位后修复。
+            # 50001 已读回执 / 50002 消息更新扩展（MESSAGE_TYPE_UPDATE_MESSAGE_EXT，
+            # douyin-im/DouYin_Spider 均未视作视频消息）→ 跳过，不转发
+            if msg_type in (MSG_TYPE_READ, MSG_TYPE_UPDATE_EXT):
+                return
+            # 临时诊断：未知类型（77 分享图集等）dump 全部字段，供定位 itemId 后修复。
             # msg_body 已是 dict（field_sub 返回），直接 .items()；误传 decode_fields（期望
             # bytes）会让 _read_varint 取 data[0] 抛 KeyError -> frame decode error: 0。
             if msg_type not in (7, 8, 27, 5, 17, 50001):
                 for _fn, _fv in msg_body.items():
-                    logger.info(f"[dyf] proto {_fn}: {str(_fv)[:150]}")
+                    logger.info(f"[dyf] proto {_fn}: {_fv!s}")
             sender = field_int(msg_body, 7)
             content = field_str(msg_body, 8)
             try:

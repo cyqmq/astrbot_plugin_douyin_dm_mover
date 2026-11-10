@@ -4,6 +4,14 @@
 
 ## [Unreleased]
 
+## [1.2.8] - 2026-11-10
+
+### Changed
+- **未知类型 dump 去截断**：`receiver._handle_frame` 的 `[dyf] proto N: ...` 从 `str(_fv)[:150]` 改全长 `_fv!s`——77（分享图集）的 `proto 9`（`a:xxx` 嵌套，含 `itemId`）完整可见，供定位图集 itemId 字段。
+
+### Added
+- **50002 跳过**：`MESSAGE_TYPE_UPDATE_MESSAGE_EXT = 50002`（douyin-im/DouYin_Spider 均不视作视频消息，是消息更新扩展）与 50001 一起跳过，不再 dump/误转。
+
 ## [1.2.7] - 2026-11-10
 
 ### Fixed
