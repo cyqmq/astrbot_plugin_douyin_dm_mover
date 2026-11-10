@@ -21,6 +21,7 @@ import time
 from collections.abc import Callable
 
 import websocket
+from astrbot.api import logger
 from websocket import WebSocketApp
 
 from .proto import decode_fields, field_bytes, field_int, field_str, field_sub
@@ -155,6 +156,10 @@ class DouyinReceiver:
             msg_type = field_int(msg_body, 6)
             if msg_type == MSG_TYPE_READ:
                 return  # 已读回执，跳过
+            # 临时诊断：未知类型（50002/77 分享卡等）dump 全部 proto 字段，供定位后修复
+            if msg_type not in (7, 8, 27, 5, 17, 50001):
+                for _fn, _fv in decode_fields(msg_body).items():
+                    logger.info(f"[dyf] proto {_fn}: {str(_fv)[:150]}")
             sender = field_int(msg_body, 7)
             content = field_str(msg_body, 8)
             try:

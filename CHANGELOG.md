@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [0.58.0] - 2026-11-10
+
+### Added
+- **未知消息 proto 字段 dump**：`receiver._handle_frame` 对非已知 msg_type（50002/77 分享卡等）临时 dump `decode_fields(msg_body)` 每字段（`[dyf] proto {fn}: {str(v)[:150]}`），供获取 proto 未解析字段的完整样本（含嵌套 bytes），定位 50002/77 数据后修复。
+
 ## [0.57.0] - 2026-11-10
 
 ### Fixed
