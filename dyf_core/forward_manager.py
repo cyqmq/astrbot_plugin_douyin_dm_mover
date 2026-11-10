@@ -127,7 +127,6 @@ class ForwardManager:
     async def handle(self, msg: InboundMessage) -> None:
         if msg.is_outgoing:
             return
-        self.tracker.add_sender(msg)
         if not self._source_enabled(msg.source_platform):
             return
         if not self._type_enabled(msg):
@@ -141,6 +140,9 @@ class ForwardManager:
         if self.dedup_enabled and self.cache.seen(self._dedup_key(msg)):
             logger.debug(f"[dyf] 去重跳过: {msg.message_id}")
             return
+        # 去重后才记录发石者：抖音推两帧（视频卡/图集，server_message_id 不同）
+        # 第二帧被去重拦，不应计入明细（否则明细两份、转发一份）
+        self.tracker.add_sender(msg)
         if not self.rate.allow(msg.peer_id):
             logger.warning(f"[dyf] 限流跳过: sender={msg.peer_id}")
             return
