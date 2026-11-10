@@ -375,13 +375,17 @@ class DouyinGateway(MessageGateway):
         if kind in ("error", "close") and (
             self._detector.check_error(detail) or self._detector.check_text(detail)
         ):
+            logger.warning(f"[dyf] 连接失效判定: {kind} {detail}")
             self._mark_auth_expired()
             return
         if kind == "reconnect":
+            logger.info(f"[dyf] 连接重连中: {detail}")
             self._emit_event(GatewayEvent("reconnect", detail))
         elif kind == "close":
+            logger.warning(f"[dyf] 连接断开: {detail}")
             self._emit_event(GatewayEvent("disconnect", detail))
         elif kind == "error":
+            logger.warning(f"[dyf] 连接错误: {detail}")
             self._emit_event(GatewayEvent("error", detail))
 
     def _mark_auth_expired(self) -> None:

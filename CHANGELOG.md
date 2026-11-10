@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [0.38.0] - 2026-11-10
+
+### Added
+- `gateway._on_status` 连接健康日志（进 LogRing）：重连 `[dyf] 连接重连中`、断开 `[dyf] 连接断开`（warning）、错误 `[dyf] 连接错误`（warning）、失效判定 `[dyf] 连接失效判定`（warning）。浮窗可监控连接健康。
+
 ## [0.37.0] - 2026-11-10
 
 ### Added
