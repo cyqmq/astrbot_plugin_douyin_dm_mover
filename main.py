@@ -168,7 +168,7 @@ class DouyinForwardPlugin(Star):
         except ValueError:
             yield event.plain_result("uid 必须是数字").stop_event()
             return
-        self.gateway.set_self_uid(v)
+        await self.gateway.set_self_uid(v)
         yield event.plain_result(f"已设置并缓存 self_uid = {v}").stop_event()
 
     @dyf_group.command("login")

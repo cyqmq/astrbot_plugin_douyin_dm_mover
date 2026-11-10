@@ -53,7 +53,7 @@ class AlemonsPyLogin:
             self._log("验证码已提交，等待校验")
             return code
 
-        info = get_qrcode(http)
+        info = await asyncio.to_thread(get_qrcode, http)
         self._on_qrcode({"qrcodeBase64": info["qrcodeBase64"]})
         self._log("二维码已生成（纯 Python）")
         session = await poll_qr_confirm(

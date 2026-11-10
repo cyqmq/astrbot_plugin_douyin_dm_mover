@@ -253,7 +253,7 @@ async def poll_qr_confirm(http: DouyinHttpPy, token: str, options: dict | None =
 
     while time.time() * 1000 < deadline:
         try:
-            last = check_qrconnect(http, token, extra_body, fp)
+            last = await asyncio.to_thread(check_qrconnect, http, token, extra_body, fp)
         except Exception:
             await asyncio.sleep(poll_ms / 1000)
             continue
@@ -299,7 +299,7 @@ async def poll_qr_confirm(http: DouyinHttpPy, token: str, options: dict | None =
                 sent = None
                 used_way = None
                 for candidate in try_ways:
-                    res = send_qr_mfa_code(http, challenge, candidate)
+                    res = await asyncio.to_thread(send_qr_mfa_code, http, challenge, candidate)
                     if res.get("message") == "success":
                         sent = res
                         used_way = candidate
@@ -326,7 +326,7 @@ async def poll_qr_confirm(http: DouyinHttpPy, token: str, options: dict | None =
                     code = await _maybe_await(
                         on_mfa({"maskedMobile": str(mobile) if mobile is not None else None})
                     )
-                    validated = validate_qr_mfa_code(http, challenge, used_way, code)
+                    validated = await asyncio.to_thread(validate_qr_mfa_code, http, challenge, used_way, code)
                     if not (validated.get("data") or {}).get("ticket"):
                         raise RuntimeError(
                             f"扫码短信验证失败: {(validated.get('data') or {}).get('error_code', '-')}"
@@ -364,8 +364,11 @@ async def _up_sms_mfa_flow(http: DouyinHttpPy, challenge: dict, way: dict, on_st
     while time.time() * 1000 < deadline:
         await asyncio.sleep(3)
         try:
-            last = validate_qr_mfa_code(
-                http, challenge, way.get("verify_way") or "assist_mobile_up_sms_verify"
+            last = await asyncio.to_thread(
+                validate_qr_mfa_code,
+                http,
+                challenge,
+                way.get("verify_way") or "assist_mobile_up_sms_verify",
             )
         except Exception:  # noqa: S112 - 轮询忽略单次失败继续等待
             continue

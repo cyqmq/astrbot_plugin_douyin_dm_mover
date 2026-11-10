@@ -73,23 +73,8 @@ class SelfIdentityResolver:
         return None
 
     async def resolve_async(self, auth: DouyinAuth | None = None) -> int | None:
-        """async 版本：urlopen 兜底经 asyncio.to_thread，避免阻塞事件循环。"""
-        if self.configured_uid is not None:
-            return self.configured_uid
-        cached = self._load_cache()
-        if cached is not None:
-            return cached
-        if not self._auto_attempted:
-            self._auto_attempted = True
-            uid = await asyncio.to_thread(self._auto_fetch, auth)
-            if uid is not None:
-                self.cache(uid)
-                return uid
-            _log.warning(
-                "[dyf] self_uid 未能自动获取。请在插件配置填写 self_uid，"
-                "或使用 /dyf uid <你的uid> 手动设置（用于判定私信对端）。"
-            )
-        return None
+        """async 版本：整段 resolve（含 urlopen 兜底）放线程，不阻塞事件循环。"""
+        return await asyncio.to_thread(self.resolve, auth)
 
     @staticmethod
     def _auto_fetch(auth: DouyinAuth | None) -> int | None:

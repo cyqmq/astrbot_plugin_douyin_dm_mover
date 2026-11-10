@@ -16,7 +16,6 @@ stdin 控制（每行一个命令）：
 from __future__ import annotations
 
 import json
-import logging
 import os
 import signal
 import sys
@@ -185,5 +184,4 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    logging.basicConfig(stream=sys.stderr, level=logging.INFO)
     sys.exit(main())

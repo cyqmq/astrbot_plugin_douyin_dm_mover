@@ -26,6 +26,9 @@ class MessageGateway(ABC):
     async def stop(self) -> None:
         """停止 worker，清理资源。"""
 
+    async def set_self_uid(self, uid: int | None) -> None:
+        """写入/刷新自身 uid（子类覆盖）。默认 no-op。"""
+
     @property
     def auth_state(self) -> AuthState:
         return AuthState.UNKNOWN

@@ -420,7 +420,7 @@ class SubprocessGateway(MessageGateway):
     def self_uid(self) -> int | None:
         return self._self_uid
 
-    def set_self_uid(self, uid: int | None) -> None:
+    async def set_self_uid(self, uid: int | None) -> None:
         self._self_uid = uid
         self._config["self_uid"] = uid
         if self._proc and self._proc.stdin:

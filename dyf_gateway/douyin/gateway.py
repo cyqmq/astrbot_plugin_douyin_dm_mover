@@ -591,10 +591,10 @@ class DouyinGateway(MessageGateway):
     def self_uid(self) -> int | None:
         return self._self_uid
 
-    def set_self_uid(self, uid: int | None) -> None:
+    async def set_self_uid(self, uid: int | None) -> None:
         """/dyf uid 命令写入：更新解析器缓存与运行态。"""
         self._resolver.cache(uid)
-        self._self_uid = self._resolver.resolve(self._auth)
+        self._self_uid = await self._resolver.resolve_async(self._auth)
 
     async def stop(self) -> None:
         self._stopping = True

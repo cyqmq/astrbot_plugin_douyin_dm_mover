@@ -4,6 +4,14 @@
 
 ## [Unreleased]
 
+## [1.2.12] - 2026-11-10
+
+### Fixed
+- **阻断 1（alemonjs 登录同步 requests 阻塞事件循环）**：`alemonjs_py_login.qrcode_login_async` 的 `get_qrcode` 与 `alemonjs_py/qr.py` 的 `check_qrconnect`/`send_qr_mfa_code`/`validate_qr_mfa_code`（poll_qr_confirm / _up_sms_mfa_flow 内）全部包 `asyncio.to_thread`，不再阻塞事件循环。
+- **阻断 2（set_self_uid 同步 urlopen）**：`SelfIdentityResolver.resolve_async` 改为 `await asyncio.to_thread(self.resolve, auth)`（整段含 urlopen 放线程）；`DouyinGateway.set_self_uid` 改 async（await resolve_async）；`MessageGateway` 基类加 async `set_self_uid` 默认 no-op、`SubprocessGateway.set_self_uid` 改 async；`main.py` `/dyf uid` 调用处 `await`。
+- **次要 1**：`worker.py` 删冗余 `logging.basicConfig`（子进程日志走 astrbot.api logger）。
+- **次要 2**：`requirements.txt` 删 `loguru>=0.7.0`（无实际 import，仅注释/文档提及）。
+
 ## [1.2.11] - 2026-11-10
 
 ### Fixed
