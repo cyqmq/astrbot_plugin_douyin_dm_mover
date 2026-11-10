@@ -4,6 +4,15 @@
 
 ## [Unreleased]
 
+## [0.44.0] - 2026-11-10
+
+### Fixed
+- **浮窗胶囊可拖动**：`.fl-ball` 悬浮球加 `@mousedown` 拖动（`cursor:grab`、`touch-action:none`），拖动后抑制 click 防误展开（`suppressClick`）。
+- **清空日志即时反馈**：清屏改为乐观清空（立即置空）+ 请求序号 `pullSeq` 使进行中的轮询结果过期，避免旧数据回填；POST 完成后重新拉取与后端同步。
+
+### Removed
+- **浮窗「× 关闭」按钮**：移除 `close()`（含 `saveConfig({float_log_enabled:false})`），关闭全局浮动调试日志只保留设置页开关；浮窗仅保留 折叠（–）/清屏（清）。
+
 ## [0.43.0] - 2026-11-10
 
 ### Added

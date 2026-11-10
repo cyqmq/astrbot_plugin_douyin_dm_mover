@@ -1,12 +1,12 @@
 <script setup>
 import { nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { store, apiGet, apiPost, toast, fmtTs, esc } from '../composables/store.js'
-import { saveConfig } from '../composables/actions.js'
 
 const POS_KEY = 'dyf_float_log_pos'
 const DEF_W = 320, DEF_H = 260
 const panel = ref(null)
 let timer = null
+let pullSeq = 0
 
 // 位置：localStorage 记住，默认右下角
 const pos = ref(loadPos())
@@ -17,15 +17,10 @@ function loadPos() {
 function savePos() { try { localStorage.setItem(POS_KEY, JSON.stringify(pos.value)) } catch {} }
 
 function toggle() {
+  if (suppressClick) { suppressClick = false; return }
   store.floatLog.open = !store.floatLog.open
   if (store.floatLog.open) startPoll()
   else stopPoll()
-}
-function close() {
-  store.floatLog.open = false
-  store.floatLog.enabled = false
-  stopPoll()
-  saveConfig({ float_log_enabled: false })
 }
 function startPoll() {
   stopPoll()
@@ -34,31 +29,36 @@ function startPoll() {
 }
 function stopPoll() { if (timer) { clearInterval(timer); timer = null } }
 async function pull() {
-  store.floatLog.loading = true
+  const my = ++pullSeq
   const d = await apiGet('logs')
-  store.floatLog.loading = false
+  if (my !== pullSeq) return // 过期轮询结果丢弃，避免清空后旧数据回填
   store.floatLog.logs = d.logs || []
 }
 async function clearLogs() {
+  pullSeq++                 // 使进行中的 pull 结果过期
+  store.floatLog.logs = []  // 乐观清空，立即反馈
   const d = await apiPost('logs/clear')
   toast(d.detail || '已清空')
-  store.floatLog.logs = []
+  await pull()              // 与后端同步（已空），保证最终一致
 }
 
-// 头部拖动面板
+// 拖动：面板头部 + 胶囊（悬浮球）；拖动后抑制 click 防误展开
 let drag = null
+let suppressClick = false
 function onDown(e) {
   if (e.target.closest('.fl-btn')) return
-  drag = { x: e.clientX - pos.value.x, y: e.clientY - pos.value.y }
+  drag = { sx: e.clientX, sy: e.clientY, x: e.clientX - pos.value.x, y: e.clientY - pos.value.y, moved: false }
   window.addEventListener('mousemove', onMove)
   window.addEventListener('mouseup', onUp)
 }
 function onMove(e) {
   if (!drag) return
+  if (Math.abs(e.clientX - drag.sx) > 3 || Math.abs(e.clientY - drag.sy) > 3) drag.moved = true
   pos.value.x = Math.max(0, Math.min(e.clientX - drag.x, window.innerWidth - 120))
   pos.value.y = Math.max(0, Math.min(e.clientY - drag.y, window.innerHeight - 40))
 }
 function onUp() {
+  suppressClick = !!(drag && drag.moved)
   drag = null
   window.removeEventListener('mousemove', onMove)
   window.removeEventListener('mouseup', onUp)
@@ -85,7 +85,6 @@ onBeforeUnmount(stopPoll)
         <span class="fl-btns">
           <button class="fl-btn" title="清屏" @click="clearLogs">清</button>
           <button class="fl-btn" title="折叠" @click="store.floatLog.open = false; stopPoll()">–</button>
-          <button class="fl-btn" title="关闭" @click="close">×</button>
         </span>
       </div>
       <div class="fl-body" ref="panel">
@@ -93,7 +92,7 @@ onBeforeUnmount(stopPoll)
         <div v-if="!store.floatLog.logs.length" class="fl-line finfo">暂无日志</div>
       </div>
     </template>
-    <button v-else class="fl-ball" @click="toggle" title="展开调试日志">
+    <button v-else class="fl-ball" @mousedown="onDown" @click="toggle" title="展开调试日志">
       <span class="fl-dot"></span>日志
     </button>
   </div>

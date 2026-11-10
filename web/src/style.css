@@ -142,8 +142,9 @@ kbd { background:var(--card); border:1px solid var(--border2); border-radius:4px
 .float-log { position:fixed; z-index:40; }
 .fl-ball { display:flex; align-items:center; gap:6px; padding:8px 14px; border-radius:999px;
   border:1px solid rgba(255,255,255,.18); background:rgba(16,18,24,.55); color:#e4e4e7;
-  font-size:12px; cursor:pointer; backdrop-filter:blur(6px); box-shadow:0 2px 12px rgba(0,0,0,.25);
-  transition:.15s; }
+  font-size:12px; cursor:grab; backdrop-filter:blur(6px); box-shadow:0 2px 12px rgba(0,0,0,.25);
+  transition:.15s; touch-action:none; user-select:none; }
+.fl-ball:active { cursor:grabbing; }
 .fl-ball:hover { background:rgba(16,18,24,.78); }
 .fl-dot { width:8px; height:8px; border-radius:999px; background:#3fb950; box-shadow:0 0 6px #3fb950; }
 .fl-head { display:flex; align-items:center; justify-content:space-between; padding:6px 10px;
