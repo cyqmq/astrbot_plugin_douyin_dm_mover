@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.2.16] - 2026-11-11
+
+### Fixed
+- **图集详情 IndexError：list index out of range**：`_p_bit_rates` 空 `bit_rate`（图集详情无 `video`/`bit_rate=[]`）→ `bit_rates[0]` 越界；`parse_video_info` 空 `urls` → `video_url, *backup_urls` unpack 失败（`fetch_aweme_detail` except 不捕获 IndexError → 整帧异常丢弃）。加两处守卫：`bit_rate` 空返回 `([],0,0)`；`urls` 空返回空 `video_url`（图集只有 images，无播放直链）。`_p_play_addr` 用 `.get` 防御。
+
 ## [1.2.15] - 2026-11-11
 
 ### Fixed

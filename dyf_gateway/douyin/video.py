@@ -82,12 +82,14 @@ def remove_video_watermark(url: str) -> str:
 
 
 def _p_play_addr(video_data: dict) -> tuple[list[str], int, int]:
-    play_addr = video_data["play_addr"]
-    return play_addr["url_list"], play_addr.get("width", 0), play_addr.get("height", 0)
+    play_addr = video_data.get("play_addr") or {}
+    return play_addr.get("url_list", []), play_addr.get("width", 0), play_addr.get("height", 0)
 
 
 def _p_bit_rates(video_data: dict, filter_bytevc1: bool = False) -> tuple[list[str], int, int]:
     bit_rates: list = video_data.get("bit_rate", [])
+    if not bit_rates:  # 图集/无视频详情：无 bit_rate，避免 bit_rates[0] 越界
+        return [], 0, 0
     if filter_bytevc1:
         bit_rates = list(filter(lambda i: i.get("is_bytevc1", 0) == 0, bit_rates))
     bit_rates.sort(
@@ -112,6 +114,18 @@ def parse_video_info(video_data: dict) -> dict:
             urls, w, h = _p_bit_rates(video_data, True)
     else:
         urls, w, h = _p_bit_rates(video_data)
+
+    if not urls:  # 图集/无视频：无播放直链，返回空 video_url
+        cover = video_data.get("cover", {})
+        thumb_url_list = cover.get("url_list", [])
+        return {
+            "video_url": "",
+            "backup_urls": [],
+            "thumb_url": thumb_url_list[-1] if thumb_url_list else None,
+            "duration": video_data.get("duration", 0),
+            "width": 0,
+            "height": 0,
+        }
 
     video_url, *backup_urls = dict.fromkeys(remove_video_watermark(u) for u in urls)
 
