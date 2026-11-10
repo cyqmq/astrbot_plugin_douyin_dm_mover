@@ -31,7 +31,7 @@ function toggleType(v) {
       <span v-for="[v, l] in ROUTE_TYPES" :key="v" class="tc nodrag" :class="{ on: types.includes(v) }" @click="toggleType(v)">{{ l }}</span>
     </div></div>
     <div class="rc-sub">连接来源桩(左)与目标桩(右)</div>
-    <Handle type="target" :position="Position.Left" />
-    <Handle type="source" :position="Position.Right" />
+    <Handle type="target" :position="Position.Left" title="接收来源连接（从来源卡右桩拖来）" />
+    <Handle type="source" :position="Position.Right" title="拖到目标卡左侧连接桩（连向目标）" />
   </div>
 </template>

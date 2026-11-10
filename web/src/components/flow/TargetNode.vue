@@ -67,6 +67,6 @@ function onGroupFocus() { if (!store.groups.length && !store.groupsLoading) load
       </div>
     </template>
     <div class="tc-sub">{{ count }} 条路由指向</div>
-    <Handle type="target" :position="Position.Left" />
+    <Handle type="target" :position="Position.Left" title="接收路由连接（从路由卡右桩拖来）" />
   </div>
 </template>
