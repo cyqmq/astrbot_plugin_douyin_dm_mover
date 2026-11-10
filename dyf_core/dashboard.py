@@ -201,9 +201,10 @@ class DashboardApi:
                     save()
                 except Exception as e:
                     return {"ok": False, "detail": f"配置保存失败: {e}"}
-        # 配置已落盘，自动重载插件使深层代码/运行时配置生效（免手动点「重载插件」）
-        self._schedule_reload()
-        return {"ok": True, "detail": "已保存并自动重载插件，稍候生效"}
+        # 配置已落盘；no_reload 用于实时静默保存（避免高频自动重载），否则自动重载插件使深层代码/运行时配置生效
+        if not bool((data or {}).get("no_reload")):
+            self._schedule_reload()
+        return {"ok": True, "detail": "已保存并自动重载插件，稍候生效" if not bool((data or {}).get("no_reload")) else "已保存"}
 
     def _schedule_reload(self) -> None:
         """后台自动重载本插件，让配置/深层代码即时生效。"""

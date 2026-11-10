@@ -117,9 +117,11 @@ export const store = reactive({
   friendsDetail: '',
   friendsLoading: false,
   sourceMode: 'senders',
+  customSources: [],
   cfg: {},
   schema: {},
   routes: [],
+  liveSavedAt: '',
   auto: true,
   autoSec: 5
 })

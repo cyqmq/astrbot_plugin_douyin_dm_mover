@@ -23,6 +23,7 @@ const uid = props.data.uid || ''
       <button class="mini" @click="addSender('senders_whitelist', uid)">+白</button>
       <button class="mini" @click="addSender('senders_blacklist', uid)">+黑</button>
     </div>
+    <button v-if="data.custom && data.del" class="mini danger" title="移除该来源" @click="data.del(uid)">×</button>
     <Handle type="source" :position="Position.Right" />
   </div>
 </template>

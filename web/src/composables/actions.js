@@ -38,11 +38,23 @@ export async function loadConfig() {
   store.cfg = d.config
   store.schema = d.schema || {}
   store.routes = JSON.parse(JSON.stringify(d.config.routes || []))
+  store.customSources = JSON.parse(JSON.stringify(d.config.custom_sources || []))
 }
 
-export async function saveConfig(cfg) {
-  const d = await apiPostBody('config/set', { config: cfg })
-  toast(d.detail || (d.ok ? '已保存' : '保存失败'))
+export async function saveConfig(cfg, opts) {
+  const d = await apiPostBody('config/set', { config: cfg, no_reload: !!(opts && opts.no_reload) })
+  if (!(opts && opts.silent)) toast(d.detail || (d.ok ? '已保存' : '保存失败'))
+}
+
+// 实时静默保存：只落盘不重载（防高频 reload）；供路由页自动保存用
+let liveTimer = null
+export function scheduleLiveSave(delay = 1200) {
+  clearTimeout(liveTimer)
+  liveTimer = setTimeout(async () => {
+    await saveConfig({ routes: JSON.parse(JSON.stringify(store.routes)),
+      custom_sources: JSON.parse(JSON.stringify(store.customSources)) }, { no_reload: true, silent: true })
+    store.liveSavedAt = new Date().toLocaleTimeString('zh-CN', { hour12: false })
+  }, delay)
 }
 
 export async function addSender(key, uid) {

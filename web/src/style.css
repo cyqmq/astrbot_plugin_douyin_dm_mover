@@ -220,3 +220,12 @@ label.f .hint { grid-column:2; color:var(--muted); font-size:11px; line-height:1
 .vue-flow__controls { box-shadow:0 1px 6px rgba(0,0,0,.12); border-radius:8px; overflow:hidden; }
 .vue-flow__minimap { border-radius:8px; overflow:hidden; }
 .vue-flow__attribution { display:none; }
+/* 三按钮添加表单 + 画布列标签 */
+.add-form { display:flex; gap:8px; align-items:center; flex-wrap:wrap; padding:10px 12px;
+  margin-bottom:10px; background:var(--card); border:1px solid var(--border); border-radius:10px; }
+.add-form input, .add-form select { min-width:0; }
+.vf-colbar { position:absolute; top:8px; z-index:5; display:flex; align-items:center; gap:6px;
+  font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.3px; }
+.vf-colbar select { font-size:11px; text-transform:none; }
+.vf-colbar .mini { text-transform:none; }
+.save-state { font-size:11px; color:var(--ok); }
