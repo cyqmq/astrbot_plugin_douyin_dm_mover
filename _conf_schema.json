@@ -104,7 +104,7 @@
     "description": "视频/图集转发时生成信息卡片图（无中文字体或渲染失败自动退回文本）"
   },
   "max_media_per_batch": {
-    "type": "number",
+    "type": "int",
     "default": 9,
     "description": "图集媒体分批大小（每批最多发 N 个，0=不分批；防一次发太多图失败）"
   },
@@ -124,12 +124,12 @@
     "description": "失败发送周期重试"
   },
   "retry_interval_seconds": {
-    "type": "number",
+    "type": "int",
     "default": 1800,
     "description": "失败重试间隔（秒）"
   },
   "retry_max_attempts": {
-    "type": "number",
+    "type": "int",
     "default": 5,
     "description": "失败重试次数上限（超过丢弃，防无限重试）"
   }

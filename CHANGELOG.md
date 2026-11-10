@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-11-10
+
+### Fixed
+- **安装报错「不受支持的配置类型 number」**：`_conf_schema.json` 的 `max_media_per_batch`、`retry_interval_seconds`、`retry_max_attempts` 类型 `number` 改为 `int`（AstrBot 支持集为 `int/float/bool/string/text/list/file/object/template_list/dict`，不含 `number`），安装校验通过。
+
 ## [1.1.0] - 2026-11-10
 
 ### Added
