@@ -114,12 +114,11 @@ class DouyinConverter:
     def _classify(msg_type, content, share_item_id: str = "") -> tuple[MessageType, str, list[str], dict | None]:
         if msg_type == 7:  # 文本
             return MessageType.TEXT, str(content.get("text", "")), [], None
-        if msg_type == 77:  # IM_SHARE_PHOTOS 图集分享
-            link = f"https://www.douyin.com/note/{share_item_id}" if share_item_id else ""
+        if msg_type in (77, 110):  # IM_SHARE_PHOTOS 图集分享 / 新版作品分享（带 share_item_id）
             card = dict(content)
             if share_item_id:
                 card["share_item_id"] = share_item_id
-            return MessageType.IMAGE, f"图集分享\n{link}".strip(), [], card
+            return MessageType.IMAGE, "分享", [], card
         if msg_type in VIDEO_CARD_TYPES:  # 分享视频卡片
             item_id = str(content.get("itemId") or content.get("item_id") or "")
             title = str(content.get("content_title") or content.get("title") or content.get("desc") or "抖音视频")

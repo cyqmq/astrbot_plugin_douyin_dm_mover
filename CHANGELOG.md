@@ -4,6 +4,15 @@
 
 ## [Unreleased]
 
+## [1.2.17] - 2026-11-11
+
+### Added
+- **新版作品分享类型 110 支持**：`_classify` 加 110（与 77 同分支，带 `share_item_id`）——此前 110 落 OTHER 转发空。
+
+### Changed
+- **`_enrich_video` 的 `is_album` 由详情判定**：`detail.images` 非空即图集（`/note/`），否则视频（`/video/`）——110 视频/图集链接自动正确。
+- **`_classify` 77/110 不再预拼链接**（text="分享"），`_enrich_video` 统一拼正确链接（`/note/` 或 `/video/`），desc 空时也补链接。
+
 ## [1.2.16] - 2026-11-11
 
 ### Fixed

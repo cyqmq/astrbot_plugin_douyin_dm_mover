@@ -480,7 +480,6 @@ class DouyinGateway(MessageGateway):
     def _enrich_video(self, msg: InboundMessage) -> None:
         """视频卡/图集分享补详情（L2）：aweme/detail 拿 desc + 封面/图片，转发内容变 标题+desc+链接+媒体。"""
         card = msg.card or {}
-        is_album = bool(card.get("share_item_id"))
         item_id = str(
             card.get("share_item_id") or card.get("itemId") or card.get("item_id") or ""
         )
@@ -494,20 +493,25 @@ class DouyinGateway(MessageGateway):
         if detail.get("error"):
             logger.info(f"[dyf] 详情拉取失败 {item_id}: {detail['error']}")
             return
+        # 图集/视频由详情判定：有 images 即图集（/note/），否则视频（/video/）
+        is_album = bool(detail.get("images"))
         desc = (detail.get("desc") or "").strip()
         if not desc:
             # 详情 desc 为空时用视频卡自带标题兜底（content_title）
             desc = (card.get("content_title") or card.get("title") or "").strip()
+        link = (
+            f"https://www.douyin.com/note/{item_id}"
+            if is_album
+            else f"https://www.douyin.com/video/{item_id}"
+        )
         if desc and desc not in msg.text:
-            link = (
-                f"https://www.douyin.com/note/{item_id}"
-                if is_album
-                else f"https://www.douyin.com/video/{item_id}"
-            )
             body = f"{msg.text}\n{desc}".strip() if msg.text else desc
             if link and link not in body:
                 body = f"{body}\n{link}".strip()
             msg.text = body
+        elif link and link not in msg.text:
+            # desc 为空/已含：至少补正确链接（/note/ 或 /video/）
+            msg.text = f"{msg.text}\n{link}".strip()
         cover = detail.get("cover") or ""
         if cover and cover not in msg.media_urls:
             msg.media_urls = msg.media_urls + [cover]
