@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.2.19] - 2026-11-11
+
+### Changed
+- **77/110 分享分支加 share_item_id 守卫**：无 `share_item_id` 落 OTHER（dump 待分类，不空转发）——110 实测带 `share_item_id`（作品分享，`content={}` + proto9 `a:share_item_id` + 详情拉 `/video/` 或 `/note/`），无 si 可能是新类型/命令层，不误转。
+
 ## [1.2.18] - 2026-11-11
 
 ### Changed

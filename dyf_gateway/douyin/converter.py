@@ -115,9 +115,11 @@ class DouyinConverter:
         if msg_type == 7:  # 文本
             return MessageType.TEXT, str(content.get("text", "")), [], None
         if msg_type in (77, 110):  # IM_SHARE_PHOTOS 图集分享 / 新版作品分享（带 share_item_id）
+            if not share_item_id:
+                # 无分享 id：可能是新类型/命令层，落 OTHER（dump 待分类），不空转发
+                return MessageType.OTHER, "", [], None
             card = dict(content)
-            if share_item_id:
-                card["share_item_id"] = share_item_id
+            card["share_item_id"] = share_item_id
             return MessageType.IMAGE, "分享", [], card
         if msg_type in VIDEO_CARD_TYPES:  # 分享视频卡片
             item_id = str(content.get("itemId") or content.get("item_id") or "")
