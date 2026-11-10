@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+## [1.2.23] - 2026-11-11
+
+### Fixed
+- **总览「搬运」多条重复**：`forward_manager.handle` 的 `add_record` 在 media 分批循环内——图集多图 > `max_media_per_batch` 分批转发，每批一条记录（type/peer/target 相同）。`add_record` 移到 batches 循环外（每 target 一条，合并批结果：`ok=target_ok>0`、`error` 合并）；全局 `ok_count`/`fail_count` 保留（delivery 收口）。
+- （`add_sender` 去重后已修于 1.2.21，总览「发石者」随同归正。）
+
 ## [1.2.22] - 2026-11-11
 
 ### Fixed

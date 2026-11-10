@@ -174,6 +174,9 @@ class ForwardManager:
             if target in self._in_flight:
                 continue
             self._in_flight.add(target)
+            target_ok = 0
+            target_fail = 0
+            target_errors: list[str] = []
             try:
                 for media_slice, is_first in batches:
                     chain = self.builder.build_chain(
@@ -185,21 +188,16 @@ class ForwardManager:
                     if chain is None:
                         continue
                     ok, err = await self.sender.send(target, chain)
-                    self.tracker.add_record(
-                        ts=int(time.time()),
-                        msg_type=msg.type.value,
-                        peer=msg.peer_id,
-                        target=target,
-                        ok=ok,
-                        error=err,
-                    )
                     if ok:
                         ok_count += 1
+                        target_ok += 1
                         logger.info(
                             f"[dyf] 转发成功 -> {target} ({msg.type.value})"
                         )
                     else:
                         fail_count += 1
+                        target_fail += 1
+                        target_errors.append(err)
                         fail_errors.append(f"{target}: {err}")
                         self.cache.add_failed(target, msg.to_dict())
                         logger.warning(
@@ -207,6 +205,15 @@ class ForwardManager:
                         )
                     if not ok:
                         break  # 本批失败，后续批次不再发（避免重发部分成功）
+                # 每 target 一条搬运记录（合并批结果；图集分批不产生多条）
+                self.tracker.add_record(
+                    ts=int(time.time()),
+                    msg_type=msg.type.value,
+                    peer=msg.peer_id,
+                    target=target,
+                    ok=target_ok > 0,
+                    error="; ".join(target_errors),
+                )
             finally:
                 self._in_flight.discard(target)
         # delivery 结果收口：至少一成功判定，全失败才告警（部分成功不误报）
