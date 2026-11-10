@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [0.33.0] - 2026-11-10
+
+### Fixed
+- 来源→路由连接线不即时出现（延迟到下次拖拽才重绘）：内容 watch 漏掉 `match.senders_include`，连接/断开后不触发重建；已补回 `senders_include` 到内容 watch，并在 `onConnect`/`onEdgesDelete` 后直接 `buildEdges()` 立即重绘。
+
 ## [0.32.0] - 2026-11-10
 
 ### Fixed

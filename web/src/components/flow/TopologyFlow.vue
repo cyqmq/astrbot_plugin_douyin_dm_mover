@@ -74,12 +74,13 @@ function onConnect(c) {
       if (!r.match) r.match = { types: [], senders_include: [] }
       if (!r.match.senders_include.includes(uid)) r.match.senders_include.push(uid)
       scheduleLiveSave()
+      buildEdges()
     }
   } else if (s.startsWith('route|') && t.startsWith('tgt|')) {
     const ri = +s.split('|')[1], tid = t.split('|')[1]
     const tgt = targetList.value.find(x => x.id === tid)
     const r = store.routes[ri]
-    if (r && tgt) { r.target = umoOf(tgt); scheduleLiveSave() }
+    if (r && tgt) { r.target = umoOf(tgt); scheduleLiveSave(); buildEdges() }
   }
 }
 function onEdgesDelete(list) {
@@ -97,6 +98,7 @@ function onEdgesDelete(list) {
     }
   })
   scheduleLiveSave()
+  buildEdges()
 }
 
 // ---- 拖拽位置持久化 ----
@@ -169,7 +171,9 @@ function build() { buildNodes(); buildEdges() }
 // 结构变化 → 重建；内容变化（类型）→ 只重建边
 watch(() => JSON.stringify({ r: store.routes.length, t: targetList.value, c: store.customSources,
   a: store.advancedTargets, g: store.routes.map(r => r.target).join('|') }), build)
-watch(() => JSON.stringify(store.routes.map(r => ((r.match && r.match.types) || []).join(','))), buildEdges)
+// 内容变化（类型/来源连接）→ 只重建边（保焦点）
+watch(() => JSON.stringify(store.routes.map(r => ((r.match && r.match.types) || []).join(',') + '|' +
+  ((r.match && r.match.senders_include) || []).join(','))), buildEdges)
 
 // 实时保存
 let liveReady = false
