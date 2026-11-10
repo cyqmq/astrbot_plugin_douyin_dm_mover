@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import os
 import threading
 import time
@@ -93,6 +94,28 @@ class DouyinGateway(MessageGateway):
         self._friends: list[dict] = []    # 好友列表缓存（familiar-list 全量）
         self._friends_ts: float = 0.0     # 好友缓存时间戳（TTL 300s）
         self._http: DouyinHttpPy | None = None  # 视频详情/好友列表 HTTP（懒建，随会话 Cookie）
+
+    # ---- 好友缓存持久化（重载后内存清空，用文件缓存避免每次全量重拉） ----
+    @property
+    def _friends_cache_file(self) -> str:
+        return os.path.join(self._data_dir, "friends_cache.json")
+
+    def _load_friends_cache(self) -> tuple[list[dict], float]:
+        """读落盘好友缓存；无/损坏返回 ([], 0)。"""
+        try:
+            with open(self._friends_cache_file, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            return list(data.get("friends") or []), float(data.get("ts") or 0)
+        except Exception:
+            return [], 0.0
+
+    def _store_friends_cache(self, friends: list[dict], ts: float) -> None:
+        try:
+            os.makedirs(self._data_dir, exist_ok=True)
+            with open(self._friends_cache_file, "w", encoding="utf-8") as f:
+                json.dump({"ts": ts, "friends": friends}, f, ensure_ascii=False)
+        except Exception as e:
+            logger.debug(f"[dyf] 好友缓存写入失败: {e}")
 
     @staticmethod
     def _parse_list(value) -> list[str]:

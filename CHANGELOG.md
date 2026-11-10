@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+## [0.46.0] - 2026-11-10
+
+### Fixed
+- **配置回滚（路由重置）**：`config_set` 改 `cfg=dict(config)` 副本后补 `self._config_obj.update(updates)` 同步写本体（AstrBotConfig 是 dict 子类），再 `save_config()`——重载后读回正确配置，路由表不再回滚。
+- **好友列表每次重拉**：`gw._friends` 落盘 `data/dyf/friends_cache.json`（含时间戳），重载后（内存清空）读文件缓存，<TTL(300s) 直接返回；超 TTL 或 `?refresh=1` 才重新全量拉取。
+
 ## [0.45.0] - 2026-11-10
 
 ### Added

@@ -242,6 +242,12 @@ class DashboardApi:
                 logger.info(f"[dyf] {line}")
         logger.info(f"[dyf] 配置已更新: {sorted(str(k) for k in updates)}")
         if self._config_obj is not None:
+            # 同步写本体（AstrBotConfig 是 dict 子类）：cfg=dict(config) 是副本，
+            # 仅改副本会让重载后读回旧值（路由回滚）；update 本体后重载读回正确配置。
+            try:
+                self._config_obj.update(updates)
+            except Exception as e:
+                logger.warning(f"[dyf] 同步本体配置失败: {e}")
             save = getattr(self._config_obj, "save_config", None)
             if save is not None:
                 try:
@@ -307,6 +313,11 @@ class DashboardApi:
         cached = getattr(gw, "_friends", None) or []
         ts = getattr(gw, "_friends_ts", 0) or 0
         import time
+        # 内存缓存为空（如重载后 gateway 重建）→ 读落盘缓存（含时间戳）
+        if not cached:
+            cached, ts = gw._load_friends_cache()
+            gw._friends = cached
+            gw._friends_ts = ts
         if cached and not refresh and (time.time() - ts) < 300:
             return {"friends": cached, "cached": True}
         try:
@@ -325,6 +336,7 @@ class DashboardApi:
             friends = await asyncio.to_thread(fetch_friend_list, http)
             gw._friends = friends
             gw._friends_ts = time.time()
+            gw._store_friends_cache(friends, gw._friends_ts)
             return {"friends": friends}
         except Exception as e:
             logger.warning(f"[dyf] 拉取好友列表失败: {e}")
