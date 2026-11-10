@@ -158,9 +158,11 @@ class DouyinReceiver:
             msg_type = field_int(msg_body, 6)
             if msg_type == MSG_TYPE_READ:
                 return  # 已读回执，跳过
-            # 临时诊断：未知类型（50002/77 分享卡等）dump 全部 proto 字段，供定位后修复
+            # 临时诊断：未知类型（50002/77 分享卡等）dump 全部字段，供定位后修复。
+            # msg_body 已是 dict（field_sub 返回），直接 .items()；误传 decode_fields（期望
+            # bytes）会让 _read_varint 取 data[0] 抛 KeyError -> frame decode error: 0。
             if msg_type not in (7, 8, 27, 5, 17, 50001):
-                for _fn, _fv in decode_fields(msg_body).items():
+                for _fn, _fv in msg_body.items():
                     logger.info(f"[dyf] proto {_fn}: {str(_fv)[:150]}")
             sender = field_int(msg_body, 7)
             content = field_str(msg_body, 8)

@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.2.6] - 2026-11-10
+
+### Fixed
+- **图片合集/未知类型帧全部丢弃（`frame decode error: 0` 根因）**：`receiver._handle_frame` 的 dump 分支误把已是 dict 的 `msg_body` 传给 `decode_fields`（期望 bytes）→ `_read_varint` 取 `data[0]` 抛 `KeyError: 0` → 整帧被丢弃（77/50002 从未转发）。改为直接 `msg_body.items()`——未知类型帧不再崩，且 dump 出 77/50002 字段（图片 URL 位置）供补 `_classify`。
+
 ## [1.2.5] - 2026-11-10
 
 ### Added
