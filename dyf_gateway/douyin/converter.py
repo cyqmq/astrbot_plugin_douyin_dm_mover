@@ -5,6 +5,7 @@ Douyin msg_type → 自有 MessageType（与 douyin_recv_msg.py 一致）：
 """
 from __future__ import annotations
 
+import json
 import time
 
 from astrbot.api import logger
@@ -72,10 +73,10 @@ class DouyinConverter:
 
         mtype, text, media_urls, card = self._classify(msg_type, content)
 
-        # 临时诊断：非白名单消息（图片合集/链接/分享等未知类型）记录原始字段，供定位后修复
+        # 临时诊断：非白名单消息（图片合集/分享卡等未知类型）dump 完整 raw，供定位后修复
         if mtype == MessageType.OTHER:
             logger.info(
-                f"[dyf] raw: msg_type={raw.get('message_type')!r} conv={raw.get('conversation_id')!r} content={str(content)[:200]}"
+                f"[dyf] raw full: {json.dumps(raw, ensure_ascii=False)[:500]}"
             )
 
         peer_id = resolve_peer(conversation_id, self_uid)

@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [0.55.0] - 2026-11-10
+
+### Changed
+- **未知消息诊断升级为完整 raw dump**：非白名单消息（如视频分享卡 77、图片合集）日志改为 `[dyf] raw full: {json.dumps(raw)[:500]}`，含全部字段（itemId/标题/封面/sender/conv），供定位 77 content 实际位置与 peer 解析。
+
 ## [0.54.0] - 2026-11-10
 
 ### Fixed
