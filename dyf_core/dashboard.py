@@ -134,6 +134,7 @@ class DashboardApi:
                     logger.warning(
                         f"[dyf] 重载完成；其它插件加载失败与本插件无关: {err_s}"
                     )
+            self._log_config_diagnose("重载后")
         except TimeoutError:
             from astrbot.api import logger
 
@@ -231,6 +232,47 @@ class DashboardApi:
         except Exception:
             return {}
 
+    def _diagnose_config(self) -> dict:
+        """配置落盘/读回特征对比（诊断路由丢失）：免手动翻文件。"""
+        import json as _json
+        import os
+
+        schema_path = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            "_conf_schema.json",
+        )
+        schema_has_routes = False
+        try:
+            with open(schema_path, "r", encoding="utf-8") as f:
+                schema_has_routes = "routes" in (_json.load(f) or {})
+        except Exception:
+            pass
+        config_path = getattr(self._config_obj, "config_path", "") or ""
+        disk_path = ""
+        disk_routes = -1  # -1 = 文件不存在
+        if config_path and os.path.exists(config_path):
+            disk_path = str(config_path)
+            try:
+                with open(config_path, "r", encoding="utf-8") as f:
+                    disk_routes = len((_json.load(f) or {}).get("routes") or [])
+            except Exception:
+                disk_routes = -2  # 解析失败
+        runtime_routes = len(self.fm.config.get("routes") or [])
+        return {
+            "schema_has_routes": schema_has_routes,
+            "disk_path": disk_path,
+            "disk_routes": disk_routes,
+            "runtime_routes": runtime_routes,
+        }
+
+    def _log_config_diagnose(self, stage: str) -> None:
+        d = self._diagnose_config()
+        logger.info(
+            f"[dyf] 配置诊断({stage}): schema_routes={d['schema_has_routes']} "
+            f"disk={d['disk_path'] or '(无)'} disk_routes={d['disk_routes']} "
+            f"runtime_routes={d['runtime_routes']}"
+        )
+
     async def config_get(self):
         """读取当前配置与 schema（配置页渲染表单用）。"""
         return {"config": dict(self.fm.config), "schema": self._load_schema()}
@@ -274,6 +316,7 @@ class DashboardApi:
                     save()
                 except Exception as e:
                     return {"ok": False, "detail": f"配置保存失败: {e}"}
+                self._log_config_diagnose("落盘后")
         # 配置已落盘；no_reload 用于实时静默保存（避免高频自动重载），否则自动重载插件使深层代码/运行时配置生效
         if not bool((data or {}).get("no_reload")):
             self._schedule_reload()

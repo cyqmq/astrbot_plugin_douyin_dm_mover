@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.2.5] - 2026-11-10
+
+### Added
+- **配置落盘/读回特征诊断日志**：`config_set` 保存后与 `_do_reload` 完成后打 `[dyf] 配置诊断(落盘后/重载后): schema_routes=... disk=... disk_routes=... runtime_routes=...`——自动对比「schema 是否含 routes / 落盘文件实际 routes / 运行时 routes」，免手动翻文件定位路由丢失（disk 无 routes → 落盘问题；disk 有但 runtime 空 → schema 删键）。
+
 ## [1.2.4] - 2026-11-10
 
 ### Fixed
