@@ -65,14 +65,28 @@ class MessageBuilder:
                 text = f"{text}\n{link}".strip()
         return _truncate(text, self.max_length)
 
-    def build_chain(self, msg: InboundMessage, card_image: bytes | None = None) -> MessageChain | None:
-        parts = [Plain(self._header(msg))]
-        body = self._body(msg)
+    def build_chain(
+        self,
+        msg: InboundMessage,
+        card_image: bytes | None = None,
+        media: list[str] | None = None,
+        with_text: bool = True,
+    ) -> MessageChain | None:
+        """构建 MessageChain。
+
+        Args:
+            msg: 待转发消息。
+            card_image: 卡片图字节（替换首个媒体）；失败退回原媒体。
+            media: 指定要发的媒体子集；None 表示全部。
+            with_text: 是否带 header + 正文（媒体分批时仅第一批带）。
+        """
+        parts = [Plain(self._header(msg))] if with_text else []
+        body = self._body(msg) if with_text else ""
         if body:
             # 前置换行：AstrBot 拼接多个 Plain 无换行，正文需独立一行（否则紧贴 header）
             parts.append(Plain("\n" + body))
         # 卡片图（含封面+标题）替换首个媒体（封面），其余媒体照发；失败退回原媒体
-        media_urls = list(msg.media_urls)
+        media_urls = list(media if media is not None else msg.media_urls)
         if card_image:
             try:
                 parts.append(Image.fromBase64(base64.b64encode(card_image).decode()))

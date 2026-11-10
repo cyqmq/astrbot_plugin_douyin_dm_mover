@@ -19,12 +19,16 @@ class RetryManager:
         builder: MessageBuilder,
         interval_seconds: int = 1800,
         enabled: bool = True,
+        max_attempts: int = 5,
     ):
         self.cache = cache
         self.sender = sender
         self.builder = builder
         self.interval_seconds = max(60, int(interval_seconds or 1800))
         self.enabled = enabled
+        self.max_attempts = max(1, int(max_attempts or 5))
+        # 重试计数（内存态，(target, msg_id) -> 已尝试次数）；重启清零可接受
+        self._attempts: dict[tuple[str, str], int] = {}
 
     async def run(self) -> None:
         if not self.enabled:
@@ -52,4 +56,16 @@ class RetryManager:
             ok, _ = await self.sender.send(target, chain)
             if ok:
                 self.cache.remove_failed(target, msg.message_id)
+                self._attempts.pop((target, msg.message_id), None)
                 logger.info(f"[dyf] 重试发送成功: {target}")
+            else:
+                key = (target, msg.message_id)
+                n = self._attempts.get(key, 0) + 1
+                if n >= self.max_attempts:
+                    self.cache.remove_failed(target, msg.message_id)
+                    self._attempts.pop(key, None)
+                    logger.warning(
+                        f"[dyf] 重试超限({n})丢弃: {target} {msg.message_id}"
+                    )
+                else:
+                    self._attempts[key] = n

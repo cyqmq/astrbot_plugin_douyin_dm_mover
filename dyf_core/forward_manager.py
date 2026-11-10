@@ -58,8 +58,10 @@ class ForwardManager:
             self.builder,
             interval_seconds=config.get("retry_interval_seconds", 1800),
             enabled=bool(config.get("retry_enabled", True)),
+            max_attempts=config.get("retry_max_attempts", 5),
         )
         self.card_enabled = bool(config.get("card_enabled", True))
+        self.max_media_per_batch = int(config.get("max_media_per_batch", 9) or 0)
         self.alert = AlertService(
             context,
             alert_target=config.get("alert_target", ""),
@@ -148,29 +150,66 @@ class ForwardManager:
             import asyncio
 
             card_image = await asyncio.to_thread(render_card_safe, msg)
-        chain = self.builder.build_chain(msg, card_image)
-        if chain is None:
-            return
 
+        ok_count = 0
+        fail_count = 0
+        fail_errors: list[str] = []
+        # media 分批：每批 max_media_per_batch 个（0=不分批）；正文/卡片只进第一批
+        batch = self.max_media_per_batch
+        batches: list[tuple[list[str], bool]] = []
+        if batch > 0 and len(msg.media_urls) > batch:
+            for i in range(0, len(msg.media_urls), batch):
+                batches.append((msg.media_urls[i : i + batch], i == 0))
+        else:
+            batches.append((list(msg.media_urls), True))
         for name, target in targets:
             logger.info(f"[dyf] 命中路由 {name} -> {target}")
             if target in self._in_flight:
                 continue
             self._in_flight.add(target)
             try:
-                ok, err = await self.sender.send(target, chain)
-                self.tracker.add_record(
-                    ts=int(time.time()),
-                    msg_type=msg.type.value,
-                    peer=msg.peer_id,
-                    target=target,
-                    ok=ok,
-                    error=err,
-                )
-                if ok:
-                    logger.info(f"[dyf] 转发成功 -> {target} ({msg.type.value})")
-                else:
-                    self.cache.add_failed(target, msg.to_dict())
-                    logger.warning(f"[dyf] 转发失败入缓存 -> {target}: {err}")
+                for media_slice, is_first in batches:
+                    chain = self.builder.build_chain(
+                        msg,
+                        card_image if is_first else None,
+                        media_slice,
+                        with_text=is_first,
+                    )
+                    if chain is None:
+                        continue
+                    ok, err = await self.sender.send(target, chain)
+                    self.tracker.add_record(
+                        ts=int(time.time()),
+                        msg_type=msg.type.value,
+                        peer=msg.peer_id,
+                        target=target,
+                        ok=ok,
+                        error=err,
+                    )
+                    if ok:
+                        ok_count += 1
+                        logger.info(
+                            f"[dyf] 转发成功 -> {target} ({msg.type.value})"
+                        )
+                    else:
+                        fail_count += 1
+                        fail_errors.append(f"{target}: {err}")
+                        self.cache.add_failed(target, msg.to_dict())
+                        logger.warning(
+                            f"[dyf] 转发失败入缓存 -> {target}: {err}"
+                        )
+                    if not ok:
+                        break  # 本批失败，后续批次不再发（避免重发部分成功）
             finally:
                 self._in_flight.discard(target)
+        # delivery 结果收口：至少一成功判定，全失败才告警（部分成功不误报）
+        if ok_count == 0 and fail_count:
+            summary = "; ".join(fail_errors)
+            logger.warning(
+                f"[dyf] 全部转发失败 {fail_count}/{len(targets)}: {summary}"
+            )
+            await self.alert.notify(
+                f"抖音转发全部失败 {fail_count}/{len(targets)}: {summary}"
+            )
+        elif fail_count:
+            logger.info(f"[dyf] 部分转发成功 {ok_count}/{len(targets)}，失败 {fail_count}")

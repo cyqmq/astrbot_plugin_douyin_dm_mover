@@ -46,6 +46,15 @@ class AlertService:
         except Exception as e:
             logger.error(f"[dyf] 告警发送失败: {e}")
 
+    async def notify(self, text: str) -> None:
+        """通用提示（转发失败等业务反馈）到告警目标；未配置则仅日志。"""
+        if not text:
+            return
+        if not self.alert_target:
+            logger.warning(f"[dyf] {text}")
+            return
+        await self._push(text)
+
     async def _push_qr(self, url: str) -> None:
         """推送二维码：能取图则发图；否则仅发链接（便于手动打开）。"""
         if not self.alert_target:
