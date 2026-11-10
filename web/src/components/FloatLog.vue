@@ -1,6 +1,7 @@
 <script setup>
 import { nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { store, apiGet, apiPost, toast, fmtTs, esc } from '../composables/store.js'
+import { saveConfig } from '../composables/actions.js'
 
 const POS_KEY = 'dyf_float_log_pos'
 const DEF_W = 320, DEF_H = 260
@@ -24,6 +25,7 @@ function close() {
   store.floatLog.open = false
   store.floatLog.enabled = false
   stopPoll()
+  saveConfig({ float_log_enabled: false })
 }
 function startPoll() {
   stopPoll()

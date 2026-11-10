@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+## [0.40.0] - 2026-11-10
+
+### Fixed
+- FloatLog 关闭按钮现在调用 `saveConfig({ float_log_enabled: false })`，刷新后不再重新弹出，且 SettingsTab checkbox 与配置保持一致。
+- TopologyFlow 新增路由名改用时间戳+序号唯一后缀，删除中间路由后再添加不再与现有 name 冲突（`_route_diff` 按 name 匹配不再误判）。
+
 ## [0.39.0] - 2026-11-10
 
 ### Added

@@ -51,8 +51,10 @@ function updateTarget(t, patch) {
   store.routes.forEach(r => { if (r.target === old) r.target = neu })
   scheduleLiveSave()
 }
+let routeSeq = 0
 function addRoute() {
-  store.routes.push({ name: 'route' + (store.routes.length + 1), target: '', pos: null,
+  // 唯一名称：时间戳 + 序号，避免删中间路由后重名（_route_diff 按 name 匹配）
+  store.routes.push({ name: 'route' + Date.now().toString(36) + '_' + (++routeSeq), target: '', pos: null,
     match: { types: ['text', 'video_card'], senders_include: [] } })
   scheduleLiveSave()
 }
