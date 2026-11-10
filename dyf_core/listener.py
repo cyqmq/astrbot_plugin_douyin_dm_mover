@@ -19,11 +19,12 @@ class MessageListener:
                 if enrich is not None:
                     await enrich(msg)
                 await self.forward_manager.handle(msg)
-            except Exception:
-                # 单条消息处理失败不拖垮消费循环
+            except Exception as e:
+                # 单条消息处理失败不拖垮消费循环；带异常 + 原始消息便于定位
                 from astrbot.api import logger
 
-                logger.exception("[dyf] 处理消息异常")
+                raw = str(getattr(msg, "raw", "") or "")[:500]
+                logger.error(f"[dyf] 处理消息异常: {type(e).__name__}: {e} raw={raw}")
 
     async def consume_events(self) -> None:
         async for ev in self.gateway.events():
