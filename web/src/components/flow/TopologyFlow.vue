@@ -17,9 +17,10 @@ const edges = ref([])
 const sources = computed(() => store.customSources)
 const targetList = computed(() => (store.advancedTargets ? store.customTargets : store.simpleTargets))
 
-const umoOf = t => t.adapter !== undefined
-  ? (t.adapter + ':GroupMessage:' + (t.group || ''))
-  : (t.kind === 'private' ? 'aiocqhttp:PrivateMessage:' + (t.value || '') : 'aiocqhttp:GroupMessage:' + (t.value || ''))
+// 目标 UMO：高级卡(adapter+group) 无 kind；简单卡(adapter+kind+value) 有 kind
+const umoOf = t => ('kind' in t)
+  ? ((t.adapter || 'aiocqhttp') + ':' + (t.kind === 'private' ? 'PrivateMessage' : 'GroupMessage') + ':' + (t.value || ''))
+  : (t.adapter + ':GroupMessage:' + (t.group || ''))
 const findTargetByUmo = umo => targetList.value.find(t => umoOf(t) === umo)
 
 // ---- 添加 / 删除 ----
@@ -30,7 +31,7 @@ function delSource(source) {
 }
 function addTarget() {
   if (store.advancedTargets) store.customTargets.push({ id: 'tgt' + (store.customTargets.length + 1), adapter: 'aiocqhttp', group: '' })
-  else store.simpleTargets.push({ id: 's' + (store.simpleTargets.length + 1), kind: 'qq_group', value: '' })
+  else store.simpleTargets.push({ id: 's' + (store.simpleTargets.length + 1), adapter: 'aiocqhttp', kind: 'group', value: '' })
   scheduleLiveSave()
 }
 function delTarget(t) {
