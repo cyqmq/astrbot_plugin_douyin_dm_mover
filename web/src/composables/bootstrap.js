@@ -1,5 +1,5 @@
 import { store } from './store.js'
-import { refreshAll, loadConfig } from './actions.js'
+import { refreshAll, loadConfig, loadPlatforms } from './actions.js'
 
 const V = window.AstrBotPluginView || window.AstrBotPluginPage
 
@@ -16,6 +16,7 @@ export async function bootstrap() {
   await V.ready()
   store.ready = true
   await Promise.all([refreshAll(), loadConfig()])
+  loadPlatforms()
   let tick = 0
   setInterval(async () => {
     if (!store.auto) return

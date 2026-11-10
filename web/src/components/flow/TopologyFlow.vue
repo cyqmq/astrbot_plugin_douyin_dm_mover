@@ -32,8 +32,9 @@ function delSource(source) {
   if (i >= 0) { store.customSources.splice(i, 1); scheduleLiveSave() }
 }
 function addTarget() {
-  if (store.advancedTargets) store.customTargets.push({ id: 'tgt' + (store.customTargets.length + 1), adapter: 'aiocqhttp', group: '' })
-  else store.simpleTargets.push({ id: 's' + (store.simpleTargets.length + 1), adapter: 'aiocqhttp', kind: 'group', value: '' })
+  const defAd = (store.platforms[0] && store.platforms[0].id) || 'aiocqhttp'
+  if (store.advancedTargets) store.customTargets.push({ id: 'tgt' + (store.customTargets.length + 1), adapter: defAd, group: '' })
+  else store.simpleTargets.push({ id: 's' + (store.simpleTargets.length + 1), adapter: defAd, kind: 'group', value: '' })
   scheduleLiveSave()
 }
 function delTarget(t) {

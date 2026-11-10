@@ -100,6 +100,7 @@ class DashboardApi:
         reg("douyin_dm_mover/profile", self.profile, ["GET"], "dyf 账户昵称/头像")
         reg("douyin_dm_mover/friends", self.friends, ["GET"], "dyf 好友列表（familiar-list）")
         reg("douyin_dm_mover/groups", self.groups, ["GET"], "dyf 可发送群列表（AstrBot get_group_list）")
+        reg("douyin_dm_mover/platforms", self.platforms, ["GET"], "dyf 已加载平台实例列表")
 
     async def install_alemonjs(self):
         """一键安装 @alemonjs/douyin（Node 依赖）。"""
@@ -329,17 +330,88 @@ class DashboardApi:
             logger.warning(f"[dyf] 拉取好友列表失败: {e}")
             return {"friends": [], "detail": f"拉取失败: {e}"}
 
-    async def groups(self):
-        """机器人可访问的群列表（AstrBot 适配器统一 get_group_list）。
+    async def platforms(self):
+        """已加载的平台实例列表（多实例级联选择）。
 
-        返回 [{group_id, group_name}]；平台/版本不支持时优雅降级为手动输入。
+        返回 [{id, type, name}]：id=实例唯一标识（UMO 前缀），type=适配器类型（aiocqhttp/qq_official），
+        name=用户友好名。平台管理器不可用时返回空并附 detail。
         """
         try:
             ctx = getattr(self, "context", None)
-            gl = getattr(ctx, "get_group_list", None)
-            if gl is None:
-                return {"groups": [], "detail": "当前 AstrBot 版本无 get_group_list，请手动输入群号"}
-            raw = await gl()
+            pm = getattr(ctx, "platform_manager", None)
+            if pm is None:
+                return {"platforms": [], "detail": "当前 AstrBot 版本无 platform_manager，请手动填写适配器"}
+            insts = pm.get_insts()
+            out = []
+            for p in insts or []:
+                meta = getattr(p, "metadata", None) or getattr(p, "meta", None) or {}
+                if isinstance(meta, dict):
+                    pid = meta.get("id") or ""
+                    ptype = meta.get("type") or ""
+                    name = meta.get("name") or ""
+                else:
+                    pid = getattr(meta, "id", None) or ""
+                    ptype = getattr(meta, "type", None) or ""
+                    name = getattr(meta, "name", None) or ""
+                pid = str(pid or "")
+                if not pid:
+                    continue
+                out.append({"id": pid, "type": str(ptype or ""), "name": str(name or ptype or pid)})
+            return {"platforms": out}
+        except Exception as e:
+            logger.warning(f"[dyf] 获取平台实例列表失败: {e}")
+            return {"platforms": [], "detail": f"获取平台实例列表失败: {e}"}
+
+    async def groups(self):
+        """机器人可访问的群列表（AstrBot 适配器统一 get_group_list）。
+
+        可选 ?platform_id=<实例id> 按指定平台实例拉取；未指定则回退统一 context.get_group_list()。
+        返回 [{group_id, group_name}]；平台/版本不支持时优雅降级为手动输入。
+        """
+        try:
+            from astrbot.api.web import request as web_request
+            q = getattr(web_request, "args", None)
+            platform_id = str(q.get("platform_id") or "") if q else ""
+        except Exception:
+            platform_id = ""
+        try:
+            ctx = getattr(self, "context", None)
+            raw = None
+            detail = ""
+            if platform_id:
+                pm = getattr(ctx, "platform_manager", None)
+                inst = None
+                if pm is not None:
+                    for p in pm.get_insts() or []:
+                        meta = getattr(p, "metadata", None) or getattr(p, "meta", None) or {}
+                        pid = (meta.get("id") if isinstance(meta, dict) else getattr(meta, "id", None)) or ""
+                        if str(pid or "") == platform_id:
+                            inst = p
+                            break
+                if inst is None:
+                    return {"groups": [], "detail": f"未找到平台实例 {platform_id}"}
+                # 实例级群列表：多来源防御性尝试
+                for attr in ("get_group_list", "fetch_group_list"):
+                    fn = getattr(inst, attr, None)
+                    if fn is not None:
+                        try:
+                            raw = await fn()
+                            break
+                        except Exception as e:
+                            detail = f"实例 {attr} 失败: {e}"
+                if raw is None:
+                    helper = getattr(inst, "helper", None) or getattr(inst, "platform_helper", None)
+                    fn = getattr(helper, "get_group_list", None) if helper else None
+                    if fn is not None:
+                        try:
+                            raw = await fn()
+                        except Exception as e:
+                            detail = f"实例 helper 失败: {e}"
+            if raw is None:
+                gl = getattr(ctx, "get_group_list", None)
+                if gl is None:
+                    return {"groups": [], "detail": "当前 AstrBot 版本无 get_group_list，请手动输入群号"}
+                raw = await gl()
             groups = []
             for item in raw or []:
                 if isinstance(item, dict):
@@ -350,6 +422,8 @@ class DashboardApi:
                     name = getattr(item, "group_name", None) or getattr(item, "name", None) or ""
                 if gid:
                     groups.append({"group_id": str(gid), "group_name": str(name or "")})
+            if not groups and detail:
+                return {"groups": groups, "detail": detail}
             return {"groups": groups}
         except Exception as e:
             logger.warning(f"[dyf] 获取群列表失败: {e}")

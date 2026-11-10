@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [0.45.0] - 2026-11-10
+
+### Added
+- **平台实例级联选择（多机器人）**：后端新增 `platforms` 端点（`platform_manager.get_insts()` → `[{id,type,name}]`）；`groups` 支持 `?platform_id=` 按实例拉取群列表（实例级 `get_group_list`/helper 多来源防御，未指定回退统一 `context.get_group_list()`）。前端目标卡平台下拉改用平台实例列表（value=实例 id 作 UMO 前缀，显示 `name(type)`），选中实例级联加载该实例群列表；`groupsPlatform` 跟踪群列表所属实例防串台；新增目标默认取第一个实例 id；启动加载 `platforms`。多实例部署可精准区分「平台 → 会话」发送。
+
 ## [0.44.0] - 2026-11-10
 
 ### Fixed

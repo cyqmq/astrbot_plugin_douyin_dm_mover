@@ -83,13 +83,24 @@ export async function loadFriends(refresh) {
   store.friends = d.friends || []
 }
 
-export async function loadGroups() {
+export async function loadGroups(platformId) {
   store.groupsLoading = true
   store.groupsDetail = ''
-  const d = await apiGet('groups')
+  const q = platformId ? ('?platform_id=' + encodeURIComponent(platformId)) : ''
+  const d = await apiGet('groups' + q)
   store.groupsLoading = false
   if (d.detail) store.groupsDetail = d.detail
   store.groups = d.groups || []
+  store.groupsPlatform = platformId || ''
+}
+
+export async function loadPlatforms() {
+  store.platformsLoading = true
+  store.platformsDetail = ''
+  const d = await apiGet('platforms')
+  store.platformsLoading = false
+  if (d.detail) store.platformsDetail = d.detail
+  store.platforms = d.platforms || []
 }
 
 export function pill(k, cls, v) {
