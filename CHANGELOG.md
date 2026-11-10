@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [0.54.0] - 2026-11-10
+
+### Fixed
+- **发送者昵称回填（remark_name 优先）**：`_on_raw_message` convert 后，若 `peer_name` 仍为 uid（文本消息 content 无 name），用 `_lookup_friend_name(peer_id)` 从好友缓存（`friends_cache.json`，`remark_name` 优先 fallback `nickname`）回填——文本/视频消息 header 显示好友备注/昵称，不再裸 uid；好友不在列表保持 uid。
+
 ## [0.53.0] - 2026-11-10
 
 ### Added

@@ -131,6 +131,14 @@ class DouyinGateway(MessageGateway):
         except Exception as e:
             logger.debug(f"[dyf] 好友缓存写入失败: {e}")
 
+    def _lookup_friend_name(self, uid: str) -> str | None:
+        """按 uid 查好友缓存昵称（remark_name 优先，fallback nickname）。"""
+        friends, _ = self._load_friends_cache()
+        for f in friends:
+            if str(f.get("uid")) == str(uid):
+                return str(f.get("remark_name") or f.get("nickname") or "") or None
+        return None
+
     # ---- 账户档案缓存持久化（重载后读文件，避免每次重新拉取） ----
     @property
     def _profile_cache_file(self) -> str:
@@ -437,6 +445,11 @@ class DouyinGateway(MessageGateway):
         msg = self._converter.convert(raw)
         if msg is None:
             return
+        # 好友昵称回填：content 无昵称时用好友缓存的 remark_name/nickname 替代 uid
+        if msg.peer_id and (not msg.peer_name or msg.peer_name == str(msg.peer_id)):
+            name = self._lookup_friend_name(msg.peer_id)
+            if name:
+                msg.peer_name = name
         # 视频详情不再在此同步拉取（会阻塞 receiver 线程）；由监听消费循环 enrich_video 处理
         if self._loop is None:
             return
