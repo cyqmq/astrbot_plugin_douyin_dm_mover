@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+## [1.2.1] - 2026-11-10
+
+### Fixed
+- **重载卡死（join 阻塞事件循环）**：`gateway._stop_receiver` 改 async，`thread.join` 用 `asyncio.to_thread`（不再同步阻塞事件循环 + 阻塞 `sm.reload` 的 `_pm_lock`）；`gateway.stop` `await` 之。多次重载不再累积卡死。
+- **重载超时保护**：`dashboard._do_reload` 的 `sm.reload` 加 `asyncio.wait_for(..., 30)`，超时打日志（提示可能卡在 terminate/load），不再永久挂起。
+
 ## [1.2.0] - 2026-11-10
 
 ### Added

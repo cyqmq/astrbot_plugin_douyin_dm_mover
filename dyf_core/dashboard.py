@@ -117,13 +117,21 @@ class DashboardApi:
 
     async def _do_reload(self, sm) -> None:
         try:
-            result = await sm.reload("astrbot_plugin_douyin_dm_mover")
+            result = await asyncio.wait_for(
+                sm.reload("astrbot_plugin_douyin_dm_mover"), timeout=30
+            )
             ok = result[0] if isinstance(result, tuple) else bool(result)
             err = result[1] if isinstance(result, tuple) else None
             if not ok:
                 from astrbot.api import logger
 
                 logger.error(f"[dyf] 插件重载失败: {err}")
+        except TimeoutError:
+            from astrbot.api import logger
+
+            logger.error(
+                "[dyf] 插件重载超时(30s)，可能卡在 terminate/load，请检查 AstrBot 日志"
+            )
         except Exception as e:
             from astrbot.api import logger
 

@@ -249,11 +249,13 @@ class DouyinGateway(MessageGateway):
         )
         self._thread.start()
 
-    def _stop_receiver(self) -> None:
+    async def _stop_receiver(self) -> None:
         if self._receiver:
             self._receiver.stop()
-        if self._thread and self._thread.is_alive():
-            self._thread.join(timeout=5)
+        thread = self._thread
+        if thread and thread.is_alive():
+            # join 移出事件循环：reload 期间同步阻塞会卡住 sm.reload + _pm_lock
+            await asyncio.to_thread(thread.join, 5)
         self._receiver = None
         self._thread = None
 
@@ -582,6 +584,6 @@ class DouyinGateway(MessageGateway):
             self._watchdog_task.cancel()
         if self._login_task:
             self._login_task.cancel()
-        self._stop_receiver()
+        await self._stop_receiver()
         self._emit_event(GatewayEvent("stopped", "Douyin gateway stopped"))
         logger.info("[dyf] DouyinGateway 已停止")
