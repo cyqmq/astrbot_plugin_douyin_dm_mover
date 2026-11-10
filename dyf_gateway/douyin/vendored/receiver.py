@@ -122,6 +122,7 @@ class DouyinReceiver:
                     "server_message_id": field_int(msg_body, 3),
                     "index_in_conversation": field_int(msg_body, 4),
                     "conversation_short_id": field_int(msg_body, 5),
+                    "create_time": field_int(msg_body, 10),
                 }
             )
         elif payload_type == "text/json":

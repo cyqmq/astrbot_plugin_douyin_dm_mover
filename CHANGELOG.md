@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [0.35.0] - 2026-11-10
+
+### Fixed
+- 时间戳丢失（发石者记录时间 = 转发时刻、header 时间不对）：`vendored/receiver.py::_handle_frame` 漏取 MessageBody 字段 10 `create_time`，已补入 raw；`message_builder._header` 改用 `msg.timestamp`（消息原始私信时刻）而非 `datetime.now()`。`converter._timestamp_of` 兜底保留作防御。
+
 ## [0.34.0] - 2026-11-10
 
 ### Fixed

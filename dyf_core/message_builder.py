@@ -40,7 +40,12 @@ class MessageBuilder:
     def _header(self, msg: InboundMessage) -> str:
         source = _SOURCE_LABEL.get(msg.source_platform, msg.source_platform)
         peer = msg.peer_name or "未知用户"
-        now = datetime.now().strftime("%H:%M")
+        # 优先消息原始时间（私信时刻），兜底当前时间
+        try:
+            t = datetime.fromtimestamp(msg.timestamp) if msg.timestamp else datetime.now()
+        except (OSError, ValueError):
+            t = datetime.now()
+        now = t.strftime("%H:%M")
         try:
             return _sanitize(
                 self.header_template.format(source=source, peer_name=peer, time=now)
