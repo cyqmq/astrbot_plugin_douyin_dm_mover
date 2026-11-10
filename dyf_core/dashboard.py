@@ -125,7 +125,15 @@ class DashboardApi:
             if not ok:
                 from astrbot.api import logger
 
-                logger.error(f"[dyf] 插件重载失败: {err}")
+                err_s = str(err or "")
+                # AstrBot 会把所有 failed 插件信息聚合进 error_message；
+                # 只关注本插件，避免 LogDeck/Token 的失败文案串进浮窗
+                if "douyin_dm_mover" in err_s:
+                    logger.error(f"[dyf] 插件重载失败: {err_s}")
+                else:
+                    logger.warning(
+                        f"[dyf] 重载完成；其它插件加载失败与本插件无关: {err_s}"
+                    )
         except TimeoutError:
             from astrbot.api import logger
 

@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.2.4] - 2026-11-10
+
+### Fixed
+- **浮窗串台（其它插件加载失败文案）**：`_do_reload` 的 `sm.reload` 错误信息被 AstrBot 聚合所有 failed 插件——只关注本插件（`douyin_dm_mover` in err 才 error），其它插件失败改 warning 注明无关，不再串进浮窗。
+
 ## [1.2.3] - 2026-11-10
 
 ### Changed
