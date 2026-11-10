@@ -212,10 +212,13 @@ kbd { background:var(--card); border:1px solid var(--border2); border-radius:4px
 .vue-flow__node { background:transparent; border:none; box-shadow:none; padding:0; border-radius:0; }
 .vue-flow__node.selected { box-shadow:none; }
 .vue-flow__node input, .vue-flow__node select { font-size:12px; }
-/* 连接桩 Handle */
-.vue-flow__handle { width:11px; height:11px; background:var(--accent); border:2px solid #fff;
-  box-shadow:0 0 0 1px var(--accent); }
-.vue-flow__handle:hover { background:#fff; }
+/* 连接桩 Handle：加大命中区域，置于内容之上 */
+.vue-flow__handle { width:16px; height:16px; background:var(--accent); border:3px solid #fff;
+  box-shadow:0 0 0 1px var(--accent); z-index:40; cursor:crosshair; pointer-events:all; }
+.vue-flow__handle:hover { background:#fff; transform:scale(1.15); }
+.vue-flow__handle-left { left:-8px; } .vue-flow__handle-right { right:-8px; }
+.vue-flow__connection-line { stroke:var(--accent); stroke-width:2.2; }
+.vue-flow__connection-path { stroke:var(--accent); stroke-width:2.2; }
 .vue-flow__edge path { stroke-linecap:round; }
 .vue-flow__edge.animated path { stroke-dasharray:6; animation:dashmove .7s linear infinite; }
 @keyframes dashmove { to { stroke-dashoffset:-24; } }

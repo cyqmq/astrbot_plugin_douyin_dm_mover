@@ -7,6 +7,7 @@ import RouteNode from './RouteNode.vue'
 import TargetNode from './TargetNode.vue'
 import { store } from '../../composables/store.js'
 import { scheduleLiveSave } from '../../composables/actions.js'
+import { toast } from '../../composables/store.js'
 
 const { getNodes, getEdges } = useVueFlow()
 const X = [0, 440, 880]
@@ -68,6 +69,7 @@ function onConnect(c) {
   if (s.startsWith('src|') && t.startsWith('route|')) {
     const uid = s.split('|')[1], ri = +t.split('|')[1]
     const r = store.routes[ri]
+    if (r && !uid) { toast('请先在来源卡选择来源，再连接到路由'); return }
     if (r && uid) {
       if (!r.match) r.match = { types: [], senders_include: [] }
       if (!r.match.senders_include.includes(uid)) r.match.senders_include.push(uid)
@@ -199,9 +201,6 @@ onMounted(() => { build(); setTimeout(() => { liveReady = true }, 600) })
         <template #node-target="p"><TargetNode :data="p.data" /></template>
         <Background pattern-color="#e2e2e2" :gap="18" :size="1.2" />
       </VueFlow>
-      <div class="vf-colbar" style="left:12px">来源</div>
-      <div class="vf-colbar" style="left:452px">路由</div>
-      <div class="vf-colbar" style="left:892px">目标{{ store.advancedTargets ? '（高级卡片）' : '（QQ群/私聊）' }}</div>
     </div>
   </div>
 </template>
