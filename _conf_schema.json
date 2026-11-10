@@ -118,6 +118,11 @@
     "default": "",
     "description": "默认目标群号（当路由表未命中时使用）；留空则仅按 routes 路由"
   },
+  "routes": {
+    "type": "list",
+    "default": [],
+    "description": "消息路由规则：命中则转发到对应目标，留空仅按 default_target_group"
+  },
   "retry_enabled": {
     "type": "bool",
     "default": true,

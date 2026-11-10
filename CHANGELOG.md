@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.2.9] - 2026-11-10
+
+### Fixed
+- **路由丢失根因**：`_conf_schema.json` 从未定义 `routes`——AstrBot `check_config_integrity` 读盘时把磁盘 config 里 schema 之外的键（`routes`）删掉，重载后路由页读空（`disk_routes=-2` / `runtime_routes=0`）。已补 `"routes": {"type": "list", "default": []}`；设备更新插件重启后 `check_config_integrity` 不再删磁盘 routes。
+
 ## [1.2.8] - 2026-11-10
 
 ### Changed
