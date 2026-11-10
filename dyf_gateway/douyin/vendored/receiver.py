@@ -163,7 +163,8 @@ class DouyinReceiver:
             sender = field_int(msg_body, 7)
             content = field_str(msg_body, 8)
             try:
-                content_json = json.loads(content)
+                _c = json.loads(content)
+                content_json = _c if isinstance(_c, dict) else {}
             except Exception:
                 content_json = {}
             self._emit_raw(

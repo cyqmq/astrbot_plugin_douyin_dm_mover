@@ -43,7 +43,10 @@ def fetch_aweme_detail(http: DouyinHttpPy, aweme_id: str, timeout: int = 8) -> d
         data = http.request_json(url, "GET", timeout=timeout)
     except (RuntimeError, TypeError, ValueError, ConnectionError, OSError) as e:
         return {"desc": "", "cover": "", "play_url": "", "error": str(e)}
-    detail = data.get("aweme_detail") or data.get("data") or {}
+    detail = data.get("aweme_detail") or {}
+    if not detail:
+        _d = data.get("data") or {}
+        detail = _d.get("aweme_detail") if isinstance(_d, dict) else {}
     if not isinstance(detail, dict):
         return {"desc": "", "cover": "", "play_url": "", "error": "no detail"}
     video = detail.get("video") or {}

@@ -80,6 +80,9 @@ class DouyinConverter:
             )
 
         peer_id = resolve_peer(conversation_id, self_uid)
+        # 纯数字短 id conv 解析失败时用发送者兜底（sender 为对端 uid，非 self）
+        if not peer_id and sender and str(sender) != str(self_uid or ""):
+            peer_id = str(sender)
         # 昵称：content.name/nick_name → 发送者昵称（好友/会话）→ 才回退 peer_id（不裸显示 uid）
         peer_name = str(content.get("name") or content.get("nick_name") or "")
         if not peer_name and self._nickname_provider is not None:

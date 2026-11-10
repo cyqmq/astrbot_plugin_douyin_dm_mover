@@ -4,6 +4,13 @@
 
 ## [Unreleased]
 
+## [0.60.0] - 2026-11-10
+
+### Fixed
+- **图片合集 77 崩溃（content 为 `"0"`）**：`receiver._handle_frame` 的 `content_json` 解析改为 `json.loads(content)` 成功但非 dict（如 `json.loads("0")=0`）时置 `{}`，避免 converter `content.get()` 抛异常导致 `frame decode error: 0`。
+- **视频详情两层嵌套**：`video.fetch_aweme_detail` 响应为 `{"data":{"aweme_detail":{...}}}` 时，先取顶层 `aweme_detail`，无则进 `data` 再取 `aweme_detail`（原 `or data.get("data")` 拿到包装 dict 导致 `desc_len=0 cover=无`）。
+- **纯数字短 id conv peer 兜底**：`converter.convert` 的 `resolve_peer` 失败（conv 为纯数字短 id 如 `7569533068915081774`）且 `sender != self_uid` 时，peer_id 兜底用 `str(sender)`，转发不再 `peer=None`。
+
 ## [0.59.0] - 2026-11-10
 
 ### Fixed
