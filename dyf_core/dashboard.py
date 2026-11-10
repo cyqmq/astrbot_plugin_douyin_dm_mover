@@ -272,9 +272,19 @@ class DashboardApi:
             logger.warning(f"[dyf] 自动重载失败（可手动点「重载插件」）: {e}")
 
     async def profile(self):
-        """账户档案（昵称/头像）：已登录但无缓存时主动拉取一次并缓存。"""
+        """账户档案（昵称/头像）：内存/落盘缓存（TTL 300s）内不重拉，超时或缺失才拉取。"""
         gw = self.gateway
-        if gw.auth_state.value == "ok" and not (getattr(gw, "_profile", None) or {}):
+        prof = getattr(gw, "_profile", None) or {}
+        pts = getattr(gw, "_profile_ts", 0) or 0
+        import time
+        if not prof:
+            # 内存空（如重载后 gateway 重建）→ 读落盘缓存
+            prof, pts = gw._load_profile_cache()
+            gw._profile = prof
+            gw._profile_ts = pts
+        if prof and (time.time() - pts) < 300:
+            return {"profile": prof, "cached": True}
+        if gw.auth_state.value == "ok" and not prof:
             try:
                 from dyf_gateway.douyin.login.alemonjs_py import (
                     DouyinHttpPy,
@@ -289,9 +299,11 @@ class DashboardApi:
                     http.set_device({"deviceId": dev, "installId": "0", "guid": "0"})
                     prof = await asyncio.to_thread(fetch_desktop_self_profile, http)
                     gw._profile = prof
+                    gw._profile_ts = time.time()
+                    gw._store_profile_cache(prof, gw._profile_ts)
             except Exception as e:
                 logger.warning(f"[dyf] 拉取账户档案失败: {e}")
-        p = getattr(gw, "_profile", None) or {}
+        p = getattr(gw, "_profile", None) or prof or {}
         if p:
             return {"profile": p}
         # 未登录/无缓存：回退到登录态基本字段

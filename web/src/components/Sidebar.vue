@@ -18,7 +18,20 @@ const stateSub = computed(() => {
   if (store.authState === 'ok') return store.profile.nickname || (store.authUid ? ('uid ' + store.authUid) : '已连接')
   return st.value[2]
 })
-const avatar = computed(() => store.profile.avatar || logo)
+const AV_KEY = 'dyf_avatar_cache'
+const avatar = computed(() => store.profile.avatar || readCachedAvatar() || logo)
+function readCachedAvatar() {
+  try { return localStorage.getItem(AV_KEY) || '' } catch { return '' }
+}
+function onAvatarLoad(e) {
+  try { localStorage.setItem(AV_KEY, e.target.src) } catch {}
+}
+function onAvatarError(e) {
+  // URL 失效/防盗链 → 回退本地缓存的头像（仅一次，防循环）
+  const cached = readCachedAvatar()
+  if (cached && e.target.src !== cached && !e.target.src.startsWith('data:')) e.target.src = cached
+  else e.target.src = logo
+}
 
 async function loadProfile() {
   if (store.authState !== 'ok') return
@@ -45,7 +58,7 @@ watch(() => store.authState, s => { if (s === 'ok') loadProfile() }, { immediate
     </nav>
     <div class="side-foot">
       <div class="side-user" title="点击扫码登录" @click="store.modalOpen = true">
-        <img v-if="store.authState === 'ok'" :src="avatar" class="side-avatar" alt="" @error="$event.target.src = logo">
+        <img v-if="store.authState === 'ok'" :src="avatar" class="side-avatar" alt="" @load="onAvatarLoad" @error="onAvatarError">
         <span v-else class="dot" :class="'dot-' + st[0]"></span>
         <div style="flex:1;min-width:0">
           <div class="lbl">{{ stateLabel }}</div>

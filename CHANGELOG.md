@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [0.48.0] - 2026-11-10
+
+### Fixed
+- **头像回退 logo + 每次重拉**：`profile` 端点落盘缓存 `data/dyf/profile_cache.json`（含 ts，TTL 300s），重载后（内存清空）读文件直接返回，不再每次重新拉取；前端 Sidebar 头像 `@load` 写 localStorage、`@error` 回退本地缓存的头像（仅一次防循环）——URL 失效/防盗链不再立刻变 logo。
+
 ## [0.47.0] - 2026-11-10
 
 ### Fixed

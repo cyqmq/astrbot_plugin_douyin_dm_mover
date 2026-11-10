@@ -91,6 +91,7 @@ class DouyinGateway(MessageGateway):
         self._login_task: asyncio.Task | None = None
         self._login_lock = threading.Lock()
         self._profile: dict = {}          # 账户档案 {uid,nickname,avatar}（登录后拉取）
+        self._profile_ts: float = 0.0     # 档案缓存时间戳（TTL 300s）
         self._friends: list[dict] = []    # 好友列表缓存（familiar-list 全量）
         self._friends_ts: float = 0.0     # 好友缓存时间戳（TTL 300s）
         self._http: DouyinHttpPy | None = None  # 视频详情/好友列表 HTTP（懒建，随会话 Cookie）
@@ -116,6 +117,30 @@ class DouyinGateway(MessageGateway):
                 json.dump({"ts": ts, "friends": friends}, f, ensure_ascii=False)
         except Exception as e:
             logger.debug(f"[dyf] 好友缓存写入失败: {e}")
+
+    # ---- 账户档案缓存持久化（重载后读文件，避免每次重新拉取） ----
+    @property
+    def _profile_cache_file(self) -> str:
+        return os.path.join(self._data_dir, "profile_cache.json")
+
+    def _load_profile_cache(self) -> tuple[dict, float]:
+        try:
+            with open(self._profile_cache_file, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            prof = data.get("profile") or {}
+            if not isinstance(prof, dict):
+                prof = {}
+            return prof, float(data.get("ts") or 0)
+        except Exception:
+            return {}, 0.0
+
+    def _store_profile_cache(self, profile: dict, ts: float) -> None:
+        try:
+            os.makedirs(self._data_dir, exist_ok=True)
+            with open(self._profile_cache_file, "w", encoding="utf-8") as f:
+                json.dump({"ts": ts, "profile": profile}, f, ensure_ascii=False)
+        except Exception as e:
+            logger.debug(f"[dyf] 档案缓存写入失败: {e}")
 
     @staticmethod
     def _parse_list(value) -> list[str]:
