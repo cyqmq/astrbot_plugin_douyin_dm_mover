@@ -65,10 +65,17 @@ function onUp() {
   savePos()
 }
 
-// 自动滚底
-watch(() => store.floatLog.logs.length, () => {
+// 新日志在顶部：保持相对位置——在顶部则看最新，已滚动则补偿新增高度不跳动
+watch(() => store.floatLog.logs.length, (n, o) => {
   if (!store.floatLog.open) return
-  nextTick(() => { const el = panel.value; if (el) el.scrollTop = el.scrollHeight })
+  const before = panel.value ? panel.value.scrollHeight : 0
+  nextTick(() => {
+    const el = panel.value
+    if (!el) return
+    const diff = el.scrollHeight - before
+    if (el.scrollTop <= 1 || diff <= 0) { el.scrollTop = 0; return }
+    el.scrollTop += diff // 保持视觉相对位置
+  })
 })
 
 const lvlCls = l => l.level === 'error' ? 'ferr' : (l.level === 'warning' ? 'fwarn' : 'finfo')
