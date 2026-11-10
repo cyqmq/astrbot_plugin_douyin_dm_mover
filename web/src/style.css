@@ -134,6 +134,9 @@ label.f .hint { grid-column:2; color:var(--muted); font-size:11px; line-height:1
 .target-card .tc-head { font-weight:600; }
 .target-card .tc-sub { color:var(--muted); font-size:11px; }
 .target-card .tc-n { color:var(--accent); }
+.route-card .rc-sub { color:var(--muted); font-size:10px; text-align:center; padding:2px 0 0; }
+kbd { background:var(--card); border:1px solid var(--border2); border-radius:4px; padding:0 5px;
+  font:11px/18px ui-monospace,monospace; color:var(--text); }
 .rsep { height:1px; background:var(--border); margin:14px 0 4px; }
 .save-row { margin-top:12px; }
 .chips { display:flex; flex-wrap:wrap; gap:5px; align-items:center; }

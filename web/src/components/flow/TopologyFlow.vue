@@ -5,47 +5,52 @@ import { Background } from '@vue-flow/background'
 import SourceNode from './SourceNode.vue'
 import RouteNode from './RouteNode.vue'
 import TargetNode from './TargetNode.vue'
-import { store, sendersTop } from '../../composables/store.js'
-import { loadFriends, scheduleLiveSave } from '../../composables/actions.js'
+import { store } from '../../composables/store.js'
+import { scheduleLiveSave } from '../../composables/actions.js'
 
-const { getNodes } = useVueFlow()
+const { getNodes, getEdges } = useVueFlow()
 const X = [0, 440, 880]
+const nodes = ref([])
+const edges = ref([])
 
-// 来源 = 自定义来源卡（卡内下拉选「最近发石者 / 抖音好友」）；目标 = 独立目标实体
+// 来源 = 自定义来源卡（卡内下拉选来源）；目标 = 高级卡片(custom_targets) 或 简单 qq群/私聊(simple_targets)
 const sources = computed(() => store.customSources)
-const targets = computed(() => store.customTargets)
+const targetList = computed(() => (store.advancedTargets ? store.customTargets : store.simpleTargets))
 
-// ---- 添加：直接生成卡片（卡上可编辑） ----
-function addSource() {
-  store.customSources.push({ uid: '', nickname: '' })
-  scheduleLiveSave()
-}
+const umoOf = t => t.adapter !== undefined
+  ? (t.adapter + ':GroupMessage:' + (t.group || ''))
+  : (t.kind === 'private' ? 'aiocqhttp:PrivateMessage:' + (t.value || '') : 'aiocqhttp:GroupMessage:' + (t.value || ''))
+const findTargetByUmo = umo => targetList.value.find(t => umoOf(t) === umo)
+
+// ---- 添加 / 删除 ----
+function addSource() { store.customSources.push({ uid: '', nickname: '' }); scheduleLiveSave() }
 function delSource(source) {
   const i = store.customSources.indexOf(source)
   if (i >= 0) { store.customSources.splice(i, 1); scheduleLiveSave() }
 }
 function addTarget() {
-  const n = store.customTargets.length + 1
-  store.customTargets.push({ id: 'tgt' + n, adapter: 'aiocqhttp', group: '' })
+  if (store.advancedTargets) store.customTargets.push({ id: 'tgt' + (store.customTargets.length + 1), adapter: 'aiocqhttp', group: '' })
+  else store.simpleTargets.push({ id: 's' + (store.simpleTargets.length + 1), kind: 'qq_group', value: '' })
   scheduleLiveSave()
 }
 function delTarget(t) {
-  const i = store.customTargets.indexOf(t)
-  if (i >= 0) store.customTargets.splice(i, 1)
-  const old = t.adapter + ':GroupMessage:' + t.group
+  const old = umoOf(t)
+  const list = store.advancedTargets ? store.customTargets : store.simpleTargets
+  const i = list.indexOf(t)
+  if (i >= 0) list.splice(i, 1)
   store.routes.forEach(r => { if (r.target === old) r.target = '' })
   scheduleLiveSave()
 }
-function updateTarget(t, ad, gr) {
-  const old = t.adapter + ':GroupMessage:' + t.group
-  t.adapter = ad; t.group = gr
-  const neu = ad + ':GroupMessage:' + gr
+function updateTarget(t, patch) {
+  const old = umoOf(t)
+  Object.assign(t, patch)
+  const neu = umoOf(t)
   store.routes.forEach(r => { if (r.target === old) r.target = neu })
   scheduleLiveSave()
 }
 function addRoute() {
-  store.routes.push({ name: 'route' + (store.routes.length + 1), target: '',
-    match: { types: ['text', 'video_card'], senders_include: [], senders_exclude: [] } })
+  store.routes.push({ name: 'route' + (store.routes.length + 1), target: '', pos: null,
+    match: { types: ['text', 'video_card'], senders_include: [] } })
   scheduleLiveSave()
 }
 function moveRoute(i, d) {
@@ -56,82 +61,117 @@ function moveRoute(i, d) {
 }
 function delRoute(i) { store.routes.splice(i, 1); scheduleLiveSave() }
 
-// ---- 节点/边 ----
-const nodes = ref([])
-const edges = ref([])
-const posOf = id => { const n = getNodes.value.find(x => x.id === id); return n ? { x: n.position.x, y: n.position.y } : null }
-const sidOf = s => s.uid || ''
-function sourceNode(s, i) {
-  return { id: 'src|' + sidOf(s) + '|' + i, type: 'source', data: { custom: true, source: s, del: delSource } }
+// ---- 手动连接：来源→路由（uid 进 senders_include）/ 路由→目标（target=UMO） ----
+function onConnect(c) {
+  const s = c.source || '', t = c.target || ''
+  if (s.startsWith('src|') && t.startsWith('route|')) {
+    const uid = s.split('|')[1], ri = +t.split('|')[1]
+    const r = store.routes[ri]
+    if (r && uid) {
+      if (!r.match) r.match = { types: [], senders_include: [] }
+      if (!r.match.senders_include.includes(uid)) r.match.senders_include.push(uid)
+      scheduleLiveSave()
+    }
+  } else if (s.startsWith('route|') && t.startsWith('tgt|')) {
+    const ri = +s.split('|')[1], tid = t.split('|')[1]
+    const tgt = targetList.value.find(x => x.id === tid)
+    const r = store.routes[ri]
+    if (r && tgt) { r.target = umoOf(tgt); scheduleLiveSave() }
+  }
 }
-function routeOf(r, i) {
-  return { id: 'route|' + i, type: 'route', data: { route: r, index: i, move: moveRoute, del: delRoute,
-    targets: targets.value, sync: scheduleLiveSave } }
-}
-function targetOf(t, i) {
-  return { id: 'tgt|' + t.id, type: 'target', data: { target: t, apply: updateTarget, del: delTarget } }
-}
-function edgeCls(sid, r) {
-  const inc = (r.match && r.match.senders_include) || []
-  const exc = (r.match && r.match.senders_exclude) || []
-  const included = inc.includes(sid) || !inc.length
-  if (exc.includes(sid) || !included) return 'off'
-  if (inc.length || exc.length) return 'hit'
-  return 'dim'
-}
-function edgeTo(id, s, t, cls) {
-  return { id, source: s, target: t, type: 'bezier', animated: cls === 'hit',
-    markerEnd: { type: MarkerType.ArrowClosed, width: 14, height: 14 },
-    style: { stroke: cls === 'hit' ? '#0969da' : (cls === 'off' ? '#d1242f' : '#a0a0a0'),
-      strokeWidth: cls === 'dim' ? 1.4 : 2.2, strokeDasharray: cls === 'off' ? '6 4' : undefined } }
+function onEdgesDelete(list) {
+  (list || []).forEach(e => {
+    const d = e.data || {}
+    if (d.kind === 'src-route') {
+      const r = store.routes[d.ri]
+      if (r && r.match) {
+        const i = r.match.senders_include.indexOf(d.uid)
+        if (i >= 0) r.match.senders_include.splice(i, 1)
+      }
+    } else if (d.kind === 'route-tgt') {
+      const r = store.routes[d.ri]
+      if (r && r.target === d.umo) r.target = ''
+    }
+  })
+  scheduleLiveSave()
 }
 
+// ---- 拖拽位置持久化 ----
+function onDragStop({ node }) {
+  if (!node) return
+  const id = node.id || '', p = { x: Math.round(node.position.x), y: Math.round(node.position.y) }
+  if (id.startsWith('src|')) {
+    const src = sources.value[+id.split('|')[2]]
+    if (src) src.pos = p
+  } else if (id.startsWith('route|')) {
+    const r = store.routes[+id.split('|')[1]]
+    if (r) r.pos = p
+  } else if (id.startsWith('tgt|')) {
+    const t = targetList.value.find(x => x.id === id.split('|')[1])
+    if (t) t.pos = p
+  }
+  scheduleLiveSave()
+}
+
+// ---- 节点 / 边 ----
+const posOf = id => { const n = getNodes.value.find(x => x.id === id); return n ? { x: n.position.x, y: n.position.y } : null }
+function sourceNode(s, i) {
+  const n = { id: 'src|' + (s.uid || '') + '|' + i, type: 'source', data: { custom: true, source: s, del: delSource } }
+  n.position = s.pos || posOf(n.id) || { x: X[0], y: i * 150 }
+  return n
+}
+function routeNode(r, i) {
+  const n = { id: 'route|' + i, type: 'route', data: { route: r, index: i, move: moveRoute, del: delRoute } }
+  n.position = r.pos || posOf(n.id) || { x: X[1], y: i * 230 }
+  return n
+}
+function targetNode(t, i) {
+  const n = { id: 'tgt|' + t.id, type: 'target', data: { target: t, advanced: store.advancedTargets, update: updateTarget, del: delTarget } }
+  n.position = t.pos || posOf(n.id) || { x: X[2], y: i * 180 }
+  return n
+}
+function edgeTo(id, s, t, cls, data) {
+  return { id, source: s, target: t, type: 'bezier', animated: cls === 'hit', data,
+    markerEnd: { type: MarkerType.ArrowClosed, width: 14, height: 14 },
+    style: { stroke: '#0969da', strokeWidth: 2.2 } }
+}
 function buildNodes() {
   const ns = []
-  sources.value.forEach((s, i) => {
-    const n = sourceNode(s, i)
-    n.position = posOf(n.id) || { x: X[0], y: i * 150 }
-    ns.push(n)
-  })
-  store.routes.forEach((r, i) => {
-    const n = routeOf(r, i)
-    n.position = posOf(n.id) || { x: X[1], y: i * 230 }
-    ns.push(n)
-  })
-  targets.value.forEach((t, i) => {
-    const n = targetOf(t, i)
-    n.position = posOf(n.id) || { x: X[2], y: i * 180 }
-    ns.push(n)
-  })
+  sources.value.forEach((s, i) => ns.push(sourceNode(s, i)))
+  store.routes.forEach((r, i) => ns.push(routeNode(r, i)))
+  targetList.value.forEach((t, i) => ns.push(targetNode(t, i)))
   nodes.value = ns
 }
 function buildEdges() {
   const es = []
   sources.value.forEach((s, si) => {
-    const sid = sidOf(s)
-    if (!sid) return
+    const uid = s.uid || ''
+    if (!uid) return
     store.routes.forEach((r, ri) => {
-      es.push(edgeTo(`e|src|${sid}|${si}|${ri}`, 'src|' + sid + '|' + si, 'route|' + ri, edgeCls(sid, r)))
+      if ((r.match && r.match.senders_include || []).includes(uid))
+        es.push(edgeTo(`e|src|${uid}|${si}|${ri}`, 'src|' + uid + '|' + si, 'route|' + ri, 'hit',
+          { kind: 'src-route', uid, ri }))
     })
   })
   store.routes.forEach((r, ri) => {
     if (!r.target) return
-    const ti = targets.value.findIndex(t => (t.adapter + ':GroupMessage:' + t.group) === r.target)
-    if (ti >= 0) es.push(edgeTo(`e|route|${ri}|${ti}`, 'route|' + ri, 'tgt|' + targets.value[ti].id, 'hit'))
+    const ti = targetList.value.findIndex(t => umoOf(t) === r.target)
+    if (ti >= 0) es.push(edgeTo(`e|route|${ri}|${ti}`, 'route|' + ri, 'tgt|' + targetList.value[ti].id, 'hit',
+      { kind: 'route-tgt', ri, umo: r.target }))
   })
   edges.value = es
 }
 function build() { buildNodes(); buildEdges() }
 
-// 结构变化 → 重建节点+边；内容变化（类型/名单）→ 只重建边（保焦点）
-watch(() => JSON.stringify({ r: store.routes.length, t: targets.value, c: store.customSources,
-  g: store.routes.map(r => r.target).join('|') }), build)
-watch(() => JSON.stringify(store.routes.map(r => ((r.match && r.match.types) || []).join(',') + '|' +
-  ((r.match && r.match.senders_include) || []).join(',') + '|' + ((r.match && r.match.senders_exclude) || []).join(','))), buildEdges)
+// 结构变化 → 重建；内容变化（类型）→ 只重建边
+watch(() => JSON.stringify({ r: store.routes.length, t: targetList.value, c: store.customSources,
+  a: store.advancedTargets, g: store.routes.map(r => r.target).join('|') }), build)
+watch(() => JSON.stringify(store.routes.map(r => ((r.match && r.match.types) || []).join(','))), buildEdges)
 
 // 实时保存
 let liveReady = false
-watch(() => JSON.stringify({ r: store.routes, c: store.customSources, t: store.customTargets }), () => { if (liveReady) scheduleLiveSave() })
+watch(() => JSON.stringify({ r: store.routes, c: store.customSources, t: targetList.value, a: store.advancedTargets }),
+  () => { if (liveReady) scheduleLiveSave() })
 onMounted(() => { build(); setTimeout(() => { liveReady = true }, 600) })
 </script>
 
@@ -141,14 +181,18 @@ onMounted(() => { build(); setTimeout(() => { liveReady = true }, 600) })
       <button class="ghost" @click="addSource">+ 添加来源</button>
       <button class="ghost" @click="addRoute">+ 添加路由</button>
       <button class="ghost" @click="addTarget">+ 添加目标</button>
-      <span class="muted">{{ store.routes.length }} 条路由 · {{ store.customTargets.length }} 个目标 · 拖拽节点布局</span>
+      <span class="muted">{{ store.routes.length }} 条路由 · {{ targetList.length }} 个目标 · 拖拽节点布局</span>
       <span v-if="store.liveSavedAt" class="muted save-state">已保存 {{ store.liveSavedAt }}</span>
+    </div>
+    <div class="bar" style="margin-bottom:10px">
+      <span class="muted">从连接桩拖动到另一个连接桩建立连接：来源 <strong>→</strong> 路由 <strong>→</strong> 目标。选中连线按 <kbd>Delete</kbd> 断开。</span>
     </div>
 
     <div class="topo tall">
       <VueFlow :nodes="nodes" :edges="edges" :min-zoom="0.3" :max-zoom="1.8"
-        :default-edge-options="{ type: 'bezier' }" :nodes-connectable="false" :nodes-draggable="true"
-        :pan-on-drag="true" fit-view-on-init>
+        :default-edge-options="{ type: 'bezier' }" :nodes-connectable="true" :edges-connectable="true"
+        :nodes-draggable="true" :pan-on-drag="true" fit-view-on-init
+        @connect="onConnect" @edges-delete="onEdgesDelete" @node-drag-stop="onDragStop">
         <template #node-source="p"><SourceNode :data="p.data" /></template>
         <template #node-route="p"><RouteNode :data="p.data" /></template>
         <template #node-target="p"><TargetNode :data="p.data" /></template>
@@ -156,7 +200,7 @@ onMounted(() => { build(); setTimeout(() => { liveReady = true }, 600) })
       </VueFlow>
       <div class="vf-colbar" style="left:12px">来源</div>
       <div class="vf-colbar" style="left:452px">路由</div>
-      <div class="vf-colbar" style="left:892px">目标群</div>
+      <div class="vf-colbar" style="left:892px">目标{{ store.advancedTargets ? '（高级卡片）' : '（QQ群/私聊）' }}</div>
     </div>
   </div>
 </template>

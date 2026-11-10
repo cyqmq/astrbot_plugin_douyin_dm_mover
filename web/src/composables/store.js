@@ -47,7 +47,7 @@ export const LABELS = {
   default_target_group: '默认目标群', rate_limit_global_enabled: '全局限流', rate_limit_global_max_per_min: '全局限流(次/分)',
   rate_limit_sender_enabled: '单人限流', rate_limit_sender_max_per_min: '单人限流(次/分)',
   dedup_enabled: '去重', dedup_window_seconds: '去重窗口(秒)', retry_enabled: '失败重试',
-  retry_interval_seconds: '重试间隔(秒)', senders_whitelist: '发送者白名单', senders_blacklist: '发送者黑名单',
+  retry_interval_seconds: '重试间隔(秒)',
   keyword_filters: '关键词过滤', alert_target: '告警目标', alert_only_once: '仅告警一次',
   qq_adapter_id: 'QQ 适配器', sources: '来源配置', routes: '路由表'
 }
@@ -61,12 +61,11 @@ export const SELECTS = {
 }
 
 export const UMO_KEYS = ['default_target_group', 'alert_target']
-export const SENDER_KEYS = ['senders_whitelist', 'senders_blacklist']
 export const JSON_KEYS = ['sources', 'keyword_filters']
 
 export const POLICY_KEYS = ['rate_limit_global_enabled', 'rate_limit_global_max_per_min', 'rate_limit_sender_enabled',
   'rate_limit_sender_max_per_min', 'dedup_enabled', 'dedup_window_seconds', 'retry_enabled',
-  'retry_interval_seconds', 'senders_whitelist', 'senders_blacklist', 'keyword_filters',
+  'retry_interval_seconds', 'keyword_filters',
   'alert_target', 'alert_only_once', 'qq_adapter_id']
 export const SETTINGS_KEYS = ['douyin_cookies', 'douyin_web_protect', 'douyin_keys', 'self_uid', 'device_id',
   'gateway_mode', 'login_backend', 'mfa_mode', 'login_timeout', 'login_mfa_timeout',
@@ -81,7 +80,7 @@ export const POLICY_GROUPS = [
   ['限流', ['rate_limit_global_enabled', 'rate_limit_global_max_per_min', 'rate_limit_sender_enabled', 'rate_limit_sender_max_per_min']],
   ['去重', ['dedup_enabled', 'dedup_window_seconds']],
   ['重试', ['retry_enabled', 'retry_interval_seconds']],
-  ['过滤', ['senders_whitelist', 'senders_blacklist', 'keyword_filters']],
+  ['过滤', ['keyword_filters']],
   ['告警与适配', ['alert_target', 'alert_only_once', 'qq_adapter_id']]
 ]
 
@@ -119,6 +118,8 @@ export const store = reactive({
   sourceMode: 'senders',
   customSources: [],
   customTargets: [],
+  simpleTargets: [],
+  advancedTargets: false,
   cfg: {},
   schema: {},
   routes: [],

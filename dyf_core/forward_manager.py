@@ -14,7 +14,7 @@ from dyf_core.model import InboundMessage
 from dyf_core.ratelimit import RateLimiter
 from dyf_core.retry_manager import RetryManager
 from dyf_core.router import RouteResolver
-from dyf_core.rules import ComposeRule, KeywordFilterRule, SenderFilterRule
+from dyf_core.rules import ComposeRule, KeywordFilterRule
 from dyf_core.tracker import RecentStore
 
 
@@ -66,10 +66,6 @@ class ForwardManager:
         self.require_peer = bool(config.get("require_peer", False))
         self.global_filter = ComposeRule(
             [
-                SenderFilterRule(
-                    whitelist=set(_csv(config.get("senders_whitelist"))),
-                    blacklist=set(_csv(config.get("senders_blacklist"))),
-                ),
                 KeywordFilterRule(_csv(config.get("keyword_filters"))),
             ]
         )

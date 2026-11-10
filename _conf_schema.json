@@ -143,16 +143,6 @@
     "default": 10,
     "description": "单发送者每分钟最多转发"
   },
-  "senders_whitelist": {
-    "type": "string",
-    "default": "",
-    "description": "发送者白名单（逗号分隔 uid），空=不限"
-  },
-  "senders_blacklist": {
-    "type": "string",
-    "default": "",
-    "description": "发送者黑名单（逗号分隔 uid），命中则跳过"
-  },
   "keyword_filters": {
     "type": "string",
     "default": "",
@@ -166,6 +156,6 @@
   "routes": {
     "type": "list",
     "default": [],
-    "description": "路由表，按序匹配支持多命中。每项: {\"name\":\"\", \"match\":{\"types\":[],\"senders_include\":[],\"senders_exclude\":[]}, \"target\":\"aiocqhttp:GroupMessage:123\"}"
+    "description": "路由表，按序匹配支持多命中。每项: {\"name\":\"\", \"match\":{\"types\":[],\"senders_include\":[]}, \"target\":\"aiocqhttp:GroupMessage:123\"}（target 空=未连接目标）"
   }
 }

@@ -11,15 +11,12 @@ class Route:
     name: str
     target: str
     types: set[MessageType] = field(default_factory=set)  # 空=全部
-    senders_include: set[str] = field(default_factory=set)
-    senders_exclude: set[str] = field(default_factory=set)
+    senders_include: set[str] = field(default_factory=set)  # 已连接来源 uid（空=全部来源）
 
     def matches(self, msg: InboundMessage) -> bool:
         if self.types and msg.type not in self.types:
             return False
         pid = str(msg.peer_id or "")
-        if self.senders_exclude and pid in self.senders_exclude:
-            return False
         if self.senders_include:
             return pid and pid in self.senders_include
         return True
@@ -57,7 +54,6 @@ class RouteResolver:
                     target=target,
                     types=_type_set(match.get("types")),
                     senders_include=_str_set(match.get("senders_include")),
-                    senders_exclude=_str_set(match.get("senders_exclude")),
                 )
             )
 

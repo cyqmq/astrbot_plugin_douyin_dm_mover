@@ -40,6 +40,8 @@ export async function loadConfig() {
   store.routes = JSON.parse(JSON.stringify(d.config.routes || []))
   store.customSources = JSON.parse(JSON.stringify(d.config.custom_sources || []))
   store.customTargets = JSON.parse(JSON.stringify(d.config.custom_targets || []))
+  store.simpleTargets = JSON.parse(JSON.stringify(d.config.simple_targets || []))
+  store.advancedTargets = !!d.config.advanced_target_cards
 }
 
 export async function saveConfig(cfg, opts) {
@@ -54,7 +56,9 @@ export function scheduleLiveSave(delay = 1200) {
   liveTimer = setTimeout(async () => {
     await saveConfig({ routes: JSON.parse(JSON.stringify(store.routes)),
       custom_sources: JSON.parse(JSON.stringify(store.customSources)),
-      custom_targets: JSON.parse(JSON.stringify(store.customTargets)) }, { no_reload: true, silent: true })
+      custom_targets: JSON.parse(JSON.stringify(store.customTargets)),
+      simple_targets: JSON.parse(JSON.stringify(store.simpleTargets)),
+      advanced_target_cards: !!store.advancedTargets }, { no_reload: true, silent: true })
     store.liveSavedAt = new Date().toLocaleTimeString('zh-CN', { hour12: false })
   }, delay)
 }

@@ -28,23 +28,6 @@ class MessageTypeRule(BaseRule):
         return msg.type in self.enabled_types
 
 
-class SenderFilterRule(BaseRule):
-    """发送者白/黑名单。peer_id 为 None 时：黑名单不拦，白名单拦。"""
-
-    def __init__(self, whitelist: set[str] | None = None, blacklist: set[str] | None = None):
-        super().__init__("SenderFilterRule")
-        self.whitelist = whitelist or set()
-        self.blacklist = blacklist or set()
-
-    def evaluate(self, msg: InboundMessage) -> bool:
-        pid = str(msg.peer_id or "")
-        if self.blacklist and pid in self.blacklist:
-            return False
-        if self.whitelist:
-            return pid and pid in self.whitelist
-        return True
-
-
 class KeywordFilterRule(BaseRule):
     """命中关键词（如广告/无关词）则丢弃。空列表不过滤。"""
 

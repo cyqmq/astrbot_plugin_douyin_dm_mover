@@ -4,6 +4,18 @@
 
 ## [Unreleased]
 
+## [0.28.0] - 2026-11-10
+
+### Removed
+- 黑白名单机制整体移除：全局 `senders_whitelist`/`senders_blacklist` 过滤（`SenderFilterRule`）、配置 schema 项、路由 `senders_exclude`、前端策略/监控/总览的 +白/+黑 与名单字段。
+
+### Changed
+- 路由页改为手动连接（Cloudflare 绑定风格）：从连接桩拖到另一连接桩建立连接（来源→路由→目标），选中连线按 Delete 断开；不再自动连线。
+  - 来源→路由连接 = 该来源 uid 加入路由 `match.senders_include`（仅这些来源转发）；路由→目标连接 = 设 `target`。
+- 卡片位置持久化：拖拽节点触发实时保存（存 `pos`），刷新后布局保持。
+- 目标列分模式：默认仅 QQ群/私聊（`simple_targets`）；「设置 → 高级 → 目标群卡片（高级）」启用后改用适配器+群号高级卡片（`custom_targets`）。
+- 路由卡精简：去掉目标下拉与发送者包含/排除输入，仅名称/类型/上移/下移/删除。
+
 ## [0.27.0] - 2026-11-10
 
 ### Changed

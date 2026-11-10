@@ -1,6 +1,6 @@
 <script setup>
 import { computed, ref } from 'vue'
-import { store, SELECTS, UMO_KEYS, SENDER_KEYS, JSON_KEYS, lbl, umoSplit } from '../composables/store.js'
+import { store, SELECTS, UMO_KEYS, JSON_KEYS, lbl, umoSplit } from '../composables/store.js'
 import { toast } from '../composables/store.js'
 
 const props = defineProps({ field: { type: String, required: true } })
@@ -11,7 +11,6 @@ const hint = computed(() => schema.value.hint || '')
 const fieldType = computed(() => {
   if (SELECTS[key.value]) return 'select'
   if (UMO_KEYS.includes(key.value)) return 'umo'
-  if (SENDER_KEYS.includes(key.value)) return 'senderlist'
   if (JSON_KEYS.includes(key.value)) return 'json'
   if (schema.value.type === 'bool') return 'bool'
   if (schema.value.type === 'int') return 'int'
@@ -76,12 +75,6 @@ function setGroup(e) {
           <option v-for="[v, l] in SELECTS.qq_adapter_id" :key="v" :value="v">{{ l }}</option>
         </select>
         <input :value="umo.group" placeholder="群号" @input="setGroup($event)">
-      </div>
-    </template>
-    <template v-else-if="fieldType === 'senderlist'">
-      <div class="chips">
-        <span v-for="v in items" :key="v" class="chip">{{ v }}<button @click="delItem(v)">×</button></span>
-        <span class="add"><input v-model="addInput" placeholder="添加 uid" @keydown.enter="addItem"><button @click="addItem">+</button></span>
       </div>
     </template>
     <template v-else-if="fieldType === 'json'">
