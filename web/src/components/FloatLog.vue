@@ -48,8 +48,8 @@ let suppressClick = false
 function onDown(e) {
   if (e.target.closest('.fl-btn')) return
   drag = { sx: e.clientX, sy: e.clientY, x: e.clientX - pos.value.x, y: e.clientY - pos.value.y, moved: false }
-  window.addEventListener('mousemove', onMove)
-  window.addEventListener('mouseup', onUp)
+  window.addEventListener('pointermove', onMove)
+  window.addEventListener('pointerup', onUp)
 }
 function onMove(e) {
   if (!drag) return
@@ -60,8 +60,8 @@ function onMove(e) {
 function onUp() {
   suppressClick = !!(drag && drag.moved)
   drag = null
-  window.removeEventListener('mousemove', onMove)
-  window.removeEventListener('mouseup', onUp)
+  window.removeEventListener('pointermove', onMove)
+  window.removeEventListener('pointerup', onUp)
   savePos()
 }
 
@@ -87,7 +87,7 @@ onBeforeUnmount(stopPoll)
 <template>
   <div class="float-log" :style="{ left: pos.x + 'px', top: pos.y + 'px' }">
     <template v-if="store.floatLog.open">
-      <div class="fl-head" @mousedown="onDown">
+      <div class="fl-head" @pointerdown="onDown">
         <span class="fl-title">调试日志</span>
         <span class="fl-btns">
           <button class="fl-btn" title="清屏" @click="clearLogs">清</button>
@@ -99,7 +99,7 @@ onBeforeUnmount(stopPoll)
         <div v-if="!store.floatLog.logs.length" class="fl-line finfo">暂无日志</div>
       </div>
     </template>
-    <button v-else class="fl-ball" @mousedown="onDown" @click="toggle" title="展开调试日志">
+    <button v-else class="fl-ball" @pointerdown="onDown" @click="toggle" title="展开调试日志">
       <span class="fl-dot"></span>日志
     </button>
   </div>

@@ -149,7 +149,7 @@ kbd { background:var(--card); border:1px solid var(--border2); border-radius:4px
 .fl-dot { width:8px; height:8px; border-radius:999px; background:#3fb950; box-shadow:0 0 6px #3fb950; }
 .fl-head { display:flex; align-items:center; justify-content:space-between; padding:6px 10px;
   background:#111318; border-bottom:1px solid #26282e; border-radius:8px 8px 0 0; cursor:move;
-  user-select:none; }
+  user-select:none; touch-action:none; }
 .fl-title { font-size:12px; font-weight:600; color:#e4e4e7; }
 .fl-btns { display:flex; gap:4px; }
 .fl-btn { width:20px; height:20px; border:none; border-radius:4px; background:transparent;

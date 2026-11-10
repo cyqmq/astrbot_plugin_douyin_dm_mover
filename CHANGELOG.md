@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.2.22] - 2026-11-11
+
+### Fixed
+- **FloatLog 拖拽触屏失效**：`FloatLog.vue` 只监听鼠标事件（`mousedown`/`mousemove`/`mouseup`），手机触摸触发 `touch*` 不响应——胶囊与展开面板头部无法拖动。改为 **Pointer Events**（`pointerdown`/`pointermove`/`pointerup`，`clientX/clientY` 通用，统一鼠标+触屏+笔）；`.fl-head` 加 `touch-action:none`（`.fl-ball` 已有）防触摸拖动时页面滚动抢事件。前端 Vite 重建，旧哈希产物清除。
+
 ## [1.2.21] - 2026-11-11
 
 ### Fixed
