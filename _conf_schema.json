@@ -162,5 +162,20 @@
     "type": "list",
     "default": [],
     "description": "路由表，按序匹配支持多命中。每项: {\"name\":\"\", \"match\":{\"types\":[],\"senders_include\":[]}, \"target\":\"aiocqhttp:GroupMessage:123\"}（target 空=未连接目标）"
+  },
+  "custom_sources": {
+    "type": "list",
+    "default": [],
+    "description": "自定义来源卡（运行时维护）：[{id,uid,nickname,pos}]"
+  },
+  "custom_targets": {
+    "type": "list",
+    "default": [],
+    "description": "自定义目标卡（高级模式，运行时维护）：[{id,adapter,group,pos}]"
+  },
+  "simple_targets": {
+    "type": "list",
+    "default": [],
+    "description": "简单目标卡（默认模式，运行时维护）：[{id,adapter,kind,value,pos}]"
   }
 }

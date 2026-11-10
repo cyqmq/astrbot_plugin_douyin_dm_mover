@@ -4,6 +4,13 @@
 
 ## [Unreleased]
 
+## [0.52.0] - 2026-11-10
+
+### Fixed
+- **正文紧贴 header**：`build_chain` 正文前加换行（`Plain("\n"+body)`），AstrBot 拼接多个 Plain 无换行，正文不再显示为 `header1`（如 `· 17:061`）。
+- **发送者昵称显示 uid**：`converter` 昵称回退链改为 `content.name/nick_name → nickname_provider(sender)（查好友缓存）→ peer_id`；gateway 提供 `_lookup_nickname`（查 `_friends`）。不再裸显示 uid。
+- **重启后来源/目标卡丢失**：`_conf_schema.json` 追加 `custom_sources`/`custom_targets`/`simple_targets`（`type:"list"`），AstrBot `check_config_integrity` 不再删除 schema 未声明的运行时字段。
+
 ## [0.51.0] - 2026-11-10
 
 ### Fixed

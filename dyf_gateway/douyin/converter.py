@@ -46,9 +46,11 @@ def _first_url(obj) -> str:
 class DouyinConverter:
     """按当前 self_uid 把原始帧转成 InboundMessage。"""
 
-    def __init__(self, self_uid_provider):
+    def __init__(self, self_uid_provider, nickname_provider=None):
         # self_uid_provider: callable -> int | None（每次调用取最新解析值）
+        # nickname_provider: callable uid -> str | None（查发送者昵称，回退昵称而非 uid）
         self._uid_provider = self_uid_provider
+        self._nickname_provider = nickname_provider
 
     @property
     def self_uid(self) -> int | None:
@@ -69,7 +71,15 @@ class DouyinConverter:
         mtype, text, media_urls, card = self._classify(msg_type, content)
 
         peer_id = resolve_peer(conversation_id, self_uid)
-        peer_name = str(content.get("name") or content.get("nick_name") or peer_id or "")
+        # 昵称：content.name/nick_name → 发送者昵称（好友/会话）→ 才回退 peer_id（不裸显示 uid）
+        peer_name = str(content.get("name") or content.get("nick_name") or "")
+        if not peer_name and self._nickname_provider is not None:
+            try:
+                peer_name = str(self._nickname_provider(sender) or "")
+            except Exception:
+                peer_name = ""
+        if not peer_name:
+            peer_name = str(peer_id or "")
 
         return InboundMessage(
             source_platform="douyin",

@@ -68,7 +68,8 @@ class MessageBuilder:
         parts = [Plain(self._header(msg))]
         body = self._body(msg)
         if body:
-            parts.append(Plain(body))
+            # 前置换行：AstrBot 拼接多个 Plain 无换行，正文需独立一行（否则紧贴 header）
+            parts.append(Plain("\n" + body))
         for url in msg.media_urls:
             if not url:
                 continue

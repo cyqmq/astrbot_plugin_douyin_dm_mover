@@ -53,7 +53,7 @@ class DouyinGateway(MessageGateway):
             watchdog_minutes=config.get("auth_watchdog_minutes", 30),
         )
         self._self_uid: int | None = None
-        self._converter = DouyinConverter(lambda: self._self_uid)
+        self._converter = DouyinConverter(lambda: self._self_uid, self._lookup_nickname)
         self._receiver: DouyinReceiver | None = None
         self._thread: threading.Thread | None = None
         self._loop: asyncio.AbstractEventLoop | None = None
@@ -95,6 +95,19 @@ class DouyinGateway(MessageGateway):
         self._friends: list[dict] = []    # 好友列表缓存（familiar-list 全量）
         self._friends_ts: float = 0.0     # 好友缓存时间戳（TTL 300s）
         self._http: DouyinHttpPy | None = None  # 视频详情/好友列表 HTTP（懒建，随会话 Cookie）
+
+    def _lookup_nickname(self, uid) -> str:
+        """发送者昵称：查好友缓存（{uid,nickname}）；找不到返回空（调用方回退 peer_id）。"""
+        if uid in (None, ""):
+            return ""
+        try:
+            suid = str(uid)
+            for f in self._friends or []:
+                if str(f.get("uid") or f.get("user_id") or "") == suid:
+                    return str(f.get("nickname") or f.get("nick_name") or "")
+        except Exception:
+            return ""
+        return ""
 
     # ---- 好友缓存持久化（重载后内存清空，用文件缓存避免每次全量重拉） ----
     @property
