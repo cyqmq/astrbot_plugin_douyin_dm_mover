@@ -43,7 +43,7 @@ export const LABELS = {
   self_uid: '本机 UID', device_id: '设备 ID', gateway_mode: '网关模式', login_backend: '登录后端',
   mfa_mode: 'MFA 模式', login_timeout: '登录超时(秒)', login_mfa_timeout: 'MFA 超时(秒)',
   auth_watchdog_minutes: '看门狗(分)', auth_failure_close_codes: '失效关闭码', auth_failure_keywords: '失效关键词',
-  max_message_length: '最大消息长度', include_link: '附带链接', header_template: '转发模板',
+  max_message_length: '最大消息长度', include_link: '附带链接', card_enabled: '信息卡片图', header_template: '转发模板',
   default_target_group: '默认目标群', rate_limit_global_enabled: '全局限流', rate_limit_global_max_per_min: '全局限流(次/分)',
   rate_limit_sender_enabled: '单人限流', rate_limit_sender_max_per_min: '单人限流(次/分)',
   dedup_enabled: '去重', dedup_window_seconds: '去重窗口(秒)', retry_enabled: '失败重试',
@@ -70,11 +70,11 @@ export const POLICY_KEYS = ['rate_limit_global_enabled', 'rate_limit_global_max_
 export const SETTINGS_KEYS = ['douyin_cookies', 'douyin_web_protect', 'douyin_keys', 'self_uid', 'device_id',
   'gateway_mode', 'login_backend', 'mfa_mode', 'login_timeout', 'login_mfa_timeout',
   'auth_watchdog_minutes', 'auth_failure_close_codes', 'auth_failure_keywords',
-  'max_message_length', 'include_link', 'header_template', 'default_target_group', 'sources']
+  'max_message_length', 'include_link', 'card_enabled', 'header_template', 'default_target_group', 'sources']
 
 export const SETTINGS_GROUPS = [
   ['登录', ['douyin_cookies', 'douyin_web_protect', 'douyin_keys', 'self_uid', 'device_id', 'login_backend', 'mfa_mode', 'login_timeout', 'login_mfa_timeout', 'auth_watchdog_minutes', 'auth_failure_close_codes', 'auth_failure_keywords']],
-  ['转发', ['max_message_length', 'include_link', 'header_template', 'default_target_group', 'sources']]
+  ['转发', ['max_message_length', 'include_link', 'card_enabled', 'header_template', 'default_target_group', 'sources']]
 ]
 export const POLICY_GROUPS = [
   ['限流', ['rate_limit_global_enabled', 'rate_limit_global_max_per_min', 'rate_limit_sender_enabled', 'rate_limit_sender_max_per_min']],

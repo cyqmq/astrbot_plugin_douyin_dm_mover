@@ -1,6 +1,7 @@
-"""InboundMessage → MessageChain 构建（含 [转发] 前缀、净化、截断）。"""
+"""InboundMessage → MessageChain 构建（含 [转发] 前缀、净化、截断、卡片图）。"""
 from __future__ import annotations
 
+import base64
 from datetime import datetime
 
 from astrbot.api.event import MessageChain
@@ -64,13 +65,22 @@ class MessageBuilder:
                 text = f"{text}\n{link}".strip()
         return _truncate(text, self.max_length)
 
-    def build_chain(self, msg: InboundMessage) -> MessageChain | None:
+    def build_chain(self, msg: InboundMessage, card_image: bytes | None = None) -> MessageChain | None:
         parts = [Plain(self._header(msg))]
         body = self._body(msg)
         if body:
             # 前置换行：AstrBot 拼接多个 Plain 无换行，正文需独立一行（否则紧贴 header）
             parts.append(Plain("\n" + body))
-        for url in msg.media_urls:
+        # 卡片图（含封面+标题）替换首个媒体（封面），其余媒体照发；失败退回原媒体
+        media_urls = list(msg.media_urls)
+        if card_image:
+            try:
+                parts.append(Image.fromBase64(base64.b64encode(card_image).decode()))
+                if media_urls:
+                    media_urls = media_urls[1:]
+            except Exception:
+                pass  # 卡片图失败退回原媒体列表
+        for url in media_urls:
             if not url:
                 continue
             if msg.type in (MessageType.IMAGE, MessageType.VIDEO_CARD):

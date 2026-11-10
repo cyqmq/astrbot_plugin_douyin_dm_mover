@@ -98,6 +98,11 @@
     "default": true,
     "description": "视频卡片附带抖音视频链接"
   },
+  "card_enabled": {
+    "type": "bool",
+    "default": true,
+    "description": "视频/图集转发时生成信息卡片图（无中文字体或渲染失败自动退回文本）"
+  },
   "header_template": {
     "type": "string",
     "default": "[转发] {source} {peer_name} · {time}",

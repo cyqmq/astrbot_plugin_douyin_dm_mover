@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+## [0.62.0] - 2026-11-10
+
+### Added
+- **信息卡片图渲染**：借鉴 nonebot-plugin-parsehub 的 `card/`（App Store「Today」风格）——视频/图集转发时渲染一张卡图（封面按比例裁切聚焦 28% + 竖直渐变遮罩 + 平台名「抖音」+ 标题 + 类型标签），替代纯文本/裸图转发；新增 `dyf_core/card.py`（纯 Pillow，渐变遮罩不用 numpy），`message_builder.build_chain` 支持 `card_image` 替换首媒体，`forward_manager` 在消费循环 `asyncio.to_thread` 同步渲染。
+- **card_enabled 配置**：转发开关（默认开）；无中文字体或渲染失败自动退回文本转发（`card.available()` 探测）。metadata 依赖加 `pillow>=10.0.0`；schema/前端设置页加 `card_enabled`。
+
 ## [0.61.0] - 2026-11-10
 
 ### Fixed

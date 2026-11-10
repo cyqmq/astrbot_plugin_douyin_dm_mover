@@ -8,9 +8,10 @@ from astrbot.api import logger
 
 from dyf_core.alert import AlertService
 from dyf_core.cache_manager import CacheManager
+from dyf_core.card import render_card_safe
 from dyf_core.message_builder import MessageBuilder
 from dyf_core.message_sender import MessageSender
-from dyf_core.model import InboundMessage
+from dyf_core.model import InboundMessage, MessageType
 from dyf_core.ratelimit import RateLimiter
 from dyf_core.retry_manager import RetryManager
 from dyf_core.router import RouteResolver
@@ -58,6 +59,7 @@ class ForwardManager:
             interval_seconds=config.get("retry_interval_seconds", 1800),
             enabled=bool(config.get("retry_enabled", True)),
         )
+        self.card_enabled = bool(config.get("card_enabled", True))
         self.alert = AlertService(
             context,
             alert_target=config.get("alert_target", ""),
@@ -130,7 +132,12 @@ class ForwardManager:
             logger.info(f"[dyf] 无匹配路由，跳过: type={msg.type} peer={msg.peer_id}")
             return
 
-        chain = self.builder.build_chain(msg)
+        card_image = None
+        if self.card_enabled and msg.type in (MessageType.VIDEO_CARD, MessageType.IMAGE):
+            import asyncio
+
+            card_image = await asyncio.to_thread(render_card_safe, msg)
+        chain = self.builder.build_chain(msg, card_image)
         if chain is None:
             return
 
