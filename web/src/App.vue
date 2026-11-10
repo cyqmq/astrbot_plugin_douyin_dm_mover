@@ -10,6 +10,7 @@ import PolicyTab from './components/tabs/PolicyTab.vue'
 import MonitorTab from './components/tabs/MonitorTab.vue'
 import LogsTab from './components/tabs/LogsTab.vue'
 import SettingsTab from './components/tabs/SettingsTab.vue'
+import FloatLog from './components/FloatLog.vue'
 
 const title = computed(() => TITLES[store.tab]?.[0] || '')
 const sub = computed(() => TITLES[store.tab]?.[1] || '')
@@ -39,5 +40,6 @@ const sub = computed(() => TITLES[store.tab]?.[1] || '')
     <MobileNav />
   </div>
   <LoginModal />
+  <FloatLog v-if="store.floatLog.enabled" />
   <div id="toast" :style="{ opacity: toastMsg.on ? 1 : 0 }">{{ toastMsg.text }}</div>
 </template>

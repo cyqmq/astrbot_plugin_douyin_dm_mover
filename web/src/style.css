@@ -137,6 +137,30 @@ label.f .hint { grid-column:2; color:var(--muted); font-size:11px; line-height:1
 .route-card .rc-sub { color:var(--muted); font-size:10px; text-align:center; padding:2px 0 0; }
 kbd { background:var(--card); border:1px solid var(--border2); border-radius:4px; padding:0 5px;
   font:11px/18px ui-monospace,monospace; color:var(--text); }
+
+/* ===== 全局浮动调试日志 ===== */
+.float-log { position:fixed; z-index:40; }
+.fl-ball { display:flex; align-items:center; gap:6px; padding:8px 14px; border-radius:999px;
+  border:1px solid rgba(255,255,255,.18); background:rgba(16,18,24,.55); color:#e4e4e7;
+  font-size:12px; cursor:pointer; backdrop-filter:blur(6px); box-shadow:0 2px 12px rgba(0,0,0,.25);
+  transition:.15s; }
+.fl-ball:hover { background:rgba(16,18,24,.78); }
+.fl-dot { width:8px; height:8px; border-radius:999px; background:#3fb950; box-shadow:0 0 6px #3fb950; }
+.fl-head { display:flex; align-items:center; justify-content:space-between; padding:6px 10px;
+  background:#111318; border-bottom:1px solid #26282e; border-radius:8px 8px 0 0; cursor:move;
+  user-select:none; }
+.fl-title { font-size:12px; font-weight:600; color:#e4e4e7; }
+.fl-btns { display:flex; gap:4px; }
+.fl-btn { width:20px; height:20px; border:none; border-radius:4px; background:transparent;
+  color:#9aa0a6; font-size:12px; line-height:1; cursor:pointer; }
+.fl-btn:hover { background:rgba(255,255,255,.12); color:#fff; }
+.fl-body { width:320px; height:260px; overflow:auto; background:rgba(14,16,20,.96);
+  border-radius:0 0 8px 8px; padding:6px 8px; font:11px/1.55 ui-monospace,monospace;
+  color:#c9cdd3; }
+.fl-line { white-space:pre-wrap; word-break:break-word; }
+.fl-line.finfo { color:#c9cdd3; }
+.fl-line.fwarn { color:#d29922; }
+.fl-line.ferr { color:#f85149; }
 .rsep { height:1px; background:var(--border); margin:14px 0 4px; }
 .save-row { margin-top:12px; }
 .chips { display:flex; flex-wrap:wrap; gap:5px; align-items:center; }

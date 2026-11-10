@@ -127,6 +127,7 @@ export const store = reactive({
   schema: {},
   routes: [],
   liveSavedAt: '',
+  floatLog: { enabled: false, open: false, logs: [], loading: false },
   auto: true,
   autoSec: 5
 })
