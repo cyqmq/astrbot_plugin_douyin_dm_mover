@@ -13,6 +13,22 @@ from .login.alemonjs_py.abogus import generate_jumpbyte_abogus
 
 DETAIL_URL = "https://www.douyin.com/aweme/v1/web/aweme/detail/"
 
+# 匿名设备标识预热：首次访问 douyin.com 首页会签发 UIFID/UIFID_TEMP/ttwid
+# 设备 cookie（服务端生成），Argus 网关校验 x-tt-argus 头 + 该设备 cookie。
+_web_identity_ready = False
+
+
+def _ensure_web_identity(http: DouyinHttpPy, timeout: int = 8) -> None:
+    """预热拿 UIFID 设备 cookie（幂等，进程内一次）。失败不致命。"""
+    global _web_identity_ready
+    if _web_identity_ready:
+        return
+    _web_identity_ready = True
+    try:
+        http.request_raw("https://www.douyin.com/", "GET", timeout=timeout)
+    except Exception:
+        pass  # 预热失败仅无 UIFID，详情仍可能被 Argus 拒（下次重试靠重启/新会话）
+
 
 def _web_detail_query(aweme_id: str) -> dict:
     """网页端详情参数（对齐 ParseHub DouyinWebCrawler.fetch_one_video）。
@@ -122,13 +138,19 @@ def fetch_aweme_detail(http: DouyinHttpPy, aweme_id: str, timeout: int = 8) -> d
     if not aweme_id:
         return None
     try:
+        _ensure_web_identity(http)
         query = _web_detail_query(aweme_id)
         query_wire = urlencode(query)
         abogus = generate_jumpbyte_abogus(
             query=query_wire, body="", user_agent=http.get_user_agent()
         )
         url = f"{DETAIL_URL}?{query_wire}&a_bogus={quote(abogus, safe='')}"
-        data = http.request_json(url, "GET", timeout=timeout)
+        data = http.request_json(
+            url,
+            "GET",
+            headers={"x-tt-argus": "1"},  # Argus 网关基础校验：当前不校验取值
+            timeout=timeout,
+        )
     except (RuntimeError, TypeError, ValueError, KeyError, ConnectionError, OSError) as e:
         return {"desc": "", "cover": "", "play_url": "", "error": str(e)}
     detail = data.get("aweme_detail") or {}

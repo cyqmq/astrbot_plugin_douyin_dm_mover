@@ -4,7 +4,12 @@
 
 ## [Unreleased]
 
-## [1.2.14] - 2026-11-10
+## [1.2.15] - 2026-11-11
+
+### Fixed
+- **详情接口 Argus 403（Uifid Not Found）**：www.douyin.com 详情被 Argus 网关拦——缺匿名设备标识。加 `x-tt-argus: 1` 头（网关基础校验当前不校验取值）+ `_ensure_web_identity` 预热：首次 GET `https://www.douyin.com/` 让服务端签发 UIFID/UIFID_TEMP/ttwid 设备 cookie（幂等、进程内一次、失败不致命）。详情请求带该头 + jar 设备 cookie。
+
+## [1.2.14] - 2026-11-11
 
 ### Changed
 - **详情接口切 www.douyin.com（公开、游客可访问）**：`DETAIL_URL` imdesktop → `www.douyin.com/aweme/v1/web/aweme/detail/`；query 改用网页端参数 `_web_detail_query`（24 项，对齐 ParseHub `fetch_one_video`：aid=6383、device_platform=webapp、浏览器指纹等）；a_bogus 签名保留（www 有效）。登录态零改动（内容详情独立走 www）。
