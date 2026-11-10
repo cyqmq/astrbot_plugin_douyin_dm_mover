@@ -92,7 +92,6 @@ class DashboardApi:
         reg("douyin_dm_mover/records/clear", self.clear_records, ["POST"], "dyf 清空搬运记录")
         reg("douyin_dm_mover/logs", self.logs, ["GET"], "dyf 运行日志")
         reg("douyin_dm_mover/logs/clear", self.clear_logs, ["POST"], "dyf 清空日志")
-        reg("douyin_dm_mover/install-alemonjs", self.install_alemonjs, ["POST"], "dyf 安装 @alemonjs/douyin 登录依赖")
         reg("douyin_dm_mover/reload", self.reload_plugin, ["POST"], "dyf 重载插件（刷新深层代码）")
         reg("douyin_dm_mover/mfa", self.submit_mfa, ["POST"], "dyf 提交短信验证码")
         reg("douyin_dm_mover/config/get", self.config_get, ["GET"], "dyf 读取配置 + schema")
@@ -101,11 +100,6 @@ class DashboardApi:
         reg("douyin_dm_mover/friends", self.friends, ["GET"], "dyf 好友列表（familiar-list）")
         reg("douyin_dm_mover/groups", self.groups, ["GET"], "dyf 可发送群列表（AstrBot get_group_list）")
         reg("douyin_dm_mover/platforms", self.platforms, ["GET"], "dyf 已加载平台实例列表")
-
-    async def install_alemonjs(self):
-        """一键安装 @alemonjs/douyin（Node 依赖）。"""
-        ok, msg = await self.gateway.install_login_backend()
-        return {"ok": ok, "detail": msg}
 
     async def reload_plugin(self):
         """后台重载本插件：终止当前实例并重新加载，使深层代码（dyf_gateway 等）生效。"""
@@ -169,16 +163,9 @@ class DashboardApi:
             "alert_target": str(cfg.get("alert_target", "") or ""),
             "mfa_mode": str(cfg.get("mfa_mode") or "auto_sms"),
             "login_backend": str(cfg.get("login_backend") or "alemonjs"),
-            "alemonjs_installed": self._alemonjs_installed(),
             "senders_count": len(fm.tracker.senders()),
             "records_count": len(fm.tracker.records()),
         }
-
-    @staticmethod
-    def _alemonjs_installed() -> bool:
-        from dyf_gateway.douyin.login.alemonjs import _NODE_MODULE
-
-        return bool(_NODE_MODULE.exists())
 
     async def senders(self):
         return {"senders": self.fm.tracker.senders()}

@@ -34,8 +34,7 @@
   "login_backend": {
     "type": "string",
     "default": "alemonjs",
-    "description": "登录后端: alemonjs（默认，@alemonjs/douyin Node 桥接）| douyin_spider（旧 vendored）",
-    "hint": "alemonjs 需在插件根目录 npm install @alemonjs/douyin，且 Node >= 20.19"
+    "description": "登录后端: alemonjs（默认，@alemonjs/douyin 纯 Python 移植）| douyin_spider（旧 vendored）"
   },
   "mfa_mode": {
     "type": "string",

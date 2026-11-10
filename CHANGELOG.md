@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.2.20] - 2026-11-11
+
+### Removed
+- **Node 桥接登录后端（默认已不走）**：删 `login/alemonjs.py` + `alemonjs_bridge.mjs` + 根 `package.json`/`package-lock.json`（@alemonjs/douyin Node 依赖，仅显式 `login_backend=alemonjs_node` 用，默认纯 Python 移植）。同步删 `gateway.py`/`subprocess_gateway.py` 的 `AlemonjsLogin` import + `alemonjs_node` 分支 + `install_login_backend` 方法；`dashboard.py` 删 `install-alemonjs` 路由 + `install_alemonjs` + `_alemonjs_installed` + status 字段；`README.md` 登录后端改默认纯 Python（无 Node 依赖）；`_conf_schema.json` `login_backend` 去掉 Node hint（选项收窄 alemonjs 纯 Python / douyin_spider）。
+
 ## [1.2.19] - 2026-11-11
 
 ### Changed

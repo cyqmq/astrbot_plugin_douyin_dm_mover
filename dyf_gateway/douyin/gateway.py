@@ -16,7 +16,6 @@ from ..base import MessageGateway
 from .converter import DouyinConverter
 from .detector import AuthFailureDetector
 from .device import resolve_device_id
-from .login.alemonjs import AlemonjsLogin
 from .login.alemonjs_py import DouyinHttpPy
 from .login.alemonjs_py_login import AlemonsPyLogin
 from .login.flow import LoginFlow
@@ -75,13 +74,8 @@ class DouyinGateway(MessageGateway):
             on_qrcode=self._on_qr,
             on_log=self._log_login,
         )
-        # ---- 登录后端：默认纯 Python（@alemonjs/douyin 移植）；可选 Node 桥接 / douyin_spider ----
+        # ---- 登录后端：默认纯 Python（@alemonjs/douyin 移植）；可选 douyin_spider ----
         self._login_backend = (config.get("login_backend") or "alemonjs").lower()
-        self._alemonjs = AlemonjsLogin(
-            on_qrcode=self._on_qr_alemonjs,
-            on_log=self._log_login,
-            code_waiter=self._code_waiter,
-        )
         self._alemonjs_py = AlemonsPyLogin(
             on_qrcode=self._on_qr_alemonjs,
             on_log=self._log_login,
@@ -291,22 +285,6 @@ class DouyinGateway(MessageGateway):
                 if dev:
                     auth.device_id = str(dev)
                 auth._login_backend = "alemonjs"
-            elif backend in ("alemonjs_node", "node"):
-                logger.info("[dyf] 登录后端：@alemonjs/douyin（Node 桥接）")
-                result = await self._alemonjs.qrcode_login_async(timeout=timeout)
-                saved_backend = "alemonjs_node"
-                cookie_str = result.cookie_str
-                uid = int(result.uid) if result.uid else None
-                dev = result.device_id
-                auth = DouyinAuth(
-                    cookie_str=cookie_str,
-                    web_protect=self._config.get("douyin_web_protect", ""),
-                    keys=self._config.get("douyin_keys", ""),
-                )
-                auth.uid = uid
-                if dev:
-                    auth.device_id = str(dev)
-                auth._login_backend = "alemonjs_node"
             else:
                 loop = asyncio.get_running_loop()
                 auth = await loop.run_in_executor(
@@ -394,15 +372,6 @@ class DouyinGateway(MessageGateway):
     def login_in_progress(self) -> bool:
         """是否正在扫码登录（登录线程持锁期间为 True）。"""
         return bool(self._login_lock.locked())
-
-    async def install_login_backend(self) -> tuple[bool, str]:
-        """安装登录依赖：纯 Python 后端已内置，无需 Node；如需 Node 桥接回退可 npm install。"""
-        backend = self._login_backend
-        if backend in ("alemonjs", "alemonjs_py", "python"):
-            return True, "登录后端为纯 Python 实现（@alemonjs/douyin 移植），无需安装依赖。"
-        from .login.alemonjs import ensure_alemonjs
-
-        return await ensure_alemonjs(install=True)
 
     def trigger_mfa_send(self) -> None:
         self._code_waiter.trigger_send()
