@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-11-10
+
+### Added
+- **视频详情规范化（摘取 ParseHub）**：`video.py` 内嵌 ParseHub 的 `parse_video_info`/`remove_video_watermark`（MIT，Copyright 2024 梓澪）——去水印（playwm→play）、bit_rate 编码过滤（bytevc1）回退、宽高提取；`fetch_aweme_detail` 补 `play_url`/`backup_urls`/`width`/`height`/`duration`，封面优先用 `thumb_url`（取 url_list 末位）。README/LICENSE 注明来源与 MIT 许可。
+
 ## [1.1.2] - 2026-11-10
 
 ### Fixed

@@ -21,10 +21,16 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 ---
-例外声明（Non-Covered Code）：
+例外声明（Non-Covered / Third-Party Code）：
 
-本仓库 `dyf_gateway/douyin/vendored/` 下的代码是
-[cv-cat/DouYin_Spider](https://github.com/cv-cat/DouYin_Spider) 私信 WebSocket/Protobuf
-协议的最小子集，**不在上述 MIT 许可范围内**。该上游仓库**未提供开源许可文件**（默认保留
-所有权利），其 README 声明仅供学习与技术研究使用、严禁发布不良或违法内容。引用该子集
-仅限学习与技术研究用途；如需商业分发或超出学习研究场景，请先取得上游作者授权。
+1. `dyf_gateway/douyin/vendored/`：来自
+   [cv-cat/DouYin_Spider](https://github.com/cv-cat/DouYin_Spider) 私信 WebSocket/Protobuf
+   协议的最小子集，**不在上述 MIT 许可范围内**。该上游仓库**未提供开源许可文件**（默认保留
+   所有权利），其 README 声明仅供学习与技术研究使用、严禁发布不良或违法内容。引用该子集
+   仅限学习与技术研究用途；如需商业分发或超出学习研究场景，请先取得上游作者授权。
+
+2. `dyf_gateway/douyin/video.py` 的 `parse_video_info`/`remove_video_watermark`/
+   `_p_play_addr`/`_p_bit_rates`：摘取自
+   [z-mio/ParseHub](https://github.com/z-mio/ParseHub)（MIT License，
+   Copyright (c) 2024 梓澪），保留上游版权与许可声明（详见 `video.py` 模块注释），
+   MIT 许可文本见 https://github.com/z-mio/ParseHub/blob/master/LICENSE。

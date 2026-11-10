@@ -101,6 +101,11 @@ https://github.com/cyqmq/astrbot_plugin_douyin_dm_mover
 
 ## 借鉴与致谢
 
+- **视频信息规范化**：摘取 [z-mio/ParseHub](https://github.com/z-mio/ParseHub) 的
+  `parse_video_info`/`remove_video_watermark`（MIT License，Copyright (c) 2024 梓澪）
+  内嵌到 `dyf_gateway/douyin/video.py`——去水印（playwm→play）、bit_rate 编码过滤
+  （bytevc1）回退、宽高提取；增强 `fetch_aweme_detail` 的 play_url/cover 提取。
+  保留上游版权与 MIT 许可（见 `video.py` 模块注释）。
 - **信息卡片渲染 / delivery 失败记账 / media 分批 / budget 与 dedupe / feedback 反馈设计**：
   借鉴 [nonebot-plugin-parsehub](https://github.com/ByteColtX/nonebot-plugin-parsehub)
   （MIT License，Copyright (c) 2026 ByteColtX）的**设计思想与概念**——包括 App Store
