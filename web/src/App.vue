@@ -6,6 +6,7 @@ import MobileNav from './components/MobileNav.vue'
 import LoginModal from './components/LoginModal.vue'
 import OverviewTab from './components/tabs/OverviewTab.vue'
 import RoutesTab from './components/tabs/RoutesTab.vue'
+import FriendsTab from './components/tabs/FriendsTab.vue'
 import PolicyTab from './components/tabs/PolicyTab.vue'
 import MonitorTab from './components/tabs/MonitorTab.vue'
 import LogsTab from './components/tabs/LogsTab.vue'
@@ -32,6 +33,7 @@ const sub = computed(() => TITLES[store.tab]?.[1] || '')
       </div>
       <OverviewTab v-if="store.tab === 'overview'" />
       <RoutesTab v-else-if="store.tab === 'routes'" />
+      <FriendsTab v-else-if="store.tab === 'friends'" />
       <PolicyTab v-else-if="store.tab === 'policy'" />
       <MonitorTab v-else-if="store.tab === 'monitor'" />
       <LogsTab v-else-if="store.tab === 'logs'" />

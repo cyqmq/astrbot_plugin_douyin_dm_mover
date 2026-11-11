@@ -32,6 +32,7 @@ export const ROUTE_TYPES = [['text', '文本'], ['video_card', '视频卡片'], 
 export const TITLES = {
   overview: ['总览', '登录态与最近搬运概览'],
   routes: ['路由', '转发路由表'],
+  friends: ['好友', '抖音好友列表与回关'],
   policy: ['策略', '限流 / 去重 / 过滤 / 告警'],
   monitor: ['监控', '发石者与搬运明细'],
   logs: ['日志', '运行日志'],
