@@ -6,6 +6,8 @@ import inspect
 import time
 from urllib.parse import quote, urlencode
 
+from astrbot.api import logger
+
 from .abogus import generate_jumpbyte_abogus
 from .http import DouyinHttpPy
 from .mixmode import code_encrypt, mix_mode_encode, pick_qr_biz_params, qr_mfa_body
@@ -133,8 +135,13 @@ def check_qrconnect(
     query = _sign_passport_query(base_query, body, sign_extras(http, body_wire), body_wire)
     url = desktop_passport_url("/passport/web/check_qrconnect/", urlencode(query))
     headers = {"Content-Type": "application/x-www-form-urlencoded", **http.passport_headers(url)}
-    res = http.request_json(url, "POST", headers=headers, body=body_wire)
-    return res.get("data") or {}
+    resp = http.request_raw(url, "POST", headers=headers, body=body_wire)
+    res = resp.json()
+    d = res.get("data") or {}
+    # 诊断：登录 confirmed 响应头（找 bd-ticket-guard-server-data —— ts_sign 真源）
+    if d.get("status") == "confirmed":
+        logger.info(f"[dyf] LOGIN_HEADERS: {dict(resp.headers)}")
+    return d
 
 
 def _desktop_lite_base_query(device_id: str | None) -> dict:

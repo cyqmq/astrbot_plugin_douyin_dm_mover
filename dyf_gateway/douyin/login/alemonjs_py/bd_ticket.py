@@ -15,6 +15,7 @@ import hmac
 import json
 from urllib.parse import urlencode
 
+from astrbot.api import logger
 from ecdsa import NIST256p, SigningKey, VerifyingKey
 from ecdsa.util import sigencode_der
 
@@ -134,6 +135,8 @@ def fetch_server_cert(http: DouyinHttpPy, aid: str = "6383") -> tuple[str, str]:
     resp = http.request_raw(
         url, "POST", headers=headers, body=f"server_data=1,aid={aid}", timeout=20
     )
+    # 诊断：get_client_cert 响应头（找 bd-ticket-guard-server-data —— ts_sign 真源）
+    logger.info(f"[dyf] CERT_HEADERS: {dict(resp.headers)}")
     res_json = resp.json()
     if res_json.get("message") != "success":
         raise RuntimeError(f"获取服务端证书失败: {res_json}")

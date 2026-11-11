@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.2.45] - 2026-11-11
+
+### Added
+- **响应头诊断**（找 `bd-ticket-guard-server-data`——ts_sign 真源）：登录 confirmed 响应头打 `[dyf] LOGIN_HEADERS: {...}`（`check_qrconnect`，仅 confirmed 时）；`fetch_server_cert` 打 `[dyf] CERT_HEADERS: {...}`——看哪个响应头带 `bd-ticket-guard-server-data`（base64 JSON → `["ts_sign"]`），据此改 `build_bd_ticket` 取 ts_sign。
+
 ## [1.2.44] - 2026-11-11
 
 ### Fixed
