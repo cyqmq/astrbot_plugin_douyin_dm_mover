@@ -4,6 +4,14 @@
 
 ## [Unreleased]
 
+## [1.2.41] - 2026-11-11
+
+### Fixed
+- **好友三态字段/判断**（实测：`follow_status=2`（2=已关注，非1）+ `follower_status=1`（他关注我））：`contact.py` 透传改 `follower_status`/`relation_label`（原 `is_following` 不存在）；前端 `stateOf` 改 `fs>=1`（已关注是 1 或 2，不能只判 ===1）+ `follower_status` 判互关——互关显示「互关」（无回关按钮）、未回关显示回关按钮。
+
+### Notes
+- **BDTicket 缺失**（COOKIE_KEYS 无 `bd_ticket`）：follow/user（imdesktop 需票据）、following/follower（www 需 bd-ticket-guard）都走不通；只有 familiar/list（a_bogus）可用。需重扫二维码登录（@alemonjs 桌面扫码会建 `bd_ticket`）后 COOKIE_KEYS 出现 `bd_ticket` 再测回关。
+
 ## [1.2.40] - 2026-11-11
 
 ### Added

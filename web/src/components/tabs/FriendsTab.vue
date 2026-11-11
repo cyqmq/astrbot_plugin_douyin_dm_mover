@@ -21,10 +21,14 @@ async function doFollow(f) {
   if (await followFriend(f)) followed[f.uid] = true
 }
 // 三态：'' 未回关（显示回关按钮）| '已回关'（乐观）| '互关' | '已关注'（持久）
+// follow_status: 0 未 / 1,2 已关注（抖音已关注是 1 或 2，不能只判 ===1）
+// follower_status: 1 = 他关注我
 function stateOf(f) {
   if (followed[f.uid]) return '已回关'
   const fs = Number(f.follow_status || 0)
-  if (fs === 1) return Number(f.is_following || 0) ? '互关' : '已关注'
+  const fs2 = Number(f.follower_status || 0)
+  if (fs >= 1 && fs2) return '互关'
+  if (fs >= 1) return '已关注'
   return ''
 }
 function onFocus() {
