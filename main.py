@@ -23,11 +23,15 @@ sys.path.insert(0, _PLUGIN_ROOT)
 # 重载时加载新代码而非旧缓存。只清本插件相关前缀，避免误伤其它插件共享的裸名模块。
 _PLUGIN_MODULE_PREFIX = "astrbot_plugin_douyin_dm_mover"
 _BARE_PLUGIN_PREFIXES = ("dyf_gateway", "dyf_core", "dyf_config")
+
+
+def _is_own_module(key: str) -> bool:
+    """本插件子模块键：精确包名或 包名. 子模块（不匹配 dyf_gateway_extra 等第三方）。"""
+    return any(key == p or key.startswith(p + ".") for p in _BARE_PLUGIN_PREFIXES)
+
+
 for _key in list(sys.modules):
-    if (
-        _key.startswith(_BARE_PLUGIN_PREFIXES)
-        or _PLUGIN_MODULE_PREFIX in _key
-    ):
+    if _is_own_module(_key) or _PLUGIN_MODULE_PREFIX in _key:
         sys.modules.pop(_key, None)
 
 from dyf_config import DEFAULT_DATA_DIR, DEFAULT_SOURCES
@@ -97,14 +101,11 @@ class DouyinForwardPlugin(Star):
     def _purge_own_modules(self) -> None:
         """清理本插件残留模块缓存，确保重载时加载新代码。
 
-        清裸名包（dyf_gateway/dyf_core/dyf_config）前缀与含插件名的主模块键，
+        清裸名包（dyf_gateway/dyf_core/dyf_config）与含插件名的主模块键，
         避免误伤其它插件共享的裸名模块（config/core/utils 等）。
         """
         for _k in list(sys.modules):
-            if (
-                _k.startswith(_BARE_PLUGIN_PREFIXES)
-                or _PLUGIN_MODULE_PREFIX in _k
-            ):
+            if _is_own_module(_k) or _PLUGIN_MODULE_PREFIX in _k:
                 sys.modules.pop(_k, None)
 
     # ---- 生命周期 ----

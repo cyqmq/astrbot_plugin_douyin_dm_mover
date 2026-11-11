@@ -4,6 +4,14 @@
 
 ## [Unreleased]
 
+## [1.2.34] - 2026-11-11
+
+### Fixed
+- **内部重载清子模块缓存更精准**：`main.py` 顶部 + `_purge_own_modules` 两处清 `sys.modules` 裸名包前缀，改为 `_is_own_module(key)` 精确匹配（`key == 包名 or key.startswith(包名 + '.')`）——不再误清 `dyf_gateway_extra` 等第三方同名前缀；确保内部重载后 `dyf_gateway/*`、`dyf_core/*` 重新 import 新代码。
+
+### Changed
+- **follow 失败日志**：`follow.py` except 加 `logger.warning(f"[dyf] 关注请求失败: {e}")`——重载生效验证标记（内部重载后点回关，日志出现新行 = 子模块已换新）。
+
 ## [1.2.33] - 2026-11-11
 
 ### Fixed

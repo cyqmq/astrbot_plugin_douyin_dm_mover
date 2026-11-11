@@ -8,6 +8,8 @@ from __future__ import annotations
 
 from urllib.parse import quote, urlencode
 
+from astrbot.api import logger
+
 from .login.alemonjs_py.abogus import generate_jumpbyte_abogus
 from .video import _ensure_web_identity
 
@@ -88,6 +90,7 @@ def _commit_follow(
             timeout=timeout,
         )
     except (RuntimeError, TypeError, ValueError, KeyError, ConnectionError, OSError) as e:
+        logger.warning(f"[dyf] 关注请求失败: {e}")
         return {"ok": False, "detail": f"关注请求失败: {e}"}
     status = data.get("status_code", -1)
     if status == 0:
