@@ -296,7 +296,7 @@ class DouyinGateway(MessageGateway):
                 )
                 uid = getattr(auth, "uid", None)
                 dev = (auth.cookie or {}).get("device_id") or getattr(auth, "device_id", None)
-            self._stop_receiver()
+            await self._stop_receiver()
             self._login_flow.session.save(auth, backend=saved_backend)
             self._auth = DouyinAuth(
                 cookie_str=cookie_str,
@@ -362,10 +362,9 @@ class DouyinGateway(MessageGateway):
         if not getattr(self._auth, "sessionid", None):
             logger.info("[dyf] 当前未登录，无需登出")
             return False
-        self._stop_receiver()
+        await self._stop_receiver()
         self._login_flow.session.clear()
-        self._state = AuthState.UNKNOWN
-        # 清 AstrBot 配置（否则重启/更新插件读配置的 douyin_cookies 自动恢复登录）
+        self._state = AuthState.UNKNOWN        # 清 AstrBot 配置（否则重启/更新插件读配置的 douyin_cookies 自动恢复登录）
         for k in ("douyin_cookies", "self_uid", "device_id"):
             self._config[k] = ""
         obj = self._config_obj
@@ -465,6 +464,8 @@ class DouyinGateway(MessageGateway):
 
     def _enrich_video(self, msg: InboundMessage) -> None:
         """视频卡/图集分享补详情（L2）：aweme/detail 拿 desc + 封面/图片，转发内容变 标题+desc+链接+媒体。"""
+        if self._auth is None:
+            return
         card = msg.card or {}
         item_id = str(
             card.get("share_item_id") or card.get("itemId") or card.get("item_id") or ""

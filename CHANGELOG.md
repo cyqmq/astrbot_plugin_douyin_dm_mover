@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+## [1.2.46] - 2026-11-11
+
+### Fixed
+- **登出断连（`logout` 没真正停 receiver）**：`logout()` `self._stop_receiver()` 没 `await`（receiver 还在收消息，消费循环处理时 `_enrich_video` 访问已被置 None 的 `self._auth.cookie_str` → `'NoneType' object has no attribute 'cookie_str'`）；改 `await self._stop_receiver()`；`login()` 同样漏 await 一并补上。
+- **`_enrich_video` 兜底**：开头 `if self._auth is None: return`（即使队列有残留，不再崩）。
+
 ## [1.2.45] - 2026-11-11
 
 ### Added
