@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.2.44] - 2026-11-11
+
+### Fixed
+- **BDTicket 建票据顺序**（@alemonjs 扫码本身不产生 `bd_ticket_guard_ts_sign_id`，ts_sign 来自 `get_client_cert` 响应 Set-Cookie）：`build_bd_ticket` 改为**先调 `fetch_server_cert`**（触发 set-cookie 并 merge 进 jar）**再读 ts_sign**；cookie 未 set 票据返回 `{"error": "get_client_cert 未 set bd_ticket_guard_ts_sign_id"}`（不再提前返回 `{}` 连证书都不调）；`qr._session_from_confirmed` 只在有 `ts_sign` 时存 `bd_ticket`，`error` 转 `bdTicketError` 供诊断。
+
 ## [1.2.43] - 2026-11-11
 
 ### Fixed

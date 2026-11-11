@@ -145,15 +145,18 @@ def fetch_server_cert(http: DouyinHttpPy, aid: str = "6383") -> tuple[str, str]:
 
 
 def build_bd_ticket(http: DouyinHttpPy) -> dict:
-    """登录后建 BDTicket：cookie 取 ts_sign -> fetch_server_cert -> 生成客户端私钥/证书。
+    """登录后建 BDTicket：先取服务端证书（get_client_cert 可能 set-cookie ts_sign），再读 ts_sign。
 
     Returns: {"ts_sign", "private_key", "client_cert", "server_cert", "server_sn"}
-    若 cookie 无 ``bd_ticket_guard_ts_sign_id`` 返回 {}（缺票据，重扫登录才有）。
+    或 {"error": "..."}（fetch_server_cert 失败 / cookie 仍未 set 票据）。
     """
+    try:
+        server_cert, server_sn = fetch_server_cert(http)
+    except Exception as e:
+        return {"error": f"fetch_server_cert: {e}"}
     ts_sign = http.jar.get(TICKET_COOKIE) or ""
     if not ts_sign:
-        return {}
-    server_cert, server_sn = fetch_server_cert(http)
+        return {"error": "get_client_cert 未 set bd_ticket_guard_ts_sign_id"}
     sk = SigningKey.generate(curve=NIST256p)
     private_key = sk.to_string().hex()
     client_cert = "pub." + get_ree_key(private_key)

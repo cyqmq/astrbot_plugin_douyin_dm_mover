@@ -229,14 +229,16 @@ def _session_from_confirmed(http: DouyinHttpPy, qr_token: str, user_data: dict |
     except Exception as exc:
         session["profile"] = {"uid": platform_uid, "nickname": "", "avatar": ""}
         session["profileError"] = str(exc)
-    # 登录 confirmed 后建 BDTicket 票据（cookie 有 bd_ticket_guard_ts_sign_id 才行）；
-    # 缺票据时 follow/following/follower 走不通，需重扫登录建票据
+    # 登录 confirmed 后建 BDTicket 票据：先 fetch_server_cert（可能 set-cookie ts_sign），
+    # 再读 cookie；成功才有 ts_sign/private_key/client_cert/server_cert。
     try:
         from .bd_ticket import build_bd_ticket
 
         ticket = build_bd_ticket(http)
-        if ticket:
+        if ticket.get("ts_sign"):
             session["bd_ticket"] = ticket
+        elif ticket.get("error"):
+            session["bdTicketError"] = ticket["error"]
     except Exception as exc:
         session["bdTicketError"] = str(exc)
     return session
