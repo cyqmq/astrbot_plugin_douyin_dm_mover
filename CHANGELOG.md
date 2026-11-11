@@ -4,6 +4,16 @@
 
 ## [Unreleased]
 
+## [1.2.29] - 2026-11-11
+
+### Added
+- **回关好友（follow）**：新增 `dyf_gateway/douyin/follow.py`——`follow_user`/`unfollow_user`，走抖音网页版 `POST /aweme/v1/web/commit/item/follow/`（body `to_user_id/sec_user_id/action/source_type` + 网页端参数 + `a_bogus` 签名 + `x-tt-argus:1` + UIFID 预热），复用现有登录态 cookie，零 proto 逆向。
+- **API `POST douyin_dm_mover/follow`**：`{uid, sec_uid, action=1关注/2取关}`，未登录/无 cookie 返回 detail。
+- **前端来源卡好友下拉「回关」按钮**：点击调 `followFriend`（成功后显示「已回关」，本会话标记不重复）。
+
+### Notes
+- 好友 `fetch_friend_list` 已含 `sec_uid`（关注必需）；回关为网页 REST（低于 proto 命令风控风险）。
+
 ## [1.2.28] - 2026-11-11
 
 ### Added

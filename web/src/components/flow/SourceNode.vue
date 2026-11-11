@@ -1,8 +1,8 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, reactive, ref } from 'vue'
 import { Handle, Position } from '@vue-flow/core'
 import { store } from '../../composables/store.js'
-import { loadFriends, scheduleLiveSave } from '../../composables/actions.js'
+import { followFriend, loadFriends, scheduleLiveSave } from '../../composables/actions.js'
 
 const props = defineProps({ data: { type: Object, required: true } })
 const d = props.data
@@ -10,6 +10,7 @@ const src = computed(() => d.source || { uid: '', nickname: '' })
 
 const search = ref('')
 const open = ref(true) // 常态展开：下拉始终显示好友列表，搜索框直接过滤
+const followed = reactive({}) // uid -> true 本会话已回关
 
 // 好友即时过滤：昵称/备注/UID 子串匹配（大小写不敏感）
 const filtered = computed(() => {
@@ -26,6 +27,10 @@ function pick(f) {
   src.value.uid = f.uid || ''
   src.value.nickname = f.nickname || f.remark_name || ''
   scheduleLiveSave()
+}
+async function doFollow(f) {
+  if (!f || followed[f.uid]) return
+  if (await followFriend(f)) followed[f.uid] = true
 }
 function onFocus() {
   open.value = true
@@ -49,6 +54,9 @@ function setNick(e) { src.value.nickname = e.target.value; scheduleLiveSave() }
           @mousedown.prevent="pick(f)">
           <span class="src-drop-name">{{ f.nickname || f.remark_name || '好友' }}</span>
           <span class="src-drop-uid">{{ f.uid }}</span>
+          <button v-if="!followed[f.uid]" class="mini src-follow nodrag"
+            title="回关该好友（关注）" @mousedown.prevent.stop="doFollow(f)">回关</button>
+          <span v-else class="src-followed">已回关</span>
         </div>
       </div>
     </div>

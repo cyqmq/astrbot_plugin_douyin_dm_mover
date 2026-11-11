@@ -98,6 +98,7 @@ class DashboardApi:
         reg("douyin_dm_mover/config/set", self.config_set, ["POST"], "dyf 保存配置")
         reg("douyin_dm_mover/profile", self.profile, ["GET"], "dyf 账户昵称/头像")
         reg("douyin_dm_mover/friends", self.friends, ["GET"], "dyf 好友列表（familiar-list）")
+        reg("douyin_dm_mover/follow", self.follow, ["POST"], "dyf 回关/取关好友")
         reg("douyin_dm_mover/groups", self.groups, ["GET"], "dyf 可发送群列表（AstrBot get_group_list）")
         reg("douyin_dm_mover/platforms", self.platforms, ["GET"], "dyf 已加载平台实例列表")
 
@@ -403,6 +404,39 @@ class DashboardApi:
         except Exception as e:
             logger.warning(f"[dyf] 拉取好友列表失败: {e}")
             return {"friends": [], "detail": f"拉取失败: {e}"}
+
+    async def follow(self):
+        """回关/取关好友：POST {uid, sec_uid, action=1关注/2取关}。返回 {ok, detail}。"""
+        try:
+            from astrbot.api.web import request as web_request
+
+            data = await web_request.json(default={}) or {}
+        except Exception:
+            data = {}
+        uid = str((data or {}).get("uid") or "")
+        sec_uid = str((data or {}).get("sec_uid") or "")
+        action = int((data or {}).get("action") or 1)
+        if not uid or not sec_uid:
+            return {"ok": False, "detail": "缺少 uid/sec_uid"}
+        gw = self.gateway
+        if gw.auth_state.value != "ok":
+            return {"ok": False, "detail": "未登录"}
+        auth = getattr(gw, "_auth", None)
+        cookie_str = getattr(auth, "cookie_str", "") or ""
+        if not cookie_str:
+            return {"ok": False, "detail": "无会话 Cookie"}
+        dev = getattr(gw, "_device_id", "") or "0"
+        try:
+            from dyf_gateway.douyin.follow import follow_user, unfollow_user
+            from dyf_gateway.douyin.login.alemonjs_py import DouyinHttpPy
+
+            http = DouyinHttpPy(cookie_str)
+            http.set_device({"deviceId": dev, "installId": "0", "guid": "0"})
+            fn = follow_user if action == 1 else unfollow_user
+            return await asyncio.to_thread(fn, http, uid, sec_uid)
+        except Exception as e:
+            logger.warning(f"[dyf] 关注操作失败: {e}")
+            return {"ok": False, "detail": f"关注操作失败: {e}"}
 
     async def platforms(self):
         """已加载的平台实例列表（多实例级联选择）。

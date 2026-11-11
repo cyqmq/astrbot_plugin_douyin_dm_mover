@@ -92,6 +92,13 @@ export async function loadFriends(refresh) {
   store.friendsLoadedAt = Date.now()
 }
 
+export async function followFriend(f) {
+  if (!f || !f.uid || !f.sec_uid) { toast('缺少 uid/sec_uid'); return false }
+  const d = await apiPostBody('follow', { uid: f.uid, sec_uid: f.sec_uid, action: 1 })
+  if (d.ok) { toast(d.detail || '已关注'); return true }
+  toast(d.detail || '关注失败'); return false
+}
+
 export async function loadGroups(platformId) {
   store.groupsLoading = true
   store.groupsDetail = ''
