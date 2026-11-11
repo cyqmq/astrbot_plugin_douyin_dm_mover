@@ -393,6 +393,17 @@ class DashboardApi:
             cookie_str = getattr(auth, "cookie_str", "") or ""
             if not cookie_str:
                 return {"friends": [], "detail": "无会话 Cookie"}
+            # 诊断：登录态 cookie 键（看有没有 BDTicket/bd_ticket_guard/__ac_nonce）
+            logger.info(
+                "[dyf] COOKIE_KEYS: "
+                + ", ".join(
+                    sorted(
+                        k.split("=")[0].strip()
+                        for k in cookie_str.split(";")
+                        if "=" in k
+                    )
+                )
+            )
             dev = getattr(gw, "_device_id", "") or "0"
             http = DouyinHttpPy(cookie_str)
             http.set_device({"deviceId": dev, "installId": "0", "guid": "0"})

@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.2.40] - 2026-11-11
+
+### Added
+- **登录态 cookie 键诊断**：`dashboard.friends` 拉好友前打 `[dyf] COOKIE_KEYS: ...`——看登录态有没有 `bd_ticket_guard`/`__ac_nonce`/`BDticket`，决定 follow/following/follower 能否走通（缺票据则需重扫二维码）。
+
 ## [1.2.39] - 2026-11-11
 
 ### Fixed
