@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.2.32] - 2026-11-11
+
+### Changed
+- **统一查询串拆分**：`store.js` 抽 `_splitQuery(endpoint) -> [path, params]`，`apiGet`/`apiPost`/`apiPostBody` 三处复用——后续新增带查询参数的调用自动拆开（endpoint 不再含 `?`，bridge 校验通过），避免重复踩坑；POST 带查询串时 params 作为 `V.apiPost(path, body, params)` 第三参。
+
 ## [1.2.31] - 2026-11-11
 
 ### Fixed

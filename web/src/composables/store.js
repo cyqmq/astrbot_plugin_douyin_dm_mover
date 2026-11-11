@@ -13,28 +13,36 @@ export function toast(msg) {
 
 export async function apiGet(ep) {
   try {
-    // bridge SDK 校验 endpoint 不能含 '?'/'://'/'#'/'\\'：把查询串拆成
+    // bridge SDK 校验 endpoint 不能含 '?'/'://'#'/'\\'：把查询串拆成
     // path + params 单独传（父窗口 axios get(endpoint, {params}) 序列化）。
-    let path = ep
-    let params
-    const qi = typeof ep === 'string' ? ep.indexOf('?') : -1
-    if (qi >= 0) {
-      path = ep.slice(0, qi)
-      params = {}
-      for (const kv of ep.slice(qi + 1).split('&')) {
-        if (!kv) continue
-        const i = kv.indexOf('=')
-        params[i >= 0 ? kv.slice(0, i) : kv] = i >= 0 ? decodeURIComponent(kv.slice(i + 1)) : ''
-      }
-    }
+    const [path, params] = _splitQuery(ep)
     return await V.apiGet(path, params)
   } catch (e) { toast('请求失败: ' + e); return {} }
 }
 export async function apiPost(ep) {
-  try { return await V.apiPost(ep, {}) } catch (e) { toast('请求失败: ' + e); return {} }
+  try {
+    const [path, params] = _splitQuery(ep)
+    return await V.apiPost(path, {}, params)
+  } catch (e) { toast('请求失败: ' + e); return {} }
 }
 export async function apiPostBody(ep, body) {
-  try { return await V.apiPost(ep, body) } catch (e) { toast('请求失败: ' + e); return {} }
+  try {
+    const [path, params] = _splitQuery(ep)
+    return await V.apiPost(path, body, params)
+  } catch (e) { toast('请求失败: ' + e); return {} }
+}
+// 拆 endpoint 查询串 -> [path, params]（params 无查询时为 undefined）。
+function _splitQuery(ep) {
+  const qi = typeof ep === 'string' ? ep.indexOf('?') : -1
+  if (qi < 0) return [ep, undefined]
+  const path = ep.slice(0, qi)
+  const params = {}
+  for (const kv of ep.slice(qi + 1).split('&')) {
+    if (!kv) continue
+    const i = kv.indexOf('=')
+    params[i >= 0 ? kv.slice(0, i) : kv] = i >= 0 ? decodeURIComponent(kv.slice(i + 1)) : ''
+  }
+  return [path, params]
 }
 
 // ---- 常量 ----
