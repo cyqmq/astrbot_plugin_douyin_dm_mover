@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.2.55] - 2026-11-11
+
+### Fixed
+- **`save_config` 失败诊断**（用户"保存失败"但日志空）：`dashboard.config_set` 的 `save_config()` except 之前只返回 `detail` 不打 `[dyf]` 日志——现打 `[dyf] save_config 异常: {e!r} config_path={...}`（带异常详情 + `config_path` 空/权限判断），`detail` 也带 `config_path`——定位是 `config_path` 空/权限不足还是 JSON 序列化失败。
+
 ## [1.2.54] - 2026-11-11
 
 ### Added

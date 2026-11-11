@@ -312,7 +312,15 @@ class DashboardApi:
                 try:
                     save()
                 except Exception as e:
-                    return {"ok": False, "detail": f"配置保存失败: {e}"}
+                    # 诊断：save_config 抛但没打 [dyf] 日志（用户日志空）——带异常详情 + config_path
+                    cfg_path = getattr(self._config_obj, "config_path", "") or ""
+                    logger.warning(
+                        f"[dyf] save_config 异常: {e!r} config_path={cfg_path!r}"
+                    )
+                    return {
+                        "ok": False,
+                        "detail": f"配置保存失败: {e}（config_path={cfg_path or '空'}）",
+                    }
                 self._log_config_diagnose("落盘后")
         # 配置已落盘；no_reload 用于实时静默保存（避免高频自动重载），否则自动重载插件使深层代码/运行时配置生效
         if not bool((data or {}).get("no_reload")):
