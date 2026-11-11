@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.2.56] - 2026-11-11
+
+### Fixed
+- **登出写回 AstrBot 主配置文件**（内存 dict 与主配置文件是两份，登出只清内存那份）：`subprocess_gateway.logout` 清 `self._config` 三键后**没写回主配置**——`build_gateway` 的 subprocess 分支原不传 `config_obj`（`SubprocessGateway(config)`），AstrBot 主配置文件里的 `douyin_cookies` 还在 → 更新插件 terminate/load 从主配置读回自动登录。现：`build_gateway` subprocess 分支传 `config_obj`；`SubprocessGateway.__init__` 存 `_config_obj`；`logout` 清 `self._config` + `_config_obj` 三键并 `save_config()` 落盘。
+
 ## [1.2.55] - 2026-11-11
 
 ### Fixed

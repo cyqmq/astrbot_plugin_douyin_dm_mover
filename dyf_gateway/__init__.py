@@ -18,7 +18,7 @@ def build_gateway(config: dict, config_obj=None) -> MessageGateway:
     if mode == "subprocess":
         from .subprocess_gateway import SubprocessGateway
 
-        return SubprocessGateway(config)
+        return SubprocessGateway(config, config_obj=config_obj)
     from .douyin.gateway import DouyinGateway
 
     if mode != "inprocess":

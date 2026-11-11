@@ -28,8 +28,9 @@ from .douyin.detector import AuthFailureDetector
 
 
 class SubprocessGateway(MessageGateway):
-    def __init__(self, config: dict):
+    def __init__(self, config: dict, config_obj=None):
         self._config = config
+        self._config_obj = config_obj
         self._data_dir = config.get("_data_dir") or DEFAULT_DATA_DIR
         os.makedirs(self._data_dir, exist_ok=True)
         self._detector = AuthFailureDetector(
@@ -357,6 +358,19 @@ class SubprocessGateway(MessageGateway):
         # 自动登录——与 gateway.py(worker) 登出清配置保持同步，两处必须都清）
         for k in ("douyin_cookies", "self_uid", "device_id"):
             self._config[k] = ""
+        # 内存 dict 与 AstrBot 主配置文件是两份：必须把清空写回主配置并落盘，
+        # 否则更新插件 terminate/load 从主配置读回 douyin_cookies（还在）自动登录
+        obj = self._config_obj
+        if obj is not None:
+            try:
+                for k in ("douyin_cookies", "self_uid", "device_id"):
+                    if k in obj:
+                        obj[k] = ""
+                save = getattr(obj, "save_config", None)
+                if save is not None:
+                    save()
+            except Exception as e:
+                logger.warning(f"[dyf] 登出清主配置失败: {e}")
         self._state = AuthState.UNKNOWN
         self._emit_event(GatewayEvent("logout", "已登出并清除会话"))
         return True
