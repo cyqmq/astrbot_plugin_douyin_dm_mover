@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.2.53] - 2026-11-11
+
+### Fixed
+- **父进程登出清 AstrBot 配置**（用户登出走 `subprocess_gateway.logout`，与 worker `gateway.logout` 不同步）：`subprocess_gateway.logout` 只 `session.clear()`，没清 `self._config` 的 `douyin_cookies/self_uid/device_id`——`_write_config:106` 保留 config 里的 `douyin_cookies` → worker 重启读它自动登录（更新插件触发重启 → 自动登录回去）。现在父进程登出同步清 `self._config` 三键（与 `gateway.logout` 1.2.43 保持一致，两处都清）。
+
 ## [1.2.52] - 2026-11-11
 
 ### Added

@@ -353,6 +353,10 @@ class SubprocessGateway(MessageGateway):
                 pass
             self._proc = None
         self._login_flow.session.clear()
+        # 清 AstrBot 配置（否则 _write_config 保留 douyin_cookies，worker 重启读 config
+        # 自动登录——与 gateway.py(worker) 登出清配置保持同步，两处必须都清）
+        for k in ("douyin_cookies", "self_uid", "device_id"):
+            self._config[k] = ""
         self._state = AuthState.UNKNOWN
         self._emit_event(GatewayEvent("logout", "已登出并清除会话"))
         return True
