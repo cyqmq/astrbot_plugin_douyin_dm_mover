@@ -52,14 +52,24 @@ def fetch_friend_list(
         if data.get("status_code") not in (0, None):
             raise RuntimeError(f"familiar/list status_code={data.get('status_code')}")
         for u in data.get("user_list") or []:
-            # 诊断：familiar/list 真实字段名（看 follow_status 是否存在/叫什么）
-            logger.info(f"[dyf] FRIEND_KEYS: {sorted(u.keys())}")
+            # 诊断：familiar/list 关系状态字段值（follow/relation/is_/cancel），
+            # 一次拉好友页看每个好友的 follow_status/user_canceled 实际值。
+            logger.info(
+                "[dyf] REL: "
+                + " ".join(
+                    f"{k}={u.get(k)}"
+                    for k in sorted(u.keys())
+                    if any(s in k.lower() for s in ("follow", "relation", "is_", "cancel"))
+                )
+            )
             uid = (
                 u.get("uid")
                 or (str(u["user_id"]) if u.get("user_id") not in (None, "") else "")
                 or ""
             )
-            if u.get("user_canceled"):
+            # 只滤真正无效的（已取消 且 已关注）；未回关的（follow_status=0，即使
+            # user_canceled=1）保留显示——familiar/list 返回全部好友含未回关。
+            if u.get("user_canceled") and u.get("follow_status", 0) != 0:
                 continue
             if not uid or uid in ("0", 0):
                 continue

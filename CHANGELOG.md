@@ -4,6 +4,14 @@
 
 ## [Unreleased]
 
+## [1.2.37] - 2026-11-11
+
+### Fixed
+- **好友列表漏未回关**：`contact.py` 原 `if u.get("user_canceled"): continue` 把未回关（他关注我、我没关注他，可能 `user_canceled=1`）的滤掉了 → 只显示互关的。放宽为 `user_canceled and follow_status != 0` 才滤（未回关 `follow_status=0` 保留显示）。
+
+### Changed
+- **诊断改 REL**：`contact.py` FRIEND_KEYS 改为 `[dyf] REL: ...`（只打 `follow`/`relation`/`is_`/`cancel` 字段值）——一次拉好友页看每个好友 `follow_status`/`user_canceled` 实际值，校准过滤与三态。
+
 ## [1.2.36] - 2026-11-11
 
 ### Added
