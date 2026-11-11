@@ -359,12 +359,28 @@ class DouyinGateway(MessageGateway):
             logger.warning(f"[dyf] 登录配置写回失败（不影响会话）: {e}")
 
     async def logout(self) -> bool:
-        if not self._auth.sessionid:
+        if not getattr(self._auth, "sessionid", None):
             logger.info("[dyf] 当前未登录，无需登出")
             return False
         self._stop_receiver()
         self._login_flow.session.clear()
         self._state = AuthState.UNKNOWN
+        # 清 AstrBot 配置（否则重启/更新插件读配置的 douyin_cookies 自动恢复登录）
+        for k in ("douyin_cookies", "self_uid", "device_id"):
+            self._config[k] = ""
+        obj = self._config_obj
+        if obj is not None:
+            try:
+                for k in ("douyin_cookies", "self_uid", "device_id"):
+                    if k in obj:
+                        obj[k] = ""
+                save = getattr(obj, "save_config", None)
+                if save is not None:
+                    save()
+            except Exception as e:
+                logger.warning(f"[dyf] 登出清配置失败: {e}")
+        # 置空 _auth，避免旧对象继续持有 cookie（二次登出误判"已登录"）
+        self._auth = None
         self._emit_event(GatewayEvent("logout", "已登出并清除会话"))
         logger.info("[dyf] 已登出")
         return True

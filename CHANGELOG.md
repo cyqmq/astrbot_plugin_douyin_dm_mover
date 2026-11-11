@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.2.43] - 2026-11-11
+
+### Fixed
+- **登出清 AstrBot 配置**（重启/更新插件自动恢复登录的根因）：`logout()` 只清了 `session.json`，漏清配置层的 `douyin_cookies/self_uid/device_id`（登录时 `_persist_login_config` 写入 AstrBot 配置并落盘，启动逻辑 `gateway.py:43` 优先读配置的 `douyin_cookies` 重建会话）——登出现在同步清 `self._config` + `config_obj` 并 `save_config`，两路（配置 + session.json）都空，重启不再自动登录；顺带 `self._auth` 置空（避免旧对象持 cookie 致二次登出误判已登录），`logout` 开头用 `getattr(self._auth, "sessionid", None)` 防 `_auth` 为 None。
+
 ## [1.2.42] - 2026-11-11
 
 ### Added
