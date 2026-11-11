@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.2.57] - 2026-11-11
+
+### Fixed
+- **`_diagnose_config` 读盘 BOM 误判**：AstrBot `save_config` 写盘是 `utf-8-sig`（带 BOM），`_diagnose_config` 用 `utf-8` 读 config → `Unexpected UTF-8 BOM` → `disk_routes=-2` 误判"解析失败"（只影响诊断日志显示，不影响保存）。读改用 `utf-8-sig`。
+
 ## [1.2.56] - 2026-11-11
 
 ### Fixed

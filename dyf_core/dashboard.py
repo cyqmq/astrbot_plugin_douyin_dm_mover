@@ -243,7 +243,9 @@ class DashboardApi:
         if config_path and os.path.exists(config_path):
             disk_path = str(config_path)
             try:
-                with open(config_path, "r", encoding="utf-8") as f:
+                # AstrBot save_config 写盘是 utf-8-sig（带 BOM）——用 utf-8 读会报
+                # Unexpected UTF-8 BOM 误判"解析失败"（disk_routes=-2），改用 utf-8-sig
+                with open(config_path, "r", encoding="utf-8-sig") as f:
                     disk_routes = len((_json.load(f) or {}).get("routes") or [])
             except Exception:
                 disk_routes = -2  # 解析失败
