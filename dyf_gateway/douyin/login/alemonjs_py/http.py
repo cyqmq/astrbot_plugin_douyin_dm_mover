@@ -225,7 +225,7 @@ class DouyinHttpPy:
         except Exception:
             return None
 
-    def request_raw(self, url: str, method: str = "GET", headers: dict | None = None, body: str | None = None, timeout: int | None = None) -> requests.Response:
+    def request_raw(self, url: str, method: str = "GET", headers: dict | None = None, body: str | None = None, timeout: int | None = None, allow_redirects: bool = True) -> requests.Response:
         h = dict(headers or {})
         h.setdefault("User-Agent", self.user_agent)
         host = urlparse(url).hostname or ""
@@ -239,7 +239,8 @@ class DouyinHttpPy:
             if cookie:
                 h["Cookie"] = cookie
         resp = requests.request(
-            method, url, headers=h, data=body, timeout=timeout or self.timeout
+            method, url, headers=h, data=body, timeout=timeout or self.timeout,
+            allow_redirects=allow_redirects,
         )
         if session_host:
             self.jar.merge_set_cookie(resp.headers.get("set-cookie", ""))

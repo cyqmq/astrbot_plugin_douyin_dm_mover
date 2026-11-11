@@ -4,6 +4,14 @@
 
 ## [Unreleased]
 
+## [1.2.36] - 2026-11-11
+
+### Added
+- **follow 302 诊断**：`http.py request_raw` 加 `allow_redirects=True` 参数；`follow.py _commit_follow` 改用 `request_raw(..., allow_redirects=False)` + `logger.warning("[dyf] follow status=... location=...")`——不跟随 302，看 `Location` 确认跳向（imdesktop→a_bogus/cookie 问题；passport→缺登录态），定位 404 Janus 根因。
+
+### Notes
+- `contact.py` FRIEND_KEYS 诊断已是 `astrbot.api.logger.info`（1.2.35，非 print）；若仍无输出，需好友页 `?refresh=1` 强制重拉（300s 缓存可能挡触发）。
+
 ## [1.2.35] - 2026-11-11
 
 ### Changed

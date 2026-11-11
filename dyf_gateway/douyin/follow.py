@@ -75,20 +75,27 @@ def _commit_follow(
             query=query_wire, body=body_wire, user_agent=http.get_user_agent()
         )
         url = f"{FOLLOW_URL}?{query_wire}&a_bogus={quote(abogus, safe='')}"
-        data = http.request_json(
+        # 诊断：不跟随 302，看 Location 确认跳向（imdesktop->a_bogus/cookie 问题；
+        # passport->缺登录态）。Referer/Origin 已加仍 302，需看真实跳转定位。
+        resp = http.request_raw(
             url,
             "POST",
             headers={
                 "x-tt-argus": "1",
                 "Content-Type": "application/x-www-form-urlencoded",
-                # www 登录接口要求完整请求头；缺 Referer/Origin 会被 302 踢回
-                # imdesktop（Janus），Janus 不支持 /aweme/v1/web/... -> 404。
                 "Referer": "https://www.douyin.com/",
                 "Origin": "https://www.douyin.com",
             },
             body=body_wire,
             timeout=timeout,
+            allow_redirects=False,
         )
+        logger.warning(
+            f"[dyf] follow status={resp.status_code} location={resp.headers.get('Location')}"
+        )
+        if not resp.ok:
+            return {"ok": False, "detail": f"HTTP {resp.status_code}: {resp.text[:200]}"}
+        data = resp.json() if resp.content else {}
     except (RuntimeError, TypeError, ValueError, KeyError, ConnectionError, OSError) as e:
         logger.warning(f"[dyf] follow 请求失败: {e}")
         return {"ok": False, "detail": f"关注请求失败: {e}"}
