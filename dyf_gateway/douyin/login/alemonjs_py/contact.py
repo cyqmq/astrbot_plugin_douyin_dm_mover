@@ -131,7 +131,11 @@ def fetch_contact_lists(
                             if not ex.get(k):
                                 ex[k] = u.get(k)
             except Exception as e:
+                # 软失败：记录到 http.www_errors（dashboard 透出给界面），不阻断 familiar
                 logger.warning(f"[dyf] {kind}/list 拉取失败: {e}")
+                msg = f"{kind}: {e}"
+                prev = getattr(http, "www_errors", "") or ""
+                http.www_errors = f"{prev}; {msg}" if prev else msg
     return list(by_uid.values())
 
 

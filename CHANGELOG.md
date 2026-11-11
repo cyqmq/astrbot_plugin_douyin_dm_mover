@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+## [1.2.51] - 2026-11-11
+
+### Added
+- **`login_backend` 前端加 `alemonjs_www` 选项**（设置页可切 www 产票——原前端缺选项，后端 1.2.50 已支持但无法配置）。
+- **票据缺失软失败提示**：`dashboard.friends` 无 `ts_sign` 时返回 `detail`（"未配置 BDTicket（仅显示互关 familiar）——请用 alemonjs_www 登录或好友页「导入 Cookie」"）；有票据但 following/follower 失败时透出 `http.www_errors`（`fetch_contact_lists` 记录到 `http.www_errors`）——不再静默空，界面可见。
+
 ## [1.2.50] - 2026-11-11
 
 ### Added

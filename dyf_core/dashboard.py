@@ -431,7 +431,13 @@ class DashboardApi:
             gw._friends = friends
             gw._friends_ts = time.time()
             gw._store_friends_cache(friends, gw._friends_ts)
-            return {"friends": friends}
+            # 软失败提示：无 BDTicket 时 following/follower 被风控拦（familiar 正常返回）
+            detail = ""
+            if not (http.bd_ticket or {}).get("ts_sign"):
+                detail = "未配置 BDTicket（仅显示互关 familiar）——请用 alemonjs_www 登录（自动产票）或好友页「导入 Cookie」"
+            elif getattr(http, "www_errors", ""):
+                detail = f"following/follower 拉取失败: {http.www_errors}"
+            return {"friends": friends, "detail": detail}
         except Exception as e:
             logger.warning(f"[dyf] 拉取好友列表失败: {e}")
             return {"friends": [], "detail": f"拉取失败: {e}"}
