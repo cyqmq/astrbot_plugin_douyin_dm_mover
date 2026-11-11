@@ -79,6 +79,10 @@ def _commit_follow(
             headers={
                 "x-tt-argus": "1",
                 "Content-Type": "application/x-www-form-urlencoded",
+                # www 登录接口要求完整请求头；缺 Referer/Origin 会被 302 踢回
+                # imdesktop（Janus），Janus 不支持 /aweme/v1/web/... -> 404。
+                "Referer": "https://www.douyin.com/",
+                "Origin": "https://www.douyin.com",
             },
             body=body_wire,
             timeout=timeout,

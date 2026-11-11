@@ -69,6 +69,12 @@ def fetch_friend_list(
                     "remark_name": u.get("remark_name") or "",
                     "signature": u.get("signature") or "",
                     "avatar": url_list[0] if url_list else "",
+                    # 关系状态透传（供好友页三态展示）：
+                    # follow_status 我是否已关注他（0 未 / 1 已）；is_following 他是否已关注我；
+                    # relation 位掩码（1 他关注我 / 2 我关注他 / 3 互关）。
+                    "follow_status": u.get("follow_status", 0),
+                    "is_following": u.get("is_following", 0),
+                    "relation": u.get("relation", 0),
                 }
             )
         has_more = bool(data.get("has_more"))

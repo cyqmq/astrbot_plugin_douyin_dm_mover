@@ -20,6 +20,13 @@ async function doFollow(f) {
   if (!f || followed[f.uid]) return
   if (await followFriend(f)) followed[f.uid] = true
 }
+// 三态：'' 未回关（显示回关按钮）| '已回关'（乐观）| '互关' | '已关注'（持久）
+function stateOf(f) {
+  if (followed[f.uid]) return '已回关'
+  const fs = Number(f.follow_status || 0)
+  if (fs === 1) return Number(f.is_following || 0) ? '互关' : '已关注'
+  return ''
+}
 function onFocus() {
   const stale = Date.now() - (store.friendsLoadedAt || 0) > 30000
   if ((!store.friends.length || stale) && !store.friendsLoading) loadFriends(true)
@@ -46,8 +53,8 @@ onMounted(() => {
               <span class="fr-name">{{ f.nickname || f.remark_name || '好友' }}</span>
               <span class="muted">{{ f.uid }}<template v-if="f.sec_uid"> · {{ f.sec_uid }}</template></span>
             </div>
-            <button v-if="!followed[f.uid]" class="mini fr-follow" title="回关该好友（关注）" @click="doFollow(f)">回关</button>
-            <span v-else class="fr-followed">已回关</span>
+            <button v-if="!stateOf(f)" class="mini fr-follow" title="回关该好友（关注）" @click="doFollow(f)">回关</button>
+            <span v-else class="fr-followed">{{ stateOf(f) }}</span>
           </div>
         </li>
         <li v-if="store.friendsLoading" class="empty">加载中…</li>

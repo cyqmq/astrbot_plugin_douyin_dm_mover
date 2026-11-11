@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+## [1.2.33] - 2026-11-11
+
+### Fixed
+- **回关 404 Janus**：`follow.py` headers 缺 `Referer`/`Origin`——www 登录接口要求完整请求头，缺则 302 重定向到 imdesktop（Janus，不支持 `/aweme/v1/web/...`）→ 404 Unsupported path(Janus)。补 `Referer: https://www.douyin.com/` + `Origin: https://www.douyin.com`。
+- **好友回关状态三态**：`contact.py fetch_friend_list` 透传 `follow_status`/`is_following`/`relation`（此前丢弃）；`FriendsTab.vue` 用持久 `follow_status` 判断——`1 && is_following` → 互关、`1` → 已关注（隐藏回关按钮）、`0` → 未回关（显示回关按钮）；`followed` 仅作点完即时乐观更新。
+
 ## [1.2.32] - 2026-11-11
 
 ### Changed
