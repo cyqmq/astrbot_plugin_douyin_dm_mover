@@ -49,7 +49,8 @@ def _resolve_data_dir() -> str:
         target = os.path.abspath(DEFAULT_DATA_DIR)
     # 迁移：旧版本把会话/设备存在相对 CWD 的 data/dyf，新目录为空时迁移过来，
     # 避免升级插件后登录态「消失」（session.json/device.json 仍在旧位置）。
-    old = os.path.abspath(DEFAULT_DATA_DIR)
+    # 迁移源固定为旧路径字面量，不随 DEFAULT_DATA_DIR 收敛而漂移。
+    old = os.path.abspath(os.path.join("data", "dyf"))
     if os.path.isdir(old) and old != target:
         os.makedirs(target, exist_ok=True)
         for name in ("session.json", "device.json"):

@@ -9,7 +9,7 @@ header 对得再齐，TLS 握手一开口还是 Python。curl_cffi 底下是 cur
 用法是 requests 的替代品，调用点不用改：
 
     from utils import http_client as requests
-    requests.post(url, headers=..., cookies=..., data=..., verify=False)
+    requests.post(url, headers=..., cookies=..., data=..., verify=True)
 
 两个刻意的选择：
 

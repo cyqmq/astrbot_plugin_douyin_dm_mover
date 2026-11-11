@@ -24,6 +24,7 @@ import time
 
 from astrbot.api import logger as _log
 
+from dyf_config import DEFAULT_DATA_DIR
 from dyf_gateway.douyin.converter import DouyinConverter
 from dyf_gateway.douyin.detector import AuthFailureDetector
 from dyf_gateway.douyin.device import resolve_device_id
@@ -74,7 +75,7 @@ def _load_config(path: str) -> dict:
 
 def main() -> int:
     config = _load_config(sys.argv[1] if len(sys.argv) > 1 else "")
-    data_dir = config.get("_data_dir") or os.path.join("data", "dyf")
+    data_dir = config.get("_data_dir") or DEFAULT_DATA_DIR
     os.makedirs(data_dir, exist_ok=True)
 
     auth = DouyinAuth(

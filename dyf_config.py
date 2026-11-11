@@ -1,6 +1,8 @@
 """插件配置常量与默认值。AstrBot 通过 _conf_schema.json 构建实际配置。"""
 
-DEFAULT_DATA_DIR = "data/dyf"
+import os
+
+DEFAULT_DATA_DIR = os.path.join("data", "plugin_data", "douyin_dm_mover")
 
 DEFAULT_SOURCES = {
     "douyin": {

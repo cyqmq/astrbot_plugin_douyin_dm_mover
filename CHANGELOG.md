@@ -4,6 +4,14 @@
 
 ## [Unreleased]
 
+## [1.2.26] - 2026-11-11
+
+### Security
+- **TLS 校验收紧**：`vendored/login/**`（builder/auth.py、dy_apis/login_api.py、utils/{http_client,dy_util,dtrait,bd_ticket,mstoken}.py）及 `login/mfa.py` 全部 `verify=False` → `verify=True`（26 处），不再绕过证书校验；`vendored/login` 为无 import 引用的第三方遗留代码，收紧仅消隐患，登录/接收/转发主链路不受影响。
+
+### Changed
+- **持久化目录收敛**：`DEFAULT_DATA_DIR` 由 `data/dyf` 改为 `data/plugin_data/douyin_dm_mover`，`gateway/subprocess_gateway/worker/forward_manager` 的 `_data_dir` 缺失兜底统一引用 `DEFAULT_DATA_DIR`（不再各自硬编码 `data/dyf`）；`main.py` 迁移源固定旧路径字面量 `data/dyf`（不随常量漂移），保证旧登录态仍能迁移到新目录。
+
 ## [1.2.25] - 2026-11-11
 
 ### Fixed

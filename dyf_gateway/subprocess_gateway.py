@@ -20,6 +20,7 @@ from collections.abc import AsyncIterator
 
 from astrbot.api import logger
 
+from dyf_config import DEFAULT_DATA_DIR
 from dyf_core.model import AuthState, GatewayEvent, InboundMessage
 
 from .base import MessageGateway
@@ -29,7 +30,7 @@ from .douyin.detector import AuthFailureDetector
 class SubprocessGateway(MessageGateway):
     def __init__(self, config: dict):
         self._config = config
-        self._data_dir = config.get("_data_dir") or os.path.join("data", "dyf")
+        self._data_dir = config.get("_data_dir") or DEFAULT_DATA_DIR
         os.makedirs(self._data_dir, exist_ok=True)
         self._detector = AuthFailureDetector(
             close_codes=self._parse_int_list(config.get("auth_failure_close_codes")),

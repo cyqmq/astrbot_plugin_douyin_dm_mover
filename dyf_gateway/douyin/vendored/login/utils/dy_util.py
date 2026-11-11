@@ -190,7 +190,7 @@ def generate_webid(auth=None, url=""):
         headers = HeaderBuilder().build(HeaderType.DOC)
         headers.set_header('cookie', auth.cookie_str if auth else "")
         headers.set_header("upgrade-insecure-requests", "1")
-        response = requests.get(url, headers=headers.get(), verify=False)
+        response = requests.get(url, headers=headers.get(), verify=True)
         res_text = response.text
         user_unique_id = re.findall(r'\\"user_unique_id\\":\\"(.*?)\\"', res_text)[0]
         webid = user_unique_id
@@ -230,7 +230,7 @@ def generate_csrf_token(cookies_str, origin='https://www.douyin.com',
             'accept-language': get_profile()["accept_language"],
         }
         response = requests.head(origin + path, headers=headers,
-                                 cookies=trans_cookies(cookies_str), verify=False)
+                                 cookies=trans_cookies(cookies_str), verify=True)
         parts = response.headers['X-Ware-Csrf-Token'].split(',')
         return parts[1], parts[4]
     except Exception as e:

@@ -6,6 +6,7 @@ import time
 
 from astrbot.api import logger
 
+from dyf_config import DEFAULT_DATA_DIR
 from dyf_core.alert import AlertService
 from dyf_core.cache_manager import CacheManager
 from dyf_core.card import render_card_safe
@@ -31,7 +32,7 @@ class ForwardManager:
     def __init__(self, context, config: dict):
         self.context = context
         self.config = config
-        self.data_dir = config.get("_data_dir") or "data/dyf"
+        self.data_dir = config.get("_data_dir") or DEFAULT_DATA_DIR
 
         self.dedup_enabled = bool(config.get("dedup_enabled", True))
         self.cache = CacheManager(

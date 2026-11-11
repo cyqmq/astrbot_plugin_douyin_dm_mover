@@ -81,7 +81,7 @@ def _mfa_request(auth, decision: dict, api: str, extra: list[tuple[str, str]]) -
         params=params.get(),
         data=body,
         split_cookie_header=True,
-        verify=False,
+        verify=True,
         timeout=20,
         proxies=getattr(auth, "_proxies", None),
     )

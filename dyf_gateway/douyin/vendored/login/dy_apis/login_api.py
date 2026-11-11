@@ -876,7 +876,7 @@ class DYLoginApi:
         resp = requests.post("https://ttwid.bytedance.com/ttwid/union/register/",
                              headers={"content-type": "application/json",
                                       "user-agent": get_profile()["ua"]},
-                             data=json.dumps(body), verify=False, timeout=20)
+                             data=json.dumps(body), verify=True, timeout=20)
         return resp.cookies.get_dict().get("ttwid", "")
 
     @staticmethod
@@ -914,7 +914,7 @@ class DYLoginApi:
         if path.startswith("/?"):
             headers["referer"] = HOME_URL + path
         resp = auth.request(
-            "GET", HOME_URL + path, headers=headers, verify=False,
+            "GET", HOME_URL + path, headers=headers, verify=True,
             timeout=20, proxies=proxies,
         )
         merge_set_cookies(auth, resp.cookies.get_dict())
@@ -1006,7 +1006,7 @@ class DYLoginApi:
             headers=headers_with_cookie(
                 headers, scoped_cookies(auth, "www_ttwid")
             ),
-            data=body, verify=False, timeout=20,
+            data=body, verify=True, timeout=20,
         )
         got = resp.cookies.get_dict()
         merge_set_cookies(auth, got)
@@ -1053,7 +1053,7 @@ class DYLoginApi:
             headers=headers_with_cookie(
                 headers, scoped_cookies(auth, "www_guiding")
             ),
-            params=params.get(), verify=False, timeout=20,
+            params=params.get(), verify=True, timeout=20,
         )
         set_cookies = resp.cookies.get_dict()
         merge_set_cookies(auth, set_cookies)
@@ -1098,7 +1098,7 @@ class DYLoginApi:
         resp = auth.request("POST", LOGIN_URL + "/ttwid/check/",
                              headers=headers_with_cookie(headers, scoped_cookies(auth, "ttwid")),
                              data=body,
-                             verify=False, timeout=20)
+                             verify=True, timeout=20)
         got = resp.cookies.get_dict()
         merge_set_cookies(auth, got)
         if got.get("ttwid"):
@@ -1268,7 +1268,7 @@ class DYLoginApi:
                     "sec-fetch-site": "none",
                     "sec-fetch-user": "?1",
                 },
-                verify=False, timeout=20, proxies=proxies,
+                verify=True, timeout=20, proxies=proxies,
             )
             merge_set_cookies(auth, resp.cookies.get_dict())
         except Exception as err:
@@ -1576,7 +1576,7 @@ class DYLoginApi:
                 "cookie": auth.cookie_str,
                 "referer": HOME_URL + "/?recommend=1",
             },
-            verify=False, timeout=20,
+            verify=True, timeout=20,
         )
         added = []
         for name in ("web_sign_token", "UIFID"):
@@ -1942,7 +1942,7 @@ class DYLoginApi:
                     strict_dtrait=bool(strict)).get(),
                 scoped_cookies(auth, "challenge")),
             params=params.get(), data=body,
-            verify=False, timeout=25)
+            verify=True, timeout=25)
         merge_set_cookies(auth, resp.cookies.get_dict())
         DYLoginApi._harvest_sec_ts(auth, resp.headers)
         try:
@@ -2569,7 +2569,7 @@ class DYLoginApi:
                                     self._passport_headers(
                                         auth, api="/passport/web/" + api).get(),
                                     scoped_cookies(auth, "qr" if api == "get_qrcode/" else "login")),
-                                params=params.get(), verify=False, timeout=20)
+                                params=params.get(), verify=True, timeout=20)
             set_cookies = resp.cookies.get_dict()
             merge_set_cookies(auth, set_cookies)
             apply_ticket_guard(auth, resp.headers, set_cookies)
@@ -2648,7 +2648,7 @@ class DYLoginApi:
                                  "aid": query["aid"],
                                  "is_from_ttaccountsdk": query["is_from_ttaccountsdk"],
                              }),
-                             verify=False, timeout=20)
+                             verify=True, timeout=20)
         merge_set_cookies(auth, resp.cookies.get_dict())
         # Chrome does not fetch ticket-guard client cert until after the
         # login-domain ttwid/check request.  Harvest sec_ts now, but defer the
@@ -2724,7 +2724,7 @@ class DYLoginApi:
                                      api="/passport/web/check_qrconnect/").get(),
                                  scoped_cookies(auth, "qr")),
                                  params=params.get(), data=data,
-                                 verify=False, timeout=20)
+                                 verify=True, timeout=20)
         set_cookies = resp.cookies.get_dict()
         merge_set_cookies(auth, set_cookies)
         apply_ticket_guard(auth, resp.headers, set_cookies)
@@ -3184,7 +3184,7 @@ class DYLoginApi:
                 headers=DYLoginApi._phone_sso_headers(auth),
                 params=params.get(),
                 data=urllib.parse.urlencode(data),
-                verify=False, timeout=20,
+                verify=True, timeout=20,
                 proxies=getattr(auth, "_proxies", None),
             )
             set_cookies = resp.cookies.get_dict()
@@ -3302,7 +3302,7 @@ class DYLoginApi:
             # Chrome's body is exactly 87 bytes.  Split Cookie fields to match
             # Chromium's HTTP/2 cookie crumbling on the wire.
             data=body, split_cookie_header=True,
-            verify=False, timeout=20,
+            verify=True, timeout=20,
             proxies=getattr(auth, "_proxies", None),
         )
         merge_set_cookies(auth, resp.cookies.get_dict())
@@ -3366,7 +3366,7 @@ class DYLoginApi:
                 scoped_cookies(auth, "sms_login")),
             params=params.get(),
             data=body, split_cookie_header=True,
-            verify=False, timeout=20,
+            verify=True, timeout=20,
             proxies=getattr(auth, "_proxies", None),
         )
         set_cookies = resp.cookies.get_dict()
@@ -3395,7 +3395,7 @@ class DYLoginApi:
         for _ in range(max_hops):
             resp = auth.request("GET", url,
                                 headers=headers_with_cookie(headers.get(), scoped_cookies(auth)),
-                                verify=False, timeout=20, allow_redirects=False)
+                                verify=True, timeout=20, allow_redirects=False)
             set_cookies = resp.cookies.get_dict()
             merge_set_cookies(auth, set_cookies)
             apply_ticket_guard(auth, resp.headers, set_cookies)

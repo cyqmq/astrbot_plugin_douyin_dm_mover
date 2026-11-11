@@ -991,7 +991,7 @@ class DouyinAuth:
             "priority": "u=0, i",
         }
         response = session.get(
-            referer, headers=navigation_headers, verify=False, proxies=proxies,
+            referer, headers=navigation_headers, verify=True, proxies=proxies,
         )
         response.raise_for_status()
 
@@ -1017,7 +1017,7 @@ class DouyinAuth:
         try:
             oversea = session.get(
                 origin + "/aweme/v1/web/oversea/judgment/",
-                headers=oversea_headers, verify=False, proxies=proxies,
+                headers=oversea_headers, verify=True, proxies=proxies,
                 timeout=20,
             )
             # curl_cffi's jar receives Set-Cookie automatically, but Auth's
@@ -1068,7 +1068,7 @@ class DouyinAuth:
         }
         csrf_response = session.head(
             origin + "/web/api/media/anchor/search",
-            headers=csrf_headers, verify=False, proxies=proxies,
+            headers=csrf_headers, verify=True, proxies=proxies,
         )
         token_header = csrf_response.headers.get("X-Ware-Csrf-Token", "")
         parts = token_header.split(",")

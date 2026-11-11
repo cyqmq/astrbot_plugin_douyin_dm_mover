@@ -331,7 +331,7 @@ def get_mstoken(ttwid: str = None, proxies: dict = None, use_cache: bool = True,
         url += "&msToken=" + urllib.parse.quote(cache["token"], safe="")
     try:
         resp = requests.post(url, data=envelope.encode("utf-8"), headers=headers,
-                             verify=False, timeout=25, proxies=proxies)
+                             verify=True, timeout=25, proxies=proxies)
         if cookie_sink is not None:
             try:
                 cookie_sink(resp.cookies.get_dict())
@@ -361,7 +361,7 @@ def refresh_common_mstoken(ttwid: str = None, current_token: str = "",
         url += "&msToken=" + urllib.parse.quote(current_token, safe="")
     try:
         resp = requests.post(url, data=envelope.encode("utf-8"),
-                             headers=headers, verify=False, timeout=25,
+                             headers=headers, verify=True, timeout=25,
                              proxies=proxies)
         if cookie_sink is not None:
             try:

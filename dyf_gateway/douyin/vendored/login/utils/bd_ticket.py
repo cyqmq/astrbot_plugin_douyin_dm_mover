@@ -155,7 +155,7 @@ def fetch_server_cert(aid, cookie_str, origin="https://www.douyin.com",
             with_cookie["cookie"] = cookie_str or ""
     resp = requests.post(url, headers=with_cookie,
                          data=f"server_data=1,aid={aid}",
-                         verify=False, proxies=proxies, timeout=15)
+                         verify=True, proxies=proxies, timeout=15)
     res_json = resp.json()
     if res_json.get("message") != "success":
         raise RuntimeError(f"获取服务端证书失败: {res_json}")

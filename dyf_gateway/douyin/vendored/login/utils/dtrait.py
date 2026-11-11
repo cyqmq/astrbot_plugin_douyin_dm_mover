@@ -176,7 +176,7 @@ def fetch_trait_pubkey(aid, cookie_str, csrf_token="", origin="https://www.douyi
     if user_agent:
         headers["user-agent"] = user_agent
     resp = requests.post(url, headers=headers, data="server_data=1&need_session_dtrait=1",
-                         verify=False, proxies=proxies, timeout=15)
+                         verify=True, proxies=proxies, timeout=15)
     res_json = resp.json()
     if res_json.get("message") != "success":
         raise RuntimeError(f"获取 dtrait 公钥失败: {res_json}")

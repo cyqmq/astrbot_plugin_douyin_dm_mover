@@ -10,6 +10,7 @@ from collections.abc import AsyncIterator
 
 from astrbot.api import logger
 
+from dyf_config import DEFAULT_DATA_DIR
 from dyf_core.model import AuthState, GatewayEvent, InboundMessage, MessageType
 
 from ..base import MessageGateway
@@ -36,7 +37,7 @@ class DouyinGateway(MessageGateway):
     def __init__(self, config: dict, config_obj=None):
         self._config = config
         self._config_obj = config_obj
-        self._data_dir = config.get("_data_dir") or os.path.join("data", "dyf")
+        self._data_dir = config.get("_data_dir") or DEFAULT_DATA_DIR
         os.makedirs(self._data_dir, exist_ok=True)
         self._auth = DouyinAuth(
             cookie_str=config.get("douyin_cookies", ""),
