@@ -8,6 +8,8 @@ from __future__ import annotations
 
 from urllib.parse import quote, urlencode
 
+from astrbot.api import logger
+
 from .abogus import generate_jumpbyte_abogus
 from .http import DouyinHttpPy
 from .profile import desktop_rest_base_query
@@ -50,6 +52,8 @@ def fetch_friend_list(
         if data.get("status_code") not in (0, None):
             raise RuntimeError(f"familiar/list status_code={data.get('status_code')}")
         for u in data.get("user_list") or []:
+            # 诊断：familiar/list 真实字段名（看 follow_status 是否存在/叫什么）
+            logger.info(f"[dyf] FRIEND_KEYS: {sorted(u.keys())}")
             uid = (
                 u.get("uid")
                 or (str(u["user_id"]) if u.get("user_id") not in (None, "") else "")

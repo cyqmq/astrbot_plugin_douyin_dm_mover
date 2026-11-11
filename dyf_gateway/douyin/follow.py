@@ -90,7 +90,7 @@ def _commit_follow(
             timeout=timeout,
         )
     except (RuntimeError, TypeError, ValueError, KeyError, ConnectionError, OSError) as e:
-        logger.warning(f"[dyf] 关注请求失败: {e}")
+        logger.warning(f"[dyf] follow 请求失败: {e}")
         return {"ok": False, "detail": f"关注请求失败: {e}"}
     status = data.get("status_code", -1)
     if status == 0:

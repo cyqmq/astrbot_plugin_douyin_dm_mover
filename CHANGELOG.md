@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+## [1.2.35] - 2026-11-11
+
+### Changed
+- **follow 失败日志措辞**：`[dyf] 关注请求失败` → `[dyf] follow 请求失败`（诊断对齐）。
+- **好友字段诊断**：`contact.py fetch_friend_list` 循环加 `logger.info("[dyf] FRIEND_KEYS: ...")`——拉一次好友页即输出 familiar/list 真实字段名（看 `follow_status` 是否存在/实际叫什么），定位三态恒 0。
+
 ## [1.2.34] - 2026-11-11
 
 ### Fixed
