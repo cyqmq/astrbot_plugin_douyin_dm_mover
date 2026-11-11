@@ -384,6 +384,37 @@ class DouyinGateway(MessageGateway):
         logger.info("[dyf] 已登出")
         return True
 
+    async def import_login(self, cookie_str: str, ticket: dict | None = None) -> bool:
+        """导入外部登录态（www 网页 Cookie + 可选 BDTicket）：写配置/session + 重启 worker。
+
+        供「手动网页 Cookie 导入」——用户在浏览器 www.douyin.com 登录后复制 Cookie 串，
+        服务端解析 ts_sign（bd_ticket_guard_ts_sign_id，浏览器登录后写入）并建票据。
+        """
+        if not cookie_str or "sessionid=" not in cookie_str:
+            raise ValueError("导入的 cookie 缺少 sessionid，请复制登录后完整 Cookie 串")
+        await self._stop_receiver()
+        auth = DouyinAuth(
+            cookie_str=cookie_str,
+            web_protect=self._config.get("douyin_web_protect", ""),
+            keys=self._config.get("douyin_keys", ""),
+        )
+        ticket = ticket or {}
+        auth.ts_sign = ticket.get("ts_sign") or ""
+        auth.private_key = ticket.get("private_key") or ""
+        auth.client_cert = ticket.get("client_cert") or ""
+        if ticket.get("server_cert"):
+            auth.server_cert = ticket["server_cert"]
+        auth._login_backend = "alemonjs"
+        self._auth = auth
+        self._persist_login_config(cookie_str, getattr(auth, "uid", None), None)
+        self._login_flow.session.save(auth, backend="alemonjs")
+        self._state = AuthState.OK
+        self._emit_event(GatewayEvent("login_ok", "登录态已导入"))
+        if self._auth.sessionid:
+            await self._restart_worker()
+            self._emit_event(GatewayEvent("started", "接收端已用导入会话重启"))
+        return True
+
     @property
     def login_in_progress(self) -> bool:
         """是否正在扫码登录（登录线程持锁期间为 True）。"""

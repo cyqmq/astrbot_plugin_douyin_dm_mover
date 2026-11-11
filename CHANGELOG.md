@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.2.47] - 2026-11-11
+
+### Added
+- **手动网页 Cookie 导入**（BDTicket 兜底，票据真源是 www 登录响应头 `bd-ticket-guard-server-data`，imdesktop 扫码不产生）：`bd_ticket.import_www_session`（校验 sessionid → 从 cookie 解析 `bd_ticket_guard_ts_sign_id`（浏览器登录后写入）→ `build_bd_ticket`（fetch_server_cert + 生成私钥/证书）；也可直接补填完整票据 ts_sign/private_key/client_cert/server_cert）；`gateway.import_login`（写配置/session + 重启 worker）；dashboard 加 `douyin_dm_mover/import_cookies`（POST）；前端好友页加「导入 Cookie」弹窗（cookie_str + 可选票据字段）。
+
 ## [1.2.46] - 2026-11-11
 
 ### Fixed

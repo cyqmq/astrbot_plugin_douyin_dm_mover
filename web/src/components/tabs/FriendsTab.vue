@@ -1,10 +1,26 @@
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue'
 import { store } from '../../composables/store.js'
-import { followFriend, loadFriends } from '../../composables/actions.js'
+import { followFriend, importCookies, loadFriends } from '../../composables/actions.js'
 
 const q = ref('')
 const followed = reactive({}) // uid -> true 本会话已回关
+const showImport = ref(false)
+const importing = ref(false)
+const imp = reactive({ cookie_str: '', ts_sign: '', private_key: '', client_cert: '', server_cert: '' })
+
+async function doImport() {
+  if (!imp.cookie_str.trim()) { store.friendsDetail = '请粘贴 Cookie 串'; return }
+  importing.value = true
+  const payload = { ...imp }
+  const ok = await importCookies(payload)
+  importing.value = false
+  if (ok) {
+    showImport.value = false
+    imp.cookie_str = ''; imp.ts_sign = ''; imp.private_key = ''; imp.client_cert = ''; imp.server_cert = ''
+    loadFriends(true)
+  }
+}
 
 const filtered = computed(() => {
   const s = q.value.trim().toLowerCase()
@@ -47,7 +63,27 @@ onMounted(() => {
     <div class="bar" style="margin-bottom:10px">
       <input v-model="q" class="fr-search" placeholder="搜索昵称/备注/UID…" @focus="onFocus">
       <button class="mini" title="强制重拉好友列表，跳过 300s 缓存" @click="loadFriends(true)">↻ 刷新</button>
+      <button class="mini" title="手动导入 www 网页登录 Cookie（建 BDTicket，关注/粉丝/回关）" @click="showImport = true">导入 Cookie</button>
       <span class="muted">{{ store.friends.length }} 位好友</span>
+    </div>
+    <div v-if="showImport" class="card" style="margin-bottom:10px">
+      <div style="margin-bottom:6px">
+        <strong>导入 www 网页登录 Cookie</strong>
+        <span class="muted">：浏览器打开 www.douyin.com 登录后复制完整 Cookie 串；票据可自动解析，或手动补填（ts_sign/private_key/client_cert/server_cert）</span>
+      </div>
+      <textarea v-model="imp.cookie_str" class="fr-search" rows="4" placeholder="粘贴 Cookie 串（含 sessionid）" style="width:100%;box-sizing:border-box"></textarea>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">
+        <input v-model="imp.ts_sign" class="fr-search" placeholder="ts_sign（可选）" style="flex:1">
+        <input v-model="imp.client_cert" class="fr-search" placeholder="client_cert（可选）" style="flex:1">
+      </div>
+      <div style="display:flex;gap:6px;margin-top:6px">
+        <input v-model="imp.private_key" class="fr-search" placeholder="private_key（可选）" style="flex:1">
+        <input v-model="imp.server_cert" class="fr-search" placeholder="server_cert（可选）" style="flex:1">
+      </div>
+      <div style="margin-top:8px;display:flex;gap:8px">
+        <button class="mini" :disabled="importing" @click="doImport">{{ importing ? '导入中…' : '导入' }}</button>
+        <button class="mini" @click="showImport = false">取消</button>
+      </div>
     </div>
     <div class="card">
       <ul class="list">

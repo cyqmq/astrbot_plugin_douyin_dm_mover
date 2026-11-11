@@ -189,3 +189,41 @@ def bd_ticket_headers(ticket: dict) -> dict:
         ),
         "bd-ticket-guard-web-sign-type": "1" if client_cert.startswith("pub.") else "0",
     }
+
+
+def import_www_session(
+    cookie_str: str,
+    ts_sign: str = "",
+    private_key: str = "",
+    client_cert: str = "",
+    server_cert: str = "",
+) -> dict:
+    """手动网页 Cookie 导入：用户在浏览器 www.douyin.com 登录后复制 Cookie 串。
+
+    浏览器登录成功后会把 `bd_ticket_guard_ts_sign_id` 写进 cookie（auth.py 行为），
+    服务端据此建票据（fetch_server_cert + 生成私钥/证书）；也可直接补填完整票据
+    （ts_sign/private_key/client_cert/server_cert，从浏览器 localStorage/抓包取）。
+
+    Returns: {"cookie_str", "ts_sign", "private_key", "client_cert", "server_cert"}
+    或 {"error": "..."}。
+    """
+    if not cookie_str or "sessionid=" not in cookie_str:
+        return {
+            "error": "cookie 缺少 sessionid，请从浏览器 www.douyin.com 登录后复制完整 Cookie 串"
+        }
+    http = DouyinHttpPy(cookie_str)
+    if ts_sign and private_key:
+        return {
+            "cookie_str": cookie_str,
+            "ts_sign": ts_sign,
+            "private_key": private_key,
+            "client_cert": client_cert,
+            "server_cert": server_cert,
+        }
+    ticket = build_bd_ticket(http)
+    if ticket.get("ts_sign"):
+        return {"cookie_str": cookie_str, **ticket}
+    return {
+        "error": ticket.get("error")
+        or "cookie 无 bd_ticket_guard_ts_sign_id（浏览器登录后才有该键），或补填完整票据"
+    }

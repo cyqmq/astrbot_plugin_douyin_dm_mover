@@ -99,6 +99,12 @@ export async function followFriend(f) {
   toast(d.detail || '关注失败'); return false
 }
 
+export async function importCookies(payload) {
+  const d = await apiPostBody('import_cookies', payload)
+  if (d.ok) { toast(d.detail || '登录态已导入'); return true }
+  toast(d.detail || '导入失败'); return false
+}
+
 export async function loadGroups(platformId) {
   store.groupsLoading = true
   store.groupsDetail = ''

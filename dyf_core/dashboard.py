@@ -99,6 +99,7 @@ class DashboardApi:
         reg("douyin_dm_mover/profile", self.profile, ["GET"], "dyf 账户昵称/头像")
         reg("douyin_dm_mover/friends", self.friends, ["GET"], "dyf 好友列表（familiar-list）")
         reg("douyin_dm_mover/follow", self.follow, ["POST"], "dyf 回关/取关好友")
+        reg("douyin_dm_mover/import_cookies", self.import_cookies, ["POST"], "dyf 手动导入 www 网页登录 Cookie（建 BDTicket）")
         reg("douyin_dm_mover/groups", self.groups, ["GET"], "dyf 可发送群列表（AstrBot get_group_list）")
         reg("douyin_dm_mover/platforms", self.platforms, ["GET"], "dyf 已加载平台实例列表")
 
@@ -470,6 +471,43 @@ class DashboardApi:
         except Exception as e:
             logger.warning(f"[dyf] 关注操作失败: {e}")
             return {"ok": False, "detail": f"关注操作失败: {e}"}
+
+    async def import_cookies(self):
+        """手动导入 www 网页登录 Cookie（建 BDTicket）：POST {cookie_str, ts_sign?, private_key?, client_cert?, server_cert?}。"""
+        try:
+            from astrbot.api.web import request as web_request
+
+            data = await web_request.json(default={}) or {}
+        except Exception:
+            data = {}
+        cookie_str = str((data or {}).get("cookie_str") or "")
+        ts_sign = str((data or {}).get("ts_sign") or "")
+        private_key = str((data or {}).get("private_key") or "")
+        client_cert = str((data or {}).get("client_cert") or "")
+        server_cert = str((data or {}).get("server_cert") or "")
+        if not cookie_str:
+            return {"ok": False, "detail": "缺少 cookie_str（浏览器 www.douyin.com 登录后复制完整 Cookie 串）"}
+        try:
+            from dyf_gateway.douyin.login.alemonjs_py.bd_ticket import (
+                import_www_session,
+            )
+
+            res = await asyncio.to_thread(
+                import_www_session,
+                cookie_str,
+                ts_sign,
+                private_key,
+                client_cert,
+                server_cert,
+            )
+            if res.get("error"):
+                return {"ok": False, "detail": res["error"]}
+            gw = self.gateway
+            await gw.import_login(res["cookie_str"], res)
+            return {"ok": True, "detail": "登录态已导入，接收端已用导入会话重启"}
+        except Exception as e:
+            logger.warning(f"[dyf] 导入登录态失败: {e}")
+            return {"ok": False, "detail": f"导入失败: {e}"}
 
     async def platforms(self):
         """已加载的平台实例列表（多实例级联选择）。
