@@ -21,6 +21,7 @@ class AlemonjsResult:
     device_id: str | None = None
     user_data: dict | None = None
     profile: dict | None = None
+    ticket: str = ""
     ts_sign: str = ""
     private_key: str = ""
     client_cert: str = ""

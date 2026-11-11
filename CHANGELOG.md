@@ -4,6 +4,15 @@
 
 ## [Unreleased]
 
+## [1.2.50] - 2026-11-11
+
+### Added
+- **www 扫码登录（自动产票）**：新增登录后端 `alemonjs_www`——复用 vendored DouYin_Spider 链（`bootstrap_auth` 取码前写 `bd_ticket_guard_client_data` cookie（公钥交服务端）+ `apply_ticket_guard` 每跳解析响应头 `bd-ticket-guard-server-data` → ticket/ts_sign/client_cert）；`www_login.py`（vendored DYLoginApi.qrcode_login + on_qrcode 转 PNG data URL）；`AlemonjsResult` 加 `ticket`；`subprocess_gateway.login` 加 `alemonjs_www` 分支（存 ticket/ts_sign/private_key/client_cert 到 session）；`_conf_schema.json` `login_backend` 加 `alemonjs_www` 选项。**IM/WS 保持 imdesktop**（此登录只产票，不切 WS）。
+
+### Notes
+- imdesktop 扫码（alemonjs）不产票据，仅 familiar 可用；要关注/粉丝/回关走 `alemonjs_www`（www 扫码，响应头产票）。
+- 切换 `login_backend=alemonjs_www` 后自测：www 扫码 → 确认 `session.json` 有 `ticket/ts_sign/client_cert/private_key` → following/follower 通。
+
 ## [1.2.49] - 2026-11-11
 
 ### Fixed

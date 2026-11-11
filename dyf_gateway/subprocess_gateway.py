@@ -299,6 +299,30 @@ class SubprocessGateway(MessageGateway):
                 if getattr(result, "server_cert", ""):
                     auth.server_cert = result.server_cert
                 self._login_flow.session.save(auth, backend="alemonjs")
+            elif backend in ("alemonjs_www", "www"):
+                logger.info("[dyf] 登录后端：www 扫码（DouYin_Spider vendored 链，响应头产票）")
+                from .douyin.login.www_login import www_qrcode_login_async
+
+                result = await www_qrcode_login_async(
+                    timeout=timeout, on_qrcode=self._on_qr_alemonjs
+                )
+                from .douyin.vendored.auth import DouyinAuth
+
+                auth = DouyinAuth(
+                    cookie_str=result.cookie_str,
+                    web_protect=self._config.get("douyin_web_protect", ""),
+                    keys=self._config.get("douyin_keys", ""),
+                )
+                auth.uid = int(result.uid) if result.uid else None
+                auth._login_backend = "alemonjs_www"
+                # www 登录响应头 bd-ticket-guard-server-data 解析出的票据
+                auth.ticket = getattr(result, "ticket", "") or ""
+                auth.ts_sign = getattr(result, "ts_sign", "") or ""
+                auth.private_key = getattr(result, "private_key", "") or ""
+                auth.client_cert = getattr(result, "client_cert", "") or ""
+                if getattr(result, "server_cert", ""):
+                    auth.server_cert = result.server_cert
+                self._login_flow.session.save(auth, backend="alemonjs_www")
             else:
                 auth = await loop.run_in_executor(
                     None, lambda: self._login_flow.qrcode_login(timeout=timeout)
