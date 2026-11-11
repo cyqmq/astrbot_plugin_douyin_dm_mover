@@ -165,6 +165,7 @@ class DashboardApi:
             "alert_target": str(cfg.get("alert_target", "") or ""),
             "mfa_mode": str(cfg.get("mfa_mode") or "auto_sms"),
             "login_backend": str(cfg.get("login_backend") or "alemonjs"),
+            "login_backend_active": str(getattr(self.gateway, "_login_backend", "") or ""),
             "senders_count": len(fm.tracker.senders()),
             "records_count": len(fm.tracker.records()),
         }

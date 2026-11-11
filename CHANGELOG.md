@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.2.52] - 2026-11-11
+
+### Added
+- **登录卡片显示当前登录后端**：`dashboard.status` 加 `login_backend_active`（gateway 运行时实际生效值，与配置页 `login_backend` 区分）；OverviewTab pills 加「登录后端」——显示生效值 + 友好名（`@alemonjs/douyin`/`www 扫码（自动产票）`/`Node 桥接`/`旧 vendored`）；若生效值 ≠ 配置值显示「配置未生效，需重载插件」（黄色告警）——改设置页选项后立刻看清是否生效。
+
 ## [1.2.51] - 2026-11-11
 
 ### Added

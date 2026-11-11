@@ -3,13 +3,25 @@ import { computed } from 'vue'
 import { store, typeName, esc, fmtTs } from '../../composables/store.js'
 
 const st = computed(() => store.status || {})
+const BACKEND_NAMES = {
+  alemonjs: '@alemonjs/douyin（imdesktop 扫码）',
+  alemonjs_www: 'www 扫码（自动产票）',
+  alemonjs_node: 'Node 桥接',
+  douyin_spider: '旧 vendored'
+}
 const pills = computed(() => {
   const auth = st.value.auth_state || 'idle'
   const cls = auth === 'ok' ? 'ok' : (auth === 'expired' ? 'bad' : 'warn')
   const label = { ok: '已登录', expired: '登录失效', unknown: '未知', idle: '未登录' }[auth] || '未登录'
   const d = st.value
+  const active = d.login_backend_active || d.login_backend || ''
+  const cfg = d.login_backend || ''
+  const bname = BACKEND_NAMES[active] || active || '（未知）'
+  const bcls = active && active === cfg ? 'ok' : 'warn'
+  const bval = active === cfg ? bname : (bname + '（配置未生效，需重载插件）')
   return [
     ['登录态', cls, label],
+    ['登录后端', bcls, bval],
     ['抖音来源', d.douyin_enabled ? 'ok' : 'idle', d.douyin_enabled ? '启用' : '停用'],
     ['MFA', 'idle', d.mfa_mode || ''],
     ['路由', 'ok', (d.routes || 0) + ' 条'],
