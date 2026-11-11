@@ -66,12 +66,21 @@ def _fetch_www_user_list(
     page = 0
     while page < max_pages:
         query = {
+            "device_platform": "webapp",
+            "aid": "6383",
+            "channel": "channel_pc_web",
             "user_id": str(uid),
             "sec_user_id": sec_uid,
+            "offset": "0",
+            "min_time": "0",
             "count": str(min(100, count)),
             "cursor": cur,
-            "max_time": str(int(time.time())),
+            "max_time": str(int(time.time() * 1000)),
             "source_type": "1",
+            "gps_access": "0",
+            "address_book_access": "0",
+            "is_top": "1",
+            "pc_client_type": "1",
         }
         query_wire = urlencode(query)
         abogus = generate_jumpbyte_abogus(

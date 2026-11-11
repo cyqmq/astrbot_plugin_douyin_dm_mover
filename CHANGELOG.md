@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.2.49] - 2026-11-11
+
+### Fixed
+- **`contact._fetch_www_user_list` query 校准**（following/follower 走通）：`max_time` 用**毫秒**（原秒，抖音要毫秒）；query 补全 9 个缺失参数（`device_platform=webapp`/`aid=6383`/`channel=channel_pc_web`/`offset=0`/`min_time=0`/`gps_access=0`/`address_book_access=0`/`is_top=1`/`pc_client_type=1`）——原缺参直接 `status_code=8`（a_bogus 风控）。
+
 ## [1.2.48] - 2026-11-11
 
 ### Fixed
