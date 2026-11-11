@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.2.31] - 2026-11-11
+
+### Fixed
+- **bridge SDK endpoint invalid**：`apiGet` 把查询串塞进 endpoint（`friends?refresh=1`、`groups?platform_id=...`），astrbot 4.29 `plugin_page_bridge.js` 校验 endpoint 不含 `?`/`://`/`#`/`\` → 抛「Plugin bridge endpoint is invalid」，好友页/群列表整页报错。改 `store.js apiGet`：自动把 `?a=1&b=2` 拆成 `path` + `params` 单独传（`V.apiGet(path, params)`），调用点无需改动。
+
 ## [1.2.30] - 2026-11-11
 
 ### Added

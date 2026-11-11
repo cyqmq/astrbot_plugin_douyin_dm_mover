@@ -12,7 +12,23 @@ export function toast(msg) {
 }
 
 export async function apiGet(ep) {
-  try { return await V.apiGet(ep) } catch (e) { toast('请求失败: ' + e); return {} }
+  try {
+    // bridge SDK 校验 endpoint 不能含 '?'/'://'/'#'/'\\'：把查询串拆成
+    // path + params 单独传（父窗口 axios get(endpoint, {params}) 序列化）。
+    let path = ep
+    let params
+    const qi = typeof ep === 'string' ? ep.indexOf('?') : -1
+    if (qi >= 0) {
+      path = ep.slice(0, qi)
+      params = {}
+      for (const kv of ep.slice(qi + 1).split('&')) {
+        if (!kv) continue
+        const i = kv.indexOf('=')
+        params[i >= 0 ? kv.slice(0, i) : kv] = i >= 0 ? decodeURIComponent(kv.slice(i + 1)) : ''
+      }
+    }
+    return await V.apiGet(path, params)
+  } catch (e) { toast('请求失败: ' + e); return {} }
 }
 export async function apiPost(ep) {
   try { return await V.apiPost(ep, {}) } catch (e) { toast('请求失败: ' + e); return {} }
