@@ -50,7 +50,8 @@ export const LABELS = {
   dedup_enabled: '去重', dedup_window_seconds: '去重窗口(秒)', retry_enabled: '失败重试',
   retry_interval_seconds: '重试间隔(秒)', retry_max_attempts: '重试次数上限',
   keyword_filters: '关键词过滤', alert_target: '告警目标', alert_only_once: '仅告警一次',
-  qq_adapter_id: 'QQ 适配器', sources: '来源配置', routes: '路由表'
+  qq_adapter_id: 'QQ 适配器', sources: '来源配置', routes: '路由表',
+  log_level: '日志级别'
 }
 export const lbl = k => LABELS[k] || k
 
@@ -58,7 +59,8 @@ export const SELECTS = {
   login_backend: [['alemonjs', '@alemonjs/douyin（纯 Python）'], ['alemonjs_node', 'Node 桥接（可选回退）'], ['douyin_spider', '旧 vendored']],
   gateway_mode: [['inprocess', '进程内（默认）'], ['subprocess', '子进程隔离']],
   mfa_mode: [['auto_sms', '自动短信'], ['manual_command', '手动指令'], ['alert_wait', '仅告警等 App']],
-  qq_adapter_id: [['aiocqhttp', 'NapCat (aiocqhttp)'], ['qq_official', 'QQ 官方机器人'], ['telegram', 'Telegram'], ['wecom', '企业微信']]
+  qq_adapter_id: [['aiocqhttp', 'NapCat (aiocqhttp)'], ['qq_official', 'QQ 官方机器人'], ['telegram', 'Telegram'], ['wecom', '企业微信']],
+  log_level: [['DEBUG', 'DEBUG（全部，含调试 dump）'], ['INFO', 'INFO（默认）'], ['WARNING', 'WARNING'], ['ERROR', 'ERROR（仅错误）']]
 }
 
 export const UMO_KEYS = ['default_target_group', 'alert_target']
@@ -71,11 +73,13 @@ export const POLICY_KEYS = ['rate_limit_global_enabled', 'rate_limit_global_max_
 export const SETTINGS_KEYS = ['douyin_cookies', 'douyin_web_protect', 'douyin_keys', 'self_uid', 'device_id',
   'gateway_mode', 'login_backend', 'mfa_mode', 'login_timeout', 'login_mfa_timeout',
   'auth_watchdog_minutes', 'auth_failure_close_codes', 'auth_failure_keywords',
-  'max_message_length', 'include_link', 'card_enabled', 'max_media_per_batch', 'header_template', 'default_target_group', 'sources']
+  'max_message_length', 'include_link', 'card_enabled', 'max_media_per_batch', 'header_template', 'default_target_group', 'sources',
+  'log_level']
 
 export const SETTINGS_GROUPS = [
   ['登录', ['douyin_cookies', 'douyin_web_protect', 'douyin_keys', 'self_uid', 'device_id', 'login_backend', 'mfa_mode', 'login_timeout', 'login_mfa_timeout', 'auth_watchdog_minutes', 'auth_failure_close_codes', 'auth_failure_keywords']],
-  ['转发', ['max_message_length', 'include_link', 'card_enabled', 'max_media_per_batch', 'header_template', 'default_target_group', 'sources']]
+  ['转发', ['max_message_length', 'include_link', 'card_enabled', 'max_media_per_batch', 'header_template', 'default_target_group', 'sources']],
+  ['运行', ['log_level']]
 ]
 export const POLICY_GROUPS = [
   ['限流', ['rate_limit_global_enabled', 'rate_limit_global_max_per_min', 'rate_limit_sender_enabled', 'rate_limit_sender_max_per_min']],

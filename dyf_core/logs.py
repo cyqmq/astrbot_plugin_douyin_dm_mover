@@ -18,20 +18,49 @@ from astrbot.api import logger as _astr_logger
 
 _PERSIST_MAX_BYTES = 2_000_000  # 超过则重写为最近 maxlen 条，防无界增长
 
+_LEVELS = {
+    "DEBUG": logging.DEBUG,
+    "INFO": logging.INFO,
+    "WARNING": logging.WARNING,
+    "ERROR": logging.ERROR,
+}
+
+
+def _coerce_level(value) -> int:
+    """把 'DEBUG'/'INFO'/'WARNING'/'ERROR'（或 levelno int）归一为 levelno。"""
+    if isinstance(value, int):
+        return value
+    if isinstance(value, str):
+        return _LEVELS.get(value.upper(), logging.INFO)
+    return logging.INFO
+
 
 class LogRing(logging.Handler):
-    def __init__(self, maxlen: int = 200, persist_path: str | None = None):
+    def __init__(
+        self,
+        maxlen: int = 200,
+        persist_path: str | None = None,
+        min_level=logging.INFO,
+    ):
         super().__init__()
         self.setLevel(logging.DEBUG)
         self._items: deque = deque(maxlen=maxlen)
         self._attached = False
         self._persist_path = persist_path
         self._persist_size = 0
+        self._min_level = _coerce_level(min_level)
         if persist_path:
             self._load()
 
+    # ---- 级别过滤 ----
+    def set_min_level(self, level) -> None:
+        """更新最低显示级别（低于该级别丢弃，不改已存条目）。"""
+        self._min_level = _coerce_level(level)
+
     # ---- logging.Handler ----
     def emit(self, record: logging.LogRecord) -> None:
+        if record.levelno < self._min_level:
+            return
         msg = record.getMessage()
         if "[dyf]" not in msg:
             return

@@ -86,7 +86,10 @@ class DouyinForwardPlugin(Star):
         self.gateway = build_gateway(cfg, config_obj=config)
         self.forward_manager = ForwardManager(context, cfg)
         self.listener = MessageListener(self.gateway, self.forward_manager)
-        self.logring = LogRing(persist_path=os.path.join(_resolve_data_dir(), "logs.jsonl"))
+        self.logring = LogRing(
+            persist_path=os.path.join(_resolve_data_dir(), "logs.jsonl"),
+            min_level=cfg.get("log_level", "INFO"),
+        )
         self.dashboard = DashboardApi(context, self.gateway, self.forward_manager, self.logring, config_obj=config)
         self.dashboard.register()
         self._tasks: list[asyncio.Task] = []

@@ -168,7 +168,7 @@ class DouyinReceiver:
             # bytes）会让 _read_varint 取 data[0] 抛 KeyError -> frame decode error: 0。
             if msg_type not in (7, 8, 27, 5, 17, 50001, 50002, 77, 110):
                 for _fn, _fv in msg_body.items():
-                    logger.info(f"[dyf] proto {_fn}: {_fv!s}")
+                    logger.debug(f"[dyf] proto {_fn}: {_fv!s}")
             sender = field_int(msg_body, 7)
             content = field_str(msg_body, 8)
             try:

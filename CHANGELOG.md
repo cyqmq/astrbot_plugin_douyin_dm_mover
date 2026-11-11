@@ -4,6 +4,14 @@
 
 ## [Unreleased]
 
+## [1.2.28] - 2026-11-11
+
+### Added
+- **配置项 `log_level`**（下拉 DEBUG/INFO/WARNING/ERROR，默认 INFO）：运行日志页只显示不低于该级别，低于级别隐藏。`LogRing` 加 `min_level`（构造参数 + `set_min_level()`，`emit` 里 `levelno < min_level` 丢弃）；`main.py` 启动读 `cfg.get("log_level","INFO")`。设置页新增「运行」组（`log_level` 下拉）。
+
+### Changed
+- **receiver 未知类型 dump 降级**：`proto N:` 调试 dump 由 `info` 改为 `debug`——默认 INFO 下不再显示，设 DEBUG 可临时看全部（含调试 dump）。
+
 ## [1.2.27] - 2026-11-11
 
 ### Fixed

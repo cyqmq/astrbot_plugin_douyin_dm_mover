@@ -147,6 +147,11 @@
     "default": false,
     "description": "启用调试浮窗日志"
   },
+  "log_level": {
+    "type": "string",
+    "default": "INFO",
+    "description": "运行日志级别: DEBUG（全部，含调试 dump）/ INFO / WARNING / ERROR（仅更高级）。日志页只显示不低于该级别"
+  },
   "retry_enabled": {
     "type": "bool",
     "default": true,
