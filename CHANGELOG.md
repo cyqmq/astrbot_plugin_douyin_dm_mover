@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.2.39] - 2026-11-11
+
+### Fixed
+- **follow 404 Janus 根因**：接口改到 `imdesktop.douyin.com/aweme/v1/web/commit/follow/user/`（www 的 `item/follow` 已废弃，Janus 不认）。参数**全在 query**（非 body）：`user_id`/`secUid`（camelCase）/`type`（1 关注 / 0 取关，非 `action`）/`tag=frienddetail`/`verifyFp=verify_{device_id}`；body 空；`Referer: https://imdesktop.douyin.com`；复用 `desktop_rest_base_query`（imdesktop 公共参数含 device_id）。`follow_user`/`unfollow_user` 改用 `followed` bool；dashboard 调用不变（`action==1`→关注）。
+
 ## [1.2.38] - 2026-11-11
 
 ### Changed
