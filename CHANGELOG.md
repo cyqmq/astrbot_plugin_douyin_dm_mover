@@ -4,6 +4,20 @@
 
 ## [Unreleased]
 
+## [1.2.48] - 2026-11-11
+
+### Fixed
+- **BDTicket 4 头/数据流修正**（手动导入票据走通后的校准）：
+  - `bd_ticket_headers`：`ree-public-key` 改用 `client_cert`（去 `pub.` 前缀，原用私钥算公钥）；`web-sign-type` 修正（`pub.` 前缀→`0` ecdsa，原反了）；无 `ts_sign/client_cert` 返回 `{}`（无私钥也能带 4 头，只读列表用 client_cert 不用私钥）；
+  - `session.load_bd_ticket` 补 `ticket` 字段；
+  - `http._apply_bd_ticket` 去掉 `private_key` 强制（4 头用 ts_sign/client_cert）；
+  - `contact._fetch_www_user_list`：query 加 `max_time=当前时间戳` + `source_type=1`（防"推荐"分支空）；响应字段改 `followings`/`followers`（原读 `user_list` 错）；
+  - `dashboard.friends`：**uid 从 profile 拿**（原用 `uid_tt` 加密值当 uid 是 bug，直接导致 following 空），profile 失败才 fallback `auth.uid`，绝不读 `uid_tt`。
+
+### Notes
+- 私钥只回关（写接口 `bd-ticket-guard-client-data`）要；4 头只读不用私钥。
+- 票据有生命周期，过期需重新登录拿；`cookie + private_key` 敏感不入 git。
+
 ## [1.2.47] - 2026-11-11
 
 ### Added

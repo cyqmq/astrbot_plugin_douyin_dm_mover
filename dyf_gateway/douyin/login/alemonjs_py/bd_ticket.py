@@ -175,19 +175,20 @@ def build_bd_ticket(http: DouyinHttpPy) -> dict:
 def bd_ticket_headers(ticket: dict) -> dict:
     """只读接口的 bd-ticket-guard 4 个头（with_bd_readonly，无 client-data）。
 
-    无 private_key 返回 {}（此时不带票据头，接口大概率被风控拦）。
+    ``bd-ticket-guard-ree-public-key`` 用 client_cert（去 ``pub.`` 前缀）；
+    ``web-sign-type``：``pub.`` 前缀 -> ``0``（ecdsa），否则 ``1``（hmac）。
+    无 ts_sign/client_cert 返回 {}（不带票据头，只读列表降级仅 familiar 并告警）。
     """
-    private_key = (ticket or {}).get("private_key") or ""
-    if not private_key:
-        return {}
+    ts_sign = (ticket or {}).get("ts_sign") or ""
     client_cert = (ticket or {}).get("client_cert") or ""
+    if not ts_sign or not client_cert:
+        return {}
+    key = client_cert.removeprefix("pub.")
     return {
-        "bd-ticket-guard-ree-public-key": get_ree_key(private_key),
+        "bd-ticket-guard-ree-public-key": key,
         "bd-ticket-guard-version": "2",
-        "bd-ticket-guard-web-version": str(
-            ticket_guard_version((ticket or {}).get("ts_sign") or "")
-        ),
-        "bd-ticket-guard-web-sign-type": "1" if client_cert.startswith("pub.") else "0",
+        "bd-ticket-guard-web-version": str(ticket_guard_version(ts_sign)),
+        "bd-ticket-guard-web-sign-type": "0" if client_cert.startswith("pub.") else "1",
     }
 
 

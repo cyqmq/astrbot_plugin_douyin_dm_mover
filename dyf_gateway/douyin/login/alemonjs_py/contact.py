@@ -53,8 +53,14 @@ def _fetch_www_user_list(
     count: int = 100,
     max_pages: int = 50,
 ) -> list[dict]:
-    """www following/follower 分页拉取（bd-ticket-guard 4 头自动加 + Referer 用户主页）。"""
+    """www following/follower 分页拉取（bd-ticket-guard 4 头自动加 + Referer 用户主页）。
+
+    响应字段：following/list -> ``followings``，follower/list -> ``followers``（不是 user_list）。
+    """
+    import time
+
     path = f"{kind}/list/"
+    key = "followings" if kind == "following" else "followers"
     users: list[dict] = []
     cur = cursor or "0"
     page = 0
@@ -64,6 +70,8 @@ def _fetch_www_user_list(
             "sec_user_id": sec_uid,
             "count": str(min(100, count)),
             "cursor": cur,
+            "max_time": str(int(time.time())),
+            "source_type": "1",
         }
         query_wire = urlencode(query)
         abogus = generate_jumpbyte_abogus(
@@ -74,7 +82,7 @@ def _fetch_www_user_list(
         data = http.request_json(url, "GET", headers=headers)
         if data.get("status_code") not in (0, None):
             raise RuntimeError(f"{kind}/list status_code={data.get('status_code')}")
-        for item in data.get("user_list") or []:
+        for item in data.get(key) or []:
             if not isinstance(item, dict):
                 continue
             # www 形状：user_list[].user_info 嵌套；familiar 形状：平铺。

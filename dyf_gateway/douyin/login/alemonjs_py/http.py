@@ -181,10 +181,10 @@ class DouyinHttpPy:
         self.bd_ticket = dict(ticket or {})
 
     def _apply_bd_ticket(self, headers: dict, host: str) -> None:
-        """www/imdesktop 只读接口自动加 bd-ticket-guard 4 头（有票据才加）。"""
+        """www/imdesktop 只读接口自动加 bd-ticket-guard 4 头（有 ts_sign/client_cert 才加）。"""
         if host not in ("www.douyin.com", "imdesktop.douyin.com"):
             return
-        if not (self.bd_ticket or {}).get("private_key"):
+        if not self.bd_ticket:
             return
         try:
             from .bd_ticket import bd_ticket_headers

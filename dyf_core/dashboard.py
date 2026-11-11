@@ -414,15 +414,16 @@ class DashboardApi:
                 http.set_bd_ticket(gw._login_flow.session.load_bd_ticket())
             except Exception:
                 pass
-            # following/follower 需要本人 uid/sec_uid（sec_uid 从 self profile 取）
-            uid = str(getattr(auth, "uid", None) or http.jar.get("uid_tt") or "")
+            # following/follower 需要本人真实 uid/sec_uid（uid_tt 是加密值不能当 uid，
+            # 用 profile/self 拿真实 uid；profile 失败才 fallback auth.uid，绝不读 uid_tt）
+            uid = ""
             sec_uid = ""
             try:
                 prof = await asyncio.to_thread(fetch_desktop_self_profile, http)
+                uid = prof.get("uid") or str(getattr(auth, "uid", None) or "")
                 sec_uid = prof.get("sec_uid") or ""
-                if not uid:
-                    uid = prof.get("uid") or ""
             except Exception as exc:
+                uid = str(getattr(auth, "uid", None) or "")
                 logger.warning(f"[dyf] 拉取 self profile 失败(仅 familiar): {exc}")
             friends = await asyncio.to_thread(
                 fetch_contact_lists, http, uid, sec_uid

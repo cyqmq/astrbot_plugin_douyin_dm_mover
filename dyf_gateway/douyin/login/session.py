@@ -101,11 +101,12 @@ class SessionStore:
         )
 
     def load_bd_ticket(self) -> dict:
-        """载入持久化 BDTicket（ts_sign/private_key/client_cert/server_cert）。"""
+        """载入持久化 BDTicket（ticket/ts_sign/private_key/client_cert/server_cert）。"""
         data = self.load()
         if not data:
             return {}
         return {
+            "ticket": data.get("ticket") or "",
             "ts_sign": data.get("ts_sign") or "",
             "private_key": data.get("private_key") or "",
             "client_cert": data.get("client_cert") or "",
