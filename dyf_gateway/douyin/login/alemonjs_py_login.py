@@ -6,10 +6,22 @@ from __future__ import annotations
 
 import asyncio
 import os
+from dataclasses import dataclass
 
-from .alemonjs import AlemonjsResult
 from .alemonjs_py import DouyinHttpPy, get_qrcode, poll_qr_confirm
 from .alemonjs_py.device import setup_desktop_device
+
+
+@dataclass
+class AlemonjsResult:
+    """纯 Python 登录结果（与旧 Node 后端对齐的字段）。"""
+
+    cookie_str: str
+    uid: str
+    device_id: str | None = None
+    user_data: dict | None = None
+    profile: dict | None = None
+
 
 
 class AlemonsPyLogin:

@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.2.25] - 2026-11-11
+
+### Fixed
+- **安装失败 `No module named 'dyf_gateway.douyin.login.alemonjs'`**：`alemonjs_py_login.py` 仍 `from .alemonjs import AlemonjsResult`（模块已于 1.2.20 删除）→ 安装后 import 链 `gateway → alemons_py_login → .alemonjs` 崩溃。改为内联 `AlemonjsResult` dataclass（cookie_str/uid/device_id/user_data/profile），彻底去掉已删模块引用。
+
 ## [1.2.24] - 2026-11-11
 
 ### Changed
