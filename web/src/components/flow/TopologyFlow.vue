@@ -25,8 +25,15 @@ const umoOf = t => ('kind' in t)
 const findTargetByUmo = umo => targetList.value.find(t => umoOf(t) === umo)
 
 // ---- 添加 / 删除 ----
-let srcSeq = 0
-function addSource() { store.customSources.push({ id: 'src' + (++srcSeq), uid: '', nickname: '' }); scheduleLiveSave() }
+function addSource() {
+  // 动态分配不冲突 id：加载旧卡 id 可能保留 src1/src2…，新卡 id 永远唯一，
+  // 避免新建来源顶掉旧卡（旧卡 id 与新卡冲突时 VueFlow 复用节点）。
+  const ids = new Set(store.customSources.map(s => s.id))
+  let n = 1
+  while (ids.has('src' + n)) n++
+  store.customSources.push({ id: 'src' + n, uid: '', nickname: '' })
+  scheduleLiveSave()
+}
 function delSource(source) {
   const i = store.customSources.indexOf(source)
   if (i >= 0) { store.customSources.splice(i, 1); scheduleLiveSave() }

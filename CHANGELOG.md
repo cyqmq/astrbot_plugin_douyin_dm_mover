@@ -4,6 +4,18 @@
 
 ## [Unreleased]
 
+## [1.2.27] - 2026-11-11
+
+### Fixed
+- **新建来源顶掉旧卡（TopologyFlow）**：`addSource` 固定从 `src1` 起（模块级 `srcSeq`），加载时旧卡 `id` 保留（如 `src1`）→ 新来源 id 冲突被 VueFlow 复用节点顶掉。改为 `while (ids.has('src' + n)) n++` 动态分配唯一 id。
+
+### Changed
+- **来源卡常态显示好友下拉（SourceNode）**：`open` 默认 `ref(true)` 且删 `@blur` 关闭——下拉始终展开，搜索框直接过滤，无需先点输入框。
+- **刷新按钮**：「↻」→「↻ 刷新」（title「强制重拉好友列表，跳过 300s 缓存」）。
+- **搜索匹配**：昵称/备注/UID 子串匹配（`includes`，大小写不敏感，中间几个字也命中）。
+
+前端 Vite 重建，旧哈希清除。
+
 ## [1.2.26] - 2026-11-11
 
 ### Security
