@@ -279,12 +279,19 @@ class DashboardApi:
         if not isinstance(updates, dict) or not updates:
             return {"ok": False, "detail": "缺少 config 更新"}
         cfg = self.fm.config
+        old_backend = str(cfg.get("login_backend") or "")
         old_routes = None
         if "routes" in updates:
             import copy
             old_routes = copy.deepcopy(cfg.get("routes") or [])
         for k, v in updates.items():
             cfg[k] = v
+        if "login_backend" in updates:
+            new_backend = str(updates.get("login_backend") or "")
+            if new_backend != old_backend:
+                logger.info(
+                    f"[dyf] 登录后端变更: {old_backend or '(空)'} -> {new_backend}（需重载插件生效，重载后登录卡片显示生效值）"
+                )
         if "routes" in updates:
             for line in _route_diff(old_routes, updates.get("routes") or []):
                 logger.info(f"[dyf] {line}")
