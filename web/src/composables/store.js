@@ -116,6 +116,7 @@ export const store = reactive({
   friends: [],
   friendsDetail: '',
   friendsLoading: false,
+  friendsLoadedAt: 0,
   groups: [],
   groupsDetail: '',
   groupsLoading: false,

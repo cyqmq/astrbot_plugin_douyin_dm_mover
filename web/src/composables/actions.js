@@ -89,6 +89,7 @@ export async function loadFriends(refresh) {
   store.friendsLoading = false
   if (d.detail) store.friendsDetail = d.detail
   store.friends = d.friends || []
+  store.friendsLoadedAt = Date.now()
 }
 
 export async function loadGroups(platformId) {

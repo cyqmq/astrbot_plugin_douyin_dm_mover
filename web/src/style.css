@@ -268,3 +268,19 @@ kbd { background:var(--card); border:1px solid var(--border2); border-radius:4px
 /* 来源卡下拉选择器（最近发石者 / 抖音好友） */
 .vf-src .src-pick { max-width:170px; font-size:12px; }
 .vf-src .src-picked { font-size:12px; font-weight:600; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:110px; }
+/* 来源卡搜索 + 好友下拉 */
+.vf-src .src-dropwrap { position:relative; }
+.vf-src .src-search { width:180px; font-size:12px; padding:4px 8px; border-radius:6px;
+  border:1px solid var(--border); background:var(--bg); color:var(--text); outline:none; }
+.vf-src .src-search:focus { border-color:#0969da; }
+.vf-src .src-drop { position:absolute; top:calc(100% + 4px); left:0; z-index:60;
+  min-width:220px; max-height:220px; overflow-y:auto; background:var(--bg);
+  border:1px solid var(--border); border-radius:8px; box-shadow:0 6px 20px rgba(0,0,0,.22);
+  padding:4px; }
+.vf-src .src-drop-item { display:flex; justify-content:space-between; gap:8px;
+  padding:5px 8px; border-radius:5px; cursor:pointer; font-size:12px; }
+.vf-src .src-drop-item:hover { background:rgba(9,105,218,.12); }
+.vf-src .src-drop-item.sel { background:rgba(9,105,218,.18); }
+.vf-src .src-drop-name { color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.vf-src .src-drop-uid { color:var(--muted); flex-shrink:0; }
+.vf-src .src-drop-empty { padding:8px; font-size:12px; color:var(--muted); text-align:center; }

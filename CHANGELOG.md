@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.2.24] - 2026-11-11
+
+### Changed
+- **来源卡重写**：删「最近发石者」列（只显示抖音好友）；加搜索框（昵称/备注/UID 即时过滤）+ 好友下拉（点击选中写 uid+nickname+实时保存）+「↻ 刷新」强制重拉（`?refresh=1` 跳 300s 缓存）+ 聚焦搜索框时好友空或距上次拉取超 30s 自动强制重拉（`friendsLoadedAt`）。`store.friendsLoadedAt`、`loadFriends` 成功写时间戳；style.css 加 `.src-dropwrap/.src-search/.src-drop` 下拉样式。前端 Vite 重建，旧哈希清除。
+
 ## [1.2.23] - 2026-11-11
 
 ### Fixed
