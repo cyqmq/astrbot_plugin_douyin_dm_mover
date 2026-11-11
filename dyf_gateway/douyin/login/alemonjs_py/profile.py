@@ -57,9 +57,10 @@ def fetch_desktop_self_profile(http: DouyinHttpPy) -> dict:
         or ""
     )
     nickname = user.get("nickname") or ""
+    sec_uid = user.get("sec_uid") or ""
     avatar = ""
     thumb = user.get("avatar_thumb") or {}
     url_list = thumb.get("url_list") or []
     if url_list:
         avatar = url_list[0]
-    return {"uid": uid, "nickname": nickname, "avatar": avatar}
+    return {"uid": uid, "nickname": nickname, "sec_uid": sec_uid, "avatar": avatar}

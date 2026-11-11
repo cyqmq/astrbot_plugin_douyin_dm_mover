@@ -386,7 +386,8 @@ class DashboardApi:
         try:
             from dyf_gateway.douyin.login.alemonjs_py import (
                 DouyinHttpPy,
-                fetch_friend_list,
+                fetch_contact_lists,
+                fetch_desktop_self_profile,
             )
 
             auth = getattr(gw, "_auth", None)
@@ -407,7 +408,24 @@ class DashboardApi:
             dev = getattr(gw, "_device_id", "") or "0"
             http = DouyinHttpPy(cookie_str)
             http.set_device({"deviceId": dev, "installId": "0", "guid": "0"})
-            friends = await asyncio.to_thread(fetch_friend_list, http)
+            # 挂 BDTicket（登录时建证书，ts_sign/private_key/client_cert/server_cert）
+            try:
+                http.set_bd_ticket(gw._login_flow.session.load_bd_ticket())
+            except Exception:
+                pass
+            # following/follower 需要本人 uid/sec_uid（sec_uid 从 self profile 取）
+            uid = str(getattr(auth, "uid", None) or http.jar.get("uid_tt") or "")
+            sec_uid = ""
+            try:
+                prof = await asyncio.to_thread(fetch_desktop_self_profile, http)
+                sec_uid = prof.get("sec_uid") or ""
+                if not uid:
+                    uid = prof.get("uid") or ""
+            except Exception as exc:
+                logger.warning(f"[dyf] 拉取 self profile 失败(仅 familiar): {exc}")
+            friends = await asyncio.to_thread(
+                fetch_contact_lists, http, uid, sec_uid
+            )
             gw._friends = friends
             gw._friends_ts = time.time()
             gw._store_friends_cache(friends, gw._friends_ts)
@@ -443,6 +461,10 @@ class DashboardApi:
 
             http = DouyinHttpPy(cookie_str)
             http.set_device({"deviceId": dev, "installId": "0", "guid": "0"})
+            try:
+                http.set_bd_ticket(gw._login_flow.session.load_bd_ticket())
+            except Exception:
+                pass
             fn = follow_user if action == 1 else unfollow_user
             return await asyncio.to_thread(fn, http, uid, sec_uid)
         except Exception as e:

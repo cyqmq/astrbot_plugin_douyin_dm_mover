@@ -172,8 +172,26 @@ class DouyinHttpPy:
         self.guid = random_desktop_hex(32)
         self.biz_trace_id = random_biz_trace_id()
         self._verify_portrait = "login"
+        self.bd_ticket: dict = {}
         if not self.jar.has("biz_trace_id"):
             self.jar.set("biz_trace_id", self.biz_trace_id)
+
+    def set_bd_ticket(self, ticket: dict | None) -> None:
+        """挂 BDTicket 票据（ts_sign/private_key/client_cert/server_cert）。"""
+        self.bd_ticket = dict(ticket or {})
+
+    def _apply_bd_ticket(self, headers: dict, host: str) -> None:
+        """www/imdesktop 只读接口自动加 bd-ticket-guard 4 头（有票据才加）。"""
+        if host not in ("www.douyin.com", "imdesktop.douyin.com"):
+            return
+        if not (self.bd_ticket or {}).get("private_key"):
+            return
+        try:
+            from .bd_ticket import bd_ticket_headers
+
+            headers.update(bd_ticket_headers(self.bd_ticket))
+        except Exception:
+            pass
 
     def get_cookies(self) -> str:
         return self.jar.to_header()
@@ -229,6 +247,7 @@ class DouyinHttpPy:
         h = dict(headers or {})
         h.setdefault("User-Agent", self.user_agent)
         host = urlparse(url).hostname or ""
+        self._apply_bd_ticket(h, host)
         session_host = (
             host == "douyin.com"
             or host.endswith(".douyin.com")

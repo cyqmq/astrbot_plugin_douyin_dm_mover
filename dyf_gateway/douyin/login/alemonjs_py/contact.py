@@ -15,6 +15,107 @@ from .http import DouyinHttpPy
 from .profile import desktop_rest_base_query
 
 FAMILIAR_URL = "https://imdesktop.douyin.com/aweme/v1/web/familiar/list/"
+WWW_USER_LIST = "https://www.douyin.com/aweme/v1/web/user/"
+
+
+def _user_entry(u: dict) -> dict:
+    """统一解析用户项（familiar 平铺 / www following-follower 嵌套 user_info）。"""
+    uid = (
+        u.get("uid")
+        or (str(u["user_id"]) if u.get("user_id") not in (None, "") else "")
+        or ""
+    )
+    if not uid or uid in ("0", 0):
+        return {}
+    thumb = u.get("avatar_thumb") or {}
+    url_list = thumb.get("url_list") or []
+    return {
+        "uid": str(uid),
+        "nickname": u.get("nickname") or "",
+        "sec_uid": u.get("sec_uid") or "",
+        "remark_name": u.get("remark_name") or "",
+        "signature": u.get("signature") or "",
+        "avatar": url_list[0] if url_list else "",
+        # 关系状态（实测字段名）：follow_status 我是否已关注他（0 未 / 1,2 已）；
+        # follower_status 他是否已关注我（1=是）。
+        "follow_status": u.get("follow_status", 0),
+        "follower_status": u.get("follower_status", 0),
+        "relation_label": u.get("relation_label", ""),
+    }
+
+
+def _fetch_www_user_list(
+    http: DouyinHttpPy,
+    kind: str,
+    uid: str,
+    sec_uid: str,
+    cursor: str = "0",
+    count: int = 100,
+    max_pages: int = 50,
+) -> list[dict]:
+    """www following/follower 分页拉取（bd-ticket-guard 4 头自动加 + Referer 用户主页）。"""
+    path = f"{kind}/list/"
+    users: list[dict] = []
+    cur = cursor or "0"
+    page = 0
+    while page < max_pages:
+        query = {
+            "user_id": str(uid),
+            "sec_user_id": sec_uid,
+            "count": str(min(100, count)),
+            "cursor": cur,
+        }
+        query_wire = urlencode(query)
+        abogus = generate_jumpbyte_abogus(
+            query=query_wire, body="", user_agent=http.get_user_agent()
+        )
+        url = f"{WWW_USER_LIST}{path}?{query_wire}&a_bogus={quote(abogus, safe='')}"
+        headers = {"Referer": f"https://www.douyin.com/user/{sec_uid}"}
+        data = http.request_json(url, "GET", headers=headers)
+        if data.get("status_code") not in (0, None):
+            raise RuntimeError(f"{kind}/list status_code={data.get('status_code')}")
+        for item in data.get("user_list") or []:
+            if not isinstance(item, dict):
+                continue
+            # www 形状：user_list[].user_info 嵌套；familiar 形状：平铺。
+            info = item.get("user_info") or {}
+            entry = _user_entry(info if info else item)
+            if entry:
+                entry["_src"] = kind
+                users.append(entry)
+        has_more = bool(data.get("has_more"))
+        cur = str(data.get("cursor") or cur)
+        page += 1
+        if not has_more:
+            break
+    return users
+
+
+def fetch_contact_lists(
+    http: DouyinHttpPy, uid: str = "", sec_uid: str = "", with_www: bool = True
+) -> list[dict]:
+    """合并三态：familiar（互关）+ following（我关注）+ follower（粉丝关注我）。
+
+    按 uid 去重；familiar 优先（互关）。following/follower 依赖 BDTicket
+    （缺票据会被风控拦，失败仅告警不阻断 familiar）。
+    """
+    friends = fetch_friend_list(http)
+    by_uid = {f["uid"]: {**f, "_src": "familiar"} for f in friends}
+    if with_www and uid and sec_uid:
+        for kind in ("following", "follower"):
+            try:
+                for u in _fetch_www_user_list(http, kind, uid, sec_uid):
+                    ex = by_uid.get(u["uid"])
+                    if ex is None:
+                        by_uid[u["uid"]] = u
+                    else:
+                        # 已互关（familiar 优先），只补缺失的关系字段
+                        for k in ("follow_status", "follower_status", "relation_label"):
+                            if not ex.get(k):
+                                ex[k] = u.get(k)
+            except Exception as e:
+                logger.warning(f"[dyf] {kind}/list 拉取失败: {e}")
+    return list(by_uid.values())
 
 
 def fetch_friend_list(

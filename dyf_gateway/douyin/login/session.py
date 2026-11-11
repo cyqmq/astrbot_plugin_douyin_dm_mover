@@ -37,6 +37,7 @@ class SessionStore:
             "ts_sign": getattr(auth, "ts_sign", None) or "",
             "client_cert": getattr(auth, "client_cert", None) or "",
             "private_key": getattr(auth, "private_key", None) or "",
+            "server_cert": getattr(auth, "server_cert", None) or "",
             "dtrait_blob": getattr(auth, "dtrait_blob", None) or "",
             "uid": getattr(auth, "uid", None),
             "device_id": cookie.get("device_id") or getattr(auth, "device_id", None),
@@ -84,6 +85,7 @@ class SessionStore:
         auth.ts_sign = data.get("ts_sign") or ""
         auth.client_cert = data.get("client_cert") or ""
         auth.private_key = data.get("private_key") or ""
+        auth.server_cert = data.get("server_cert") or ""
         auth.dtrait_blob = data.get("dtrait_blob") or ""
         auth.uid = data.get("uid")
         if data.get("device_id"):
@@ -97,6 +99,18 @@ class SessionStore:
         return data.get("cookie_str") or "; ".join(
             f"{k}={v}" for k, v in (data.get("cookie") or {}).items()
         )
+
+    def load_bd_ticket(self) -> dict:
+        """载入持久化 BDTicket（ts_sign/private_key/client_cert/server_cert）。"""
+        data = self.load()
+        if not data:
+            return {}
+        return {
+            "ts_sign": data.get("ts_sign") or "",
+            "private_key": data.get("private_key") or "",
+            "client_cert": data.get("client_cert") or "",
+            "server_cert": data.get("server_cert") or "",
+        }
 
     def clear(self) -> None:
         try:

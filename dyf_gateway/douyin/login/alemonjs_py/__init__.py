@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from .abogus import generate_jumpbyte_abogus
-from .contact import fetch_friend_list
+from .contact import fetch_contact_lists, fetch_friend_list
 from .http import DouyinHttpPy
 from .mixmode import code_encrypt, mix_mode_encode, pick_qr_biz_params, qr_mfa_body
 from .profile import desktop_rest_base_query, fetch_desktop_self_profile
@@ -31,6 +31,7 @@ __all__ = [
     "desktop_rest_base_query",
     "encode_desktop_passport_params",
     "encode_form_body",
+    "fetch_contact_lists",
     "fetch_desktop_self_profile",
     "fetch_friend_list",
     "generate_jumpbyte_abogus",

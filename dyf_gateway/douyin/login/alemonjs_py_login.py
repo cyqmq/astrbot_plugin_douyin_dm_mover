@@ -21,6 +21,10 @@ class AlemonjsResult:
     device_id: str | None = None
     user_data: dict | None = None
     profile: dict | None = None
+    ts_sign: str = ""
+    private_key: str = ""
+    client_cert: str = ""
+    server_cert: str = ""
 
 
 
@@ -78,10 +82,15 @@ class AlemonsPyLogin:
             },
         )
         device_id = http.device_id if http.has_desktop_device() else None
+        bd_ticket = session.get("bd_ticket") or {}
         return AlemonjsResult(
             cookie_str=session["cookies"],
             uid=session["platformUid"],
             device_id=device_id,
             user_data=session.get("userData"),
             profile=session.get("profile"),
+            ts_sign=bd_ticket.get("ts_sign") or "",
+            private_key=bd_ticket.get("private_key") or "",
+            client_cert=bd_ticket.get("client_cert") or "",
+            server_cert=bd_ticket.get("server_cert") or "",
         )

@@ -4,6 +4,18 @@
 
 ## [Unreleased]
 
+## [1.2.42] - 2026-11-11
+
+### Added
+- **BDTicket 票据移植**（DouYin_Spider `utils/bd_ticket.py` + `builder/header.py:with_bd_readonly`）：新建 `alemonjs_py/bd_ticket.py`（ECDH/HKDF/`get_ree_key`/`get_req_sign`/`ticket_guard_version`/`fetch_server_cert`/`build_bd_ticket`/`bd_ticket_headers`）。
+- **登录建票据**：`qr._session_from_confirmed` 登录 confirmed 后从 cookie 取 `bd_ticket_guard_ts_sign_id`（ts_sign）→ `fetch_server_cert`（POST `www.douyin.com/passport/ticket_guard/get_client_cert/`，body `server_data=1,aid=6383` 逗号分隔）→ 生成客户端 P-256 私钥 + 证书（`pub.<b64 公钥点>`）→ session 带 `bd_ticket`。
+- **票据持久化**：`AlemonjsResult` 加 `ts_sign/private_key/client_cert/server_cert`；`subprocess_gateway` 登录后塞进 auth；`session.py` save/load 加 `server_cert` + 新增 `load_bd_ticket()`。
+- **请求自动加 4 头**：`http.request_raw` 对 `www.douyin.com`/`imdesktop.douyin.com` 且挂有票据时自动加 `bd-ticket-guard-ree-public-key/-version:2/-web-version/-web-sign-type`（`bd_ticket_headers`，无 client-data）；`DouyinHttpPy` 加 `bd_ticket` 属性 + `set_bd_ticket()`。
+- **following/follower 接入**：`contact.py` 加 `_fetch_www_user_list`（www `user/following/list/`+`follower/list/`，4 头自动加 + Referer 用户主页）+ `fetch_contact_lists`（familiar 互关 + following 关注 + follower 粉丝，按 uid 去重，familiar 优先）；`dashboard.friends` 改用它并挂票据（uid 取 auth/uid_tt，sec_uid 从 self profile）；`profile.fetch_desktop_self_profile` 加 `sec_uid`；`dashboard.follow` 也挂票据。
+
+### Notes
+- **重登录一次**走新流程建证书：登录后 COOKIE_KEYS 应出现 `bd_ticket_guard_ts_sign_id`（cookie 键），票据建成功才有 4 头——follow/following/follower 才能通过风控；若 cookie 无该键则 `build_bd_ticket` 返回 `{}`（不建票据），仅 familiar 可用。
+
 ## [1.2.41] - 2026-11-11
 
 ### Fixed

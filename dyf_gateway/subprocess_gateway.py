@@ -292,6 +292,12 @@ class SubprocessGateway(MessageGateway):
                 if result.device_id:
                     auth.device_id = str(result.device_id)
                 auth._login_backend = "alemonjs"
+                # 登录时建好的 BDTicket 票据（cookie 有 bd_ticket_guard_ts_sign_id 才有）
+                auth.ts_sign = getattr(result, "ts_sign", "") or ""
+                auth.private_key = getattr(result, "private_key", "") or ""
+                auth.client_cert = getattr(result, "client_cert", "") or ""
+                if getattr(result, "server_cert", ""):
+                    auth.server_cert = result.server_cert
                 self._login_flow.session.save(auth, backend="alemonjs")
             else:
                 auth = await loop.run_in_executor(
