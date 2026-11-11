@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.2.38] - 2026-11-11
+
+### Changed
+- **REL 诊断聚焦关系字段**：`contact.py` 只打 `follow`/`relation`/`is_` 字段值（去 `cancel`）——不截断，一次拉好友页看每个好友 `follow_status`/`is_following`/`relation` 实际值，定三态映射。
+
 ## [1.2.37] - 2026-11-11
 
 ### Fixed

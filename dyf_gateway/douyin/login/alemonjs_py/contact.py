@@ -52,14 +52,14 @@ def fetch_friend_list(
         if data.get("status_code") not in (0, None):
             raise RuntimeError(f"familiar/list status_code={data.get('status_code')}")
         for u in data.get("user_list") or []:
-            # 诊断：familiar/list 关系状态字段值（follow/relation/is_/cancel），
-            # 一次拉好友页看每个好友的 follow_status/user_canceled 实际值。
+            # 诊断：只打关系字段值（follow/relation/is_），不截断——一次拉好友页
+            # 看每个好友的 follow_status/is_following/relation 实际值，定三态映射。
             logger.info(
                 "[dyf] REL: "
                 + " ".join(
                     f"{k}={u.get(k)}"
                     for k in sorted(u.keys())
-                    if any(s in k.lower() for s in ("follow", "relation", "is_", "cancel"))
+                    if any(s in k.lower() for s in ("follow", "relation", "is_"))
                 )
             )
             uid = (
