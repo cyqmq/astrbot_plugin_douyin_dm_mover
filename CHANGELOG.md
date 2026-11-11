@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.2.58] - 2026-11-11
+
+### Fixed
+- **bridge 失败被吞**（`apiPostBody` catch 返回 `{}`，`saveConfig` 再弹"保存失败"，真实错误被掩盖）：`apiGet`/`apiPost`/`apiPostBody` catch 统一返回 `{ok:false, detail:'请求失败: ...'}`（不再 swallow 成 `{}`；apiGet/apiPost 保留 toast，apiPostBody 不 toast 由调用方弹）；`saveConfig` 改 `toast(d.ok ? '已保存' : (d.detail || '保存失败'))`——失败弹真实错误可见。
+
 ## [1.2.57] - 2026-11-11
 
 ### Fixed

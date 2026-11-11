@@ -17,19 +17,31 @@ export async function apiGet(ep) {
     // path + params 单独传（父窗口 axios get(endpoint, {params}) 序列化）。
     const [path, params] = _splitQuery(ep)
     return await V.apiGet(path, params)
-  } catch (e) { toast('请求失败: ' + e); return {} }
+  } catch (e) {
+    toast('请求失败: ' + _err(e))
+    return { ok: false, detail: '请求失败: ' + _err(e) }
+  }
 }
 export async function apiPost(ep) {
   try {
     const [path, params] = _splitQuery(ep)
     return await V.apiPost(path, {}, params)
-  } catch (e) { toast('请求失败: ' + e); return {} }
+  } catch (e) {
+    toast('请求失败: ' + _err(e))
+    return { ok: false, detail: '请求失败: ' + _err(e) }
+  }
 }
 export async function apiPostBody(ep, body) {
   try {
     const [path, params] = _splitQuery(ep)
     return await V.apiPost(path, body, params)
-  } catch (e) { toast('请求失败: ' + e); return {} }
+  } catch (e) {
+    // 不 swallow 成 {}：返回 ok:false + detail，让调用方弹真实错误（如 saveConfig）
+    return { ok: false, detail: '请求失败: ' + _err(e) }
+  }
+}
+function _err(e) {
+  return (e && e.message) ? e.message : String(e)
 }
 // 拆 endpoint 查询串 -> [path, params]（params 无查询时为 undefined）。
 function _splitQuery(ep) {

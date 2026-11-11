@@ -49,7 +49,7 @@ export async function loadConfig() {
 
 export async function saveConfig(cfg, opts) {
   const d = await apiPostBody('config/set', { config: cfg, no_reload: !!(opts && opts.no_reload) })
-  if (!(opts && opts.silent)) toast(d.detail || (d.ok ? '已保存' : '保存失败'))
+  if (!(opts && opts.silent)) toast(d.ok ? '已保存' : (d.detail || '保存失败'))
 }
 
 // 实时静默保存：只落盘不重载（防高频 reload）；供路由页自动保存用
