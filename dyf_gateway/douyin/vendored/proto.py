@@ -99,3 +99,43 @@ def field_sub(fields: dict[int, list[Any]], num: int) -> dict[int, list[Any]]:
         return decode_fields(b)
     except Exception:
         return {}
+
+
+def _enc_varint(n: int) -> bytes:
+    """varint 编码（wire-format 基础）。"""
+    n = int(n) & 0xFFFFFFFFFFFFFFFF
+    out = bytearray()
+    while True:
+        b = n & 0x7F
+        n >>= 7
+        if n:
+            out.append(b | 0x80)
+        else:
+            out.append(b)
+            break
+    return bytes(out)
+
+
+def _enc_tag(field_num: int, wire_type: int) -> bytes:
+    return _enc_varint((field_num << 3) | wire_type)
+
+
+def enc_varint_field(field_num: int, value: int) -> bytes:
+    """编码 varint 字段（wire_type=0）。"""
+    return _enc_tag(field_num, 0) + _enc_varint(value)
+
+
+def enc_str_field(field_num: int, s: str) -> bytes:
+    """编码 string 字段（wire_type=2, utf-8）。"""
+    data = s.encode("utf-8")
+    return _enc_tag(field_num, 2) + _enc_varint(len(data)) + data
+
+
+def enc_bytes_field(field_num: int, data: bytes) -> bytes:
+    """编码 bytes 字段（wire_type=2）。"""
+    return _enc_tag(field_num, 2) + _enc_varint(len(data)) + data
+
+
+def enc_msg_field(field_num: int, payload: bytes) -> bytes:
+    """编码嵌套消息字段（wire_type=2）。"""
+    return enc_bytes_field(field_num, payload)
