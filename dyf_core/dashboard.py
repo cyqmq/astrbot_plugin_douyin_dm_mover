@@ -366,7 +366,7 @@ class DashboardApi:
                 if cookie_str:
                     dev = getattr(gw, "_device_id", "") or "0"
                     http = DouyinHttpPy(cookie_str)
-                    http.set_device({"deviceId": dev, "installId": "0", "guid": "0"})
+                    http.set_device({"deviceId": dev})
                     prof = await asyncio.to_thread(fetch_desktop_self_profile, http)
                     gw._profile = prof
                     gw._profile_ts = time.time()
@@ -426,7 +426,7 @@ class DashboardApi:
             )
             dev = getattr(gw, "_device_id", "") or "0"
             http = DouyinHttpPy(cookie_str)
-            http.set_device({"deviceId": dev, "installId": "0", "guid": "0"})
+            http.set_device({"deviceId": dev})
             # 挂 BDTicket（登录时建证书，ts_sign/private_key/client_cert/server_cert）
             try:
                 http.set_bd_ticket(gw._login_flow.session.load_bd_ticket())
@@ -486,7 +486,7 @@ class DashboardApi:
             from dyf_gateway.douyin.login.alemonjs_py import DouyinHttpPy
 
             http = DouyinHttpPy(cookie_str)
-            http.set_device({"deviceId": dev, "installId": "0", "guid": "0"})
+            http.set_device({"deviceId": dev})
             try:
                 http.set_bd_ticket(gw._login_flow.session.load_bd_ticket())
             except Exception:

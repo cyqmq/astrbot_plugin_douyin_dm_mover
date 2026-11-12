@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.2.63] - 2026-11-11
+
+### Fixed
+- **familiar/list `status_code=8`（a_bogus 风控）**：`dashboard.py` 三处 `set_device({"deviceId": dev, "installId": "0", "guid": "0"})` 硬编码 `guid="0"` 覆盖 `__init__` 的随机 guid（`random_desktop_hex(32)`）→ `awemeim_guid=0` 进 a_bogus 签名，抖音现校验 guid 不能为 "0" → 签名无效 `status_code=8`（旧版接受 "0"）。修复：只设 `deviceId`，`guid` 保留随机 32 位 hex（`install_id` 默认 "0"，若仍风控再提有效 iid）。
+
 ## [1.2.62] - 2026-11-11
 
 ### Fixed
