@@ -391,6 +391,30 @@ class SubprocessGateway(MessageGateway):
         self._emit_event(GatewayEvent("logout", "已登出并清除会话"))
         return True
 
+    async def import_login(self, cookie_str: str, ticket: dict | None = None) -> bool:
+        """导入 www 登录态（域隔离，父进程侧）：只存 www cookie + 票据供 following/follower。
+
+        与 worker gateway.import_login 一致：www 独立存（session.save_www），不覆盖主登录态
+        （imdesktop），WS/familiar 保持 imdesktop。父进程与 worker 同 data_dir → 同 session.json。
+        """
+        if not cookie_str or "sessionid=" not in cookie_str:
+            raise ValueError("导入的 cookie 缺少 sessionid，请复制登录后完整 Cookie 串")
+        ticket = ticket or {}
+        self._login_flow.session.save_www(
+            {
+                "cookie_str": cookie_str,
+                "ts_sign": ticket.get("ts_sign") or "",
+                "ree_public_key": ticket.get("ree_public_key") or "",
+                "web_version": ticket.get("web_version") or "",
+                "web_sign_type": ticket.get("web_sign_type") or "",
+                "private_key": ticket.get("private_key") or "",
+                "client_cert": ticket.get("client_cert") or "",
+                "server_cert": ticket.get("server_cert") or "",
+            }
+        )
+        self._emit_event(GatewayEvent("login_ok", "www 登录态已导入（following/follower 可用）"))
+        return True
+
     @property
     def login_in_progress(self) -> bool:
         return self._logging_in

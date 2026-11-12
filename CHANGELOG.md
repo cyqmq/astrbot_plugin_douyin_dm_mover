@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.2.66] - 2026-11-12
+
+### Changed
+- **域隔离改造（探针决定性验证复刻）**：imdesktop 与 www 是两个登录系统，alemonjs（imdesktop）sessionid 不能被 www 接口识别。`friends` 按 cookie 来源分域：familiar 用 imdesktop 主登录态（现状），following/follower 用 www 登录态（`session.load_www`，导入的 www cookie + `bd-web-sign-page-guard` 免私钥 4 头），合并返回；无 www cookie 时 following/follower 提示「需导入 www cookie」。`import_login`（worker + SubprocessGateway）改存 www 独立（`session.save_www`），不覆盖主登录态、不重启 worker（WS/familiar 保持 imdesktop）；`fetch_contact_lists` 加 `www_http` 参数（分域）。
+
 ## [1.2.65] - 2026-11-12
 
 ### Changed

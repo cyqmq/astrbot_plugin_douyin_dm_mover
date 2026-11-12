@@ -109,19 +109,25 @@ def _fetch_www_user_list(
 
 
 def fetch_contact_lists(
-    http: DouyinHttpPy, uid: str = "", sec_uid: str = "", with_www: bool = True
+    http: DouyinHttpPy,
+    uid: str = "",
+    sec_uid: str = "",
+    with_www: bool = True,
+    www_http: DouyinHttpPy | None = None,
 ) -> list[dict]:
     """合并三态：familiar（互关）+ following（我关注）+ follower（粉丝关注我）。
 
-    按 uid 去重；familiar 优先（互关）。following/follower 依赖 BDTicket
-    （缺票据会被风控拦，失败仅告警不阻断 familiar）。
+    域隔离（探针 2026-11-12）：familiar 走 imdesktop 会话（``http``）；following/follower 走
+    www 登录态（``www_http``，需 www cookie 导入；无则用 ``http`` 向后兼容）。按 uid 去重，
+    familiar 优先（互关）。following/follower 失败仅软失败记录（``www_errors``）不阻断 familiar。
     """
     friends = fetch_friend_list(http)
     by_uid = {f["uid"]: {**f, "_src": "familiar"} for f in friends}
     if with_www and uid and sec_uid:
+        www = www_http or http
         for kind in ("following", "follower"):
             try:
-                for u in _fetch_www_user_list(http, kind, uid, sec_uid):
+                for u in _fetch_www_user_list(www, kind, uid, sec_uid):
                     ex = by_uid.get(u["uid"])
                     if ex is None:
                         by_uid[u["uid"]] = u
@@ -131,11 +137,11 @@ def fetch_contact_lists(
                             if not ex.get(k):
                                 ex[k] = u.get(k)
             except Exception as e:
-                # 软失败：记录到 http.www_errors（dashboard 透出给界面），不阻断 familiar
+                # 软失败：记录到 www_http.www_errors（dashboard 透出给界面），不阻断 familiar
                 logger.warning(f"[dyf] {kind}/list 拉取失败: {e}")
                 msg = f"{kind}: {e}"
-                prev = getattr(http, "www_errors", "") or ""
-                http.www_errors = f"{prev}; {msg}" if prev else msg
+                prev = getattr(www, "www_errors", "") or ""
+                www.www_errors = f"{prev}; {msg}" if prev else msg
     return list(by_uid.values())
 
 

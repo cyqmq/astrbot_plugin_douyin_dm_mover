@@ -432,6 +432,20 @@ class DashboardApi:
                 http.set_bd_ticket(gw._login_flow.session.load_bd_ticket())
             except Exception:
                 pass
+            # 域隔离（探针 2026-11-12）：following/follower 走 www 登录态（导入的 www cookie，
+            # 含 bd-web-sign-page-guard 免私钥材料）；familiar 走主登录(imdesktop) http。
+            www_http = None
+            try:
+                www = gw._login_flow.session.load_www()
+            except Exception:
+                www = {}
+            if (www or {}).get("cookie_str"):
+                www_http = DouyinHttpPy(www["cookie_str"])
+                www_http.set_device({"deviceId": dev})
+                try:
+                    www_http.set_bd_ticket(www)
+                except Exception:
+                    pass
             # following/follower 需要本人真实 uid/sec_uid（uid_tt 是加密值不能当 uid，
             # 用 profile/self 拿真实 uid；profile 失败才 fallback auth.uid，绝不读 uid_tt）
             uid = ""
@@ -444,17 +458,23 @@ class DashboardApi:
                 uid = str(getattr(auth, "uid", None) or "")
                 logger.warning(f"[dyf] 拉取 self profile 失败(仅 familiar): {exc}")
             friends = await asyncio.to_thread(
-                fetch_contact_lists, http, uid, sec_uid
+                fetch_contact_lists,
+                http,
+                uid,
+                sec_uid,
+                bool(www_http),
+                www_http,
             )
             gw._friends = friends
             gw._friends_ts = time.time()
             gw._store_friends_cache(friends, gw._friends_ts)
-            # 软失败提示：无 BDTicket 时 following/follower 被风控拦（familiar 正常返回）
+            # 域隔离（探针 2026-11-12）：familiar 走 imdesktop 主登录态；following/follower
+            # 走 www 登录态（需 www cookie 导入）。无 www cookie 时 following/follower 缺失提示。
             detail = ""
-            if not (http.bd_ticket or {}).get("ts_sign"):
-                detail = "未配置 BDTicket（仅显示互关 familiar）——请用 alemonjs_www 登录（自动产票）或好友页「导入 Cookie」"
-            elif getattr(http, "www_errors", ""):
-                detail = f"following/follower 拉取失败: {http.www_errors}"
+            if not www_http:
+                detail = "following/follower 需 www 登录态——好友页「导入 Cookie」（浏览器 www.douyin.com 登录复制 Cookie 串）"
+            elif getattr(www_http, "www_errors", ""):
+                detail = f"following/follower 拉取失败: {www_http.www_errors}"
             return {"friends": friends, "detail": detail}
         except Exception as e:
             logger.warning(f"[dyf] 拉取好友列表失败: {e}")

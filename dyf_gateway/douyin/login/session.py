@@ -103,6 +103,17 @@ class SessionStore:
             f"{k}={v}" for k, v in (data.get("cookie") or {}).items()
         )
 
+    def save_www(self, www: dict) -> None:
+        """存 www 登录态（域隔离：following/follower 用，与主登录态(imdesktop)分开）。"""
+        data = self.load() or {}
+        data["www"] = dict(www or {})
+        self._write(data)
+
+    def load_www(self) -> dict:
+        """读 www 登录态（域隔离）。无则 {}。"""
+        data = self.load() or {}
+        return dict(data.get("www") or {})
+
     def load_bd_ticket(self) -> dict:
         """载入持久化 BDTicket（ticket/ts_sign/private_key/client_cert/server_cert/
         ree_public_key/web_version/web_sign_type——www 导入免私钥型）。"""
