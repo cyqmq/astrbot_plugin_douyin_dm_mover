@@ -4,10 +4,10 @@ POST https://imapi3-normal.zijieapi.com/v1/conversation/list，cmd=2006。
 与私信/群消息同用 imdesktop 域 Cookie + 数字 device_id。
 字段号对照 alemonjs proto.js（已在真实账号实测拉群 TYLOO）。
 
-字段号表：
-- RequestEnvelope: cmd=1, sdk_version=3, inbox_type=6, build_number=7,
-  body=8, device_id=9, device_platform=11, version_code=14, auth_type=18,
-  biz=21, access=22
+字段号表（真实账号实测）：
+- RequestEnvelope: cmd=1(varint), sdk_version=3(str), build_number=7(str),
+  body=8, device_id=9(str), device_platform=11(str), version_code=14(str),
+  auth_type=18(varint), biz=21(str), access=22(str)
 - RequestPayload.conversation_list=2006
 - ConversationListRequest{list_type=1,cursor=2,sort_type=3,limit=4}
 - ResponseEnvelope{status_code=3,error_desc=4,body=6}
@@ -59,26 +59,25 @@ def _desktop_im_query(device_id: str) -> str:
 
 
 def _build_request(device_id: str) -> bytes:
-    """构造 cmd=2006 群列表请求 body（RequestEnvelope 编码）。"""
+    """构造 cmd=2006 群列表请求 body（RequestEnvelope 编码，真实账号实测）。"""
     list_req = (
         enc_varint_field(1, 1)  # list_type=1（会话列表）
         + enc_varint_field(2, 0)  # cursor
-        + enc_varint_field(3, 0)  # sort_type
+        + enc_varint_field(3, 2)  # sort_type=2
         + enc_varint_field(4, 50)  # limit
     )
     payload = enc_msg_field(2006, list_req)
     env = (
-        enc_varint_field(1, 1)  # cmd=1
-        + enc_varint_field(3, 1)  # sdk_version
-        + enc_varint_field(6, 1)  # inbox_type=1
-        + enc_varint_field(7, 1)  # build_number
+        enc_varint_field(1, 2006)  # cmd=2006 群列表
+        + enc_str_field(3, "1.2.1")  # sdk_version（string）
+        + enc_str_field(7, "eb11b84dd0eb26ae22321b53426d3f976b920862")  # build_number（string）
         + enc_bytes_field(8, payload)  # body=RequestPayload
-        + enc_varint_field(9, int(device_id or 0))  # device_id
+        + enc_str_field(9, device_id)  # device_id（string）
         + enc_str_field(11, "windows")  # device_platform
-        + enc_varint_field(14, 1)  # version_code
+        + enc_str_field(14, "1.2.1")  # version_code（string）
         + enc_varint_field(18, 1)  # auth_type
-        + enc_varint_field(21, 1)  # biz
-        + enc_varint_field(22, 1)  # access
+        + enc_str_field(21, "douyin_im_pc")  # biz（string）
+        + enc_str_field(22, "cpp_sdk")  # access（string）
     )
     return env
 
