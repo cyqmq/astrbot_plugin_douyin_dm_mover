@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.2.71] - 2026-11-12
+
+### Fixed
+- **连线断不开（删除键不匹配）**：`TopologyFlow.vue` 提示「选中连线按 `Delete` 断开」但 `<VueFlow>` 未配 `delete-key-code`，`@vue-flow/core` 默认删除键是 `Backspace`——按 `Delete` 不被识别，`edges-delete`/`onEdgesDelete` 不触发（删除链路本身通，卡在按键一环）。修复：补 `:delete-key-code="'Delete'"` + `delete-key-code-prevent-default`（与提示一致）。
+
 ## [1.2.70] - 2026-11-12
 
 ### Fixed
