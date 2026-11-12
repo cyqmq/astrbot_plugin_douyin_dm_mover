@@ -4,6 +4,16 @@
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-11-12
+
+当前阶段成果收尾（登录后端改造推迟，待更合适方案）。自 1.2.64 起累计：
+
+- **BDTicket 产票改造**（探针实测复刻）：登录前发布公钥 + 解析 `Bd-Ticket-Guard-Server-Data` 响应头产票；`bd_ticket_headers` 修 `ree-public-key`（客户端公钥）+ `web-sign-type`（pub.→hmac）两错。
+- **www cookie 导入免私钥**：`bd-web-sign-page-guard` cookie 自带完整材料（ts_sign + ree_public_key + web_version + web_sign_type）直抄，无需私钥/重签。
+- **域隔离**：imdesktop 与 www 两个登录系统；`friends` 分域——familiar 用 imdesktop 主登录态，following/follower 用 www 登录态（`session.save_www`/`load_www` 独立存储）；`import_login` 不覆盖主登录态。
+- **一条路由卡连多个目标卡**：`Route.targets[]` + `_route_diff` 比较列表；前端 `targets[]` 贯穿 + 旧 `target` 归一化迁移。
+- **登录/保存/登出/前端系列修复**：Vue Proxy structured clone、刷新二维码代次计数、登出清 `worker_config.json`、`session.save` 保留 www/sec_uid、路由卡对象引用、`Delete` 断开、familiar 软失败等。
+
 ## [1.2.73] - 2026-11-12
 
 ### Added
