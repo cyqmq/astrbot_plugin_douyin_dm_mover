@@ -391,7 +391,7 @@ class DouyinGateway(MessageGateway):
             self._config["douyin_cookies"] = cookie_str
         if uid:
             self._config["self_uid"] = str(uid)
-        if dev:
+        if dev and str(dev).isdigit():
             self._config["device_id"] = str(dev)
         obj = self._config_obj
         if obj is None:
@@ -401,7 +401,7 @@ class DouyinGateway(MessageGateway):
                 obj["douyin_cookies"] = cookie_str
             if uid:
                 obj["self_uid"] = str(uid)
-            if dev:
+            if dev and str(dev).isdigit():
                 obj["device_id"] = str(dev)
             save = getattr(obj, "save_config", None)
             if save is not None:
