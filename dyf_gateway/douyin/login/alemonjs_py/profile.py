@@ -1,13 +1,10 @@
 """账户档案（@alemonjs/douyin fetchDesktopSelfProfile / douyin-im getSelfProfile 移植）。
 
-桌面接口：GET /aweme/v1/web/user/profile/self/，靠 Cookie + 桌面参数 + a_bogus 签名。
-参数按官方桌面指纹：device_platform=win32、screen 1707x1067、UA 去 Mozilla/ 作 browser_version。
+桌面接口：GET /aweme/v1/web/user/profile/self/，靠 Cookie + desktopFingerprint query
+（无需 a_bogus 签名；a_bogus 端实测返回 data.user 为空）。
 """
 from __future__ import annotations
 
-from urllib.parse import quote, urlencode
-
-from .abogus import generate_jumpbyte_abogus
 from .http import DouyinHttpPy
 
 PROFILE_URL = "https://imdesktop.douyin.com/aweme/v1/web/user/profile/self/"
@@ -37,30 +34,29 @@ def desktop_rest_base_query(http: DouyinHttpPy) -> dict:
 
 
 def fetch_desktop_self_profile(http: DouyinHttpPy) -> dict:
-    """拉取当前账号昵称/头像。
+    """拉取当前账号昵称/头像（desktopFingerprint query，无需 a_bogus 签名）。
 
-    Returns: {"uid": str, "nickname": str, "avatar": str}
-    失败抛 RuntimeError（由调用方按需吞掉）。
+    实测：a_bogus 签名端（generate_jumpbyte_abogus）访问本端点返回 data.user 为空
+    （不抛异常）；改用 user.py _fingerprint（无 a_bogus）→ 完整返回
+    uid/nickname/sec_uid/avatar。im/user/info 与本端点都无需 a_bogus。
     """
-    query = desktop_rest_base_query(http)
-    query_wire = urlencode(query)
-    abogus = generate_jumpbyte_abogus(
-        query=query_wire, body="", user_agent=http.get_user_agent()
+    from dyf_gateway.douyin.user import _fingerprint
+
+    query = _fingerprint(
+        str(getattr(http, "device_id", "") or ""),
+        str(getattr(http, "guid", "") or ""),
     )
-    data = http.request_json(
-        f"{PROFILE_URL}?{query_wire}&a_bogus={quote(abogus, safe='')}", "GET"
-    )
-    user = ((data.get("data") or {}).get("user")) or {}
+    data = http.request_json(f"{PROFILE_URL}?{query}", "GET")
+    user = ((data.get("data") or {}).get("user")) or data.get("user") or {}
     uid = (
-        user.get("user_id_str")
-        or (str(user["user_id"]) if user.get("user_id") not in (None, "") else "")
-        or ""
+        str(user.get("user_id_str") or user.get("uid") or user.get("user_id") or "")
     )
     nickname = user.get("nickname") or ""
     sec_uid = user.get("sec_uid") or ""
     avatar = ""
-    thumb = user.get("avatar_thumb") or {}
-    url_list = thumb.get("url_list") or []
-    if url_list:
-        avatar = url_list[0]
+    for key in ("avatar_larger", "avatar_thumb"):
+        ul = ((user.get(key) or {}).get("url_list")) or []
+        if ul:
+            avatar = ul[0]
+            break
     return {"uid": uid, "nickname": nickname, "sec_uid": sec_uid, "avatar": avatar}
