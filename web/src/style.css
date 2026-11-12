@@ -301,3 +301,25 @@ kbd { background:var(--card); border:1px solid var(--border2); border-radius:4px
   border:1px solid #0969da; background:transparent; color:#0969da; cursor:pointer; }
 .fr-follow:hover { background:rgba(9,105,218,.1); }
 .fr-followed { flex-shrink:0; font-size:12px; color:var(--ok); white-space:nowrap; }
+
+/* 群聊页：卡片网格 + 详情成员 */
+.gr-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:10px; }
+.gr-card { padding:12px; cursor:pointer; transition:border-color .15s; }
+.gr-card:hover { border-color:#0969da; }
+.gr-card.sel { border-color:#0969da; box-shadow:0 0 0 1px #0969da inset; }
+.gr-head { display:flex; align-items:center; gap:10px; }
+.gr-avatar { width:40px; height:40px; border-radius:10px; flex:none; display:flex; align-items:center;
+  justify-content:center; font-size:18px; font-weight:700; color:#fff; background:linear-gradient(135deg,#0969da,#7c3aed); }
+.gr-title { min-width:0; }
+.gr-name { font-weight:600; font-size:14px; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.gr-meta { display:flex; justify-content:space-between; gap:8px; margin-top:8px; font-size:12px; color:var(--text); }
+.gr-more { margin-top:6px; font-size:11px; }
+.gr-detail { margin-top:12px; padding:12px; }
+.gr-detail-head { display:flex; align-items:center; gap:10px; margin-bottom:8px; }
+.gr-detail-head strong { font-size:15px; }
+.gr-detail-head .mini { margin-left:auto; }
+.gr-members li { display:flex; align-items:center; gap:10px; }
+.gr-members .fr-name { flex:1; }
+.gr-role { font-size:11px; padding:1px 7px; border-radius:999px; background:var(--bg); color:var(--muted);
+  border:1px solid var(--border); flex-shrink:0; }
+.gr-role.lead { background:#0969da; color:#fff; border-color:#0969da; }
