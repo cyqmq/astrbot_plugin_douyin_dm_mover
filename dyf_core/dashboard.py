@@ -655,4 +655,8 @@ class DashboardApi:
             asyncio.get_running_loop()
         except RuntimeError:
             return
-        asyncio.create_task(self.gateway.login(timeout))
+        # 刷新：取消当前登录任务，重新触发（否则 _logging_in=True 时 gateway.login 直接返回，不生成新码）
+        old = getattr(self, "_login_task", None)
+        if old is not None and not old.done():
+            old.cancel()
+        self._login_task = asyncio.create_task(self.gateway.login(timeout))

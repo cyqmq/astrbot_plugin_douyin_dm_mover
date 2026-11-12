@@ -270,9 +270,17 @@ class SubprocessGateway(MessageGateway):
 
     # ---- 登录 / 登出 / MFA（父进程编排，会话 cookie 经 _write_config 注入 worker）----
     async def login(self, timeout: int = 300) -> None:
+        # 代次计数：刷新时旧任务被 cancel，其 finally 不能覆盖新任务的 _logging_in
+        self._login_gen = getattr(self, "_login_gen", 0) + 1
+        gen = self._login_gen
         if self._logging_in:
-            self._emit_event(GatewayEvent("error", "已有登录进行中"))
-            return
+            # 刷新场景：登录进行中，强制重新开始（停止当前接收器，不返回）
+            logger.info("[dyf] 登录进行中，刷新登录（停止当前，重新开始）")
+            try:
+                await self._stop_receiver()
+            except Exception:
+                pass
+            self._logging_in = False
         self._logging_in = True
         loop = asyncio.get_running_loop()
         self._emit_event(GatewayEvent("login_started", "开始扫码登录"))
@@ -332,11 +340,15 @@ class SubprocessGateway(MessageGateway):
             self._state = AuthState.OK
             self._emit_event(GatewayEvent("login_ok", "登录成功，会话已保存"))
             await self._restart_worker()
+        except asyncio.CancelledError:
+            raise
         except Exception as e:
             self._emit_event(GatewayEvent("error", f"登录失败: {e}"))
             logger.error(f"[dyf] 登录失败: {e}")
         finally:
-            self._logging_in = False
+            # 只有当前代次的登录才设 _logging_in=False（防被 cancel 的旧任务覆盖新任务）
+            if gen == self._login_gen:
+                self._logging_in = False
 
     async def logout(self) -> bool:
         if self._state != AuthState.OK and not self._login_flow.session.has_valid():

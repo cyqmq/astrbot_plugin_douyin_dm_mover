@@ -257,9 +257,22 @@ class DouyinGateway(MessageGateway):
     # ---- 登录 / 登出 / MFA ----
     async def login(self, timeout: int = 300) -> None:
         """扫码登录。默认纯 Python 后端；可回退 Node 桥接 / douyin_spider。"""
-        if not self._login_lock.acquire(blocking=False):
-            self._emit_event(GatewayEvent("error", "已有登录进行中"))
-            return
+        # 代次计数：刷新时旧任务被 cancel，其 finally 不能覆盖新任务的锁
+        self._login_gen = getattr(self, "_login_gen", 0) + 1
+        gen = self._login_gen
+        if self._login_lock.locked():
+            # 刷新场景：登录进行中，强制重新开始（停止当前接收器，不返回）
+            logger.info("[dyf] 登录进行中，刷新登录（停止当前，重新开始）")
+            try:
+                await self._stop_receiver()
+            except Exception:
+                pass
+            # 清残留旧锁（旧任务被 cancel 后 finally 因代次不等不会 release）
+            try:
+                self._login_lock.release()
+            except RuntimeError:
+                pass
+        self._login_lock.acquire(blocking=False)
         try:
             self._state = AuthState.UNKNOWN
             self._emit_event(GatewayEvent("login_started", "开始扫码登录"))
@@ -353,11 +366,18 @@ class DouyinGateway(MessageGateway):
                 self._emit_event(GatewayEvent("started", "接收端已用新会话重启"))
             else:
                 self._emit_event(GatewayEvent("error", "登录成功但无 sessionid"))
+        except asyncio.CancelledError:
+            raise
         except Exception as e:
             self._emit_event(GatewayEvent("error", f"登录失败: {e}"))
             logger.error(f"[dyf] 登录失败: {e}")
         finally:
-            self._login_lock.release()
+            # 只有当前代次的登录才释放锁（防被 cancel 的旧任务覆盖新任务）
+            if gen == self._login_gen:
+                try:
+                    self._login_lock.release()
+                except RuntimeError:
+                    pass
 
     def _persist_login_config(self, cookie_str: str, uid, dev) -> None:
         """登录成功后把 cookie/uid/device 写回运行配置与 AstrBot 配置（落盘）。

@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.2.62] - 2026-11-11
+
+### Fixed
+- **刷新二维码只能生成一次**：`SubprocessGateway.login` 开头 `if self._logging_in: 返回"已有登录进行中"`——第二次点刷新被拦，页面永远停在第一个二维码；`gateway.py`（worker）用 `_login_lock` 非阻塞 acquire 同样拦截。修复：`_kick_login` 保存登录任务、刷新时 cancel 旧任务；两个 `login` 用代次计数（刷新时强制停止当前接收器重新开始；被 cancel 的旧任务 finally 因代次不等不覆盖新任务的 `_logging_in`/锁）；`except asyncio.CancelledError: raise` 透传取消。
+
 ## [1.2.61] - 2026-11-11
 
 ### Fixed
