@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+## [1.3.1] - 2026-11-12
+
+### Fixed
+- **真实头像永远不拉取（profile 重取条件错误）**：登录成功时 `gateway.py` 设 `_profile`（登录后端风控时写空头像 dict `{uid, nickname:"", avatar:""}`）但不设 `_profile_ts`（保持 0）；`profile()` 重取条件只按"`prof` 为空"→ 空头像 dict 非空 → 跳过重拉；`time.time()-0<300` 为 False → 不走缓存 → 返回空头像。修复：`profile()` 重取条件改「头像缺失或已过期」（`not prof or not prof.get("avatar") or stale`）；`gateway.py` 登录成功补设 `_profile_ts = time.time()`。
+- **头像坏 URL 反复失败（前端）**：`Sidebar.onAvatarError` 若 `e.target.src` 匹配 `store.profile.avatar` 且非 `data:`，先清空 `store.profile.avatar`（触发 computed 落到 cached/logo），避免重渲染又触发 error → 一直 logo。
+
 ## [1.3.0] - 2026-11-12
 
 当前阶段成果收尾（登录后端改造推迟，待更合适方案）。自 1.2.64 起累计：

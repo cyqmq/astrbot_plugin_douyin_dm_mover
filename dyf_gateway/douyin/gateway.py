@@ -355,6 +355,7 @@ class DouyinGateway(MessageGateway):
             # 账户档案（昵称/头像）：仅纯 Python 登录会带回，存为登录态附加信息
             if getattr(result, "profile", None):
                 self._profile = result.profile
+                self._profile_ts = time.time()  # 补设时间戳（避免 pts=0 干扰头像过期判断）
                 self._friends = []
                 self._friends_ts = 0.0
             # 登录成功：把 cookie/uid/device 写回 AstrBot 配置并落盘，确保配置页可见

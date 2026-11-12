@@ -29,8 +29,14 @@ function onAvatarLoad(e) {
 }
 function onAvatarError(e) {
   // URL 失效/防盗链 → 回退本地缓存的头像（仅一次，防循环）
+  const src = e.target.src || ''
+  // 坏 URL 清空 store.profile.avatar（触发 computed 落到 cached/logo），
+  // 否则 store.profile.avatar 仍是坏 URL，重渲染又触发 error → 一直 logo
+  if (src && !src.startsWith('data:') && store.profile.avatar && src.includes(store.profile.avatar)) {
+    store.profile.avatar = ''
+  }
   const cached = readCachedAvatar()
-  if (cached && e.target.src !== cached && !e.target.src.startsWith('data:')) e.target.src = cached
+  if (cached && src !== cached && !src.startsWith('data:')) e.target.src = cached
   else e.target.src = logo
 }
 

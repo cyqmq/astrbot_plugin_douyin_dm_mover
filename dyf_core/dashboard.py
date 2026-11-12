@@ -360,9 +360,12 @@ class DashboardApi:
             prof, pts = gw._load_profile_cache()
             gw._profile = prof
             gw._profile_ts = pts
-        if prof and (time.time() - pts) < 300:
+        if prof and (time.time() - pts) < 300 and prof.get("avatar"):
             return {"profile": prof, "cached": True}
-        if gw.auth_state.value == "ok" and not prof:
+        # 重取条件：头像缺失或已过期（登录成功时 qr 风控可能写入空头像 dict，
+        # 若只按"prof 为空"重拉会跳过——真实头像永远不拉取）
+        stale = (time.time() - pts) >= 300
+        if gw.auth_state.value == "ok" and (not prof or not prof.get("avatar") or stale):
             try:
                 from dyf_gateway.douyin.login.alemonjs_py import (
                     DouyinHttpPy,
