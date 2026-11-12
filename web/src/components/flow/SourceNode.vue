@@ -33,25 +33,33 @@ const filteredGroups = computed(() => {
     String(g.group_id || '').toLowerCase().includes(q))
 })
 
+// 写回真实 customSources 项（防 VueFlow 节点 data 副本不生效）；找不到回退 src.value
+function realSrc() {
+  const id = src.value && src.value.id
+  return (id && store.customSources.find(x => x.id === id)) || src.value
+}
 function pick(f) {
-  src.value.type = 'friend'
-  src.value.uid = f.uid || ''
-  src.value.nickname = f.nickname || f.remark_name || ''
-  src.value.group_id = ''
-  src.value.group_name = ''
+  const s = realSrc()
+  s.type = 'friend'
+  s.uid = f.uid || ''
+  s.nickname = f.nickname || f.remark_name || ''
+  s.group_id = ''
+  s.group_name = ''
   scheduleLiveSave()
 }
 function pickGroup(g) {
-  src.value.type = 'group'
-  src.value.group_id = g.group_id || ''
-  src.value.group_name = g.name || ''
-  src.value.uid = ''
-  src.value.nickname = g.name || ''
+  const s = realSrc()
+  s.type = 'group'
+  s.group_id = g.group_id || ''
+  s.group_name = g.name || ''
+  s.uid = ''
+  s.nickname = g.name || ''
   scheduleLiveSave()
 }
 function setMode(t) {
-  src.value.type = t
-  if (t === 'group') { src.value.uid = '' } else { src.value.group_id = ''; src.value.group_name = '' }
+  const s = realSrc()
+  s.type = t
+  if (t === 'group') { s.uid = '' } else { s.group_id = ''; s.group_name = '' }
   scheduleLiveSave()
 }
 function onFocus() {

@@ -31,7 +31,7 @@ function addSource() {
   const ids = new Set(store.customSources.map(s => s.id))
   let n = 1
   while (ids.has('src' + n)) n++
-  store.customSources.push({ id: 'src' + n, uid: '', nickname: '' })
+  store.customSources.push({ id: 'src' + n, uid: '', nickname: '', type: 'friend', group_id: '', group_name: '' })
   scheduleLiveSave()
 }
 function delSource(source) {

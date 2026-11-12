@@ -43,7 +43,9 @@ export async function loadConfig() {
     return r
   })
   store.customSources = (d.config.custom_sources || []).map((s, i) => ({
-    id: s.id || ('srcm' + (i + 1)), uid: s.uid || '', nickname: s.nickname || '', pos: s.pos || null
+    id: s.id || ('srcm' + (i + 1)), uid: s.uid || '', nickname: s.nickname || '', pos: s.pos || null,
+    // 群聊字段必须保留，否则加载后退化为好友、group_id 空、无法连路由
+    type: s.type || 'friend', group_id: s.group_id || '', group_name: s.group_name || ''
   }))
   store.customTargets = JSON.parse(JSON.stringify(d.config.custom_targets || []))
   store.simpleTargets = JSON.parse(JSON.stringify(d.config.simple_targets || []))
