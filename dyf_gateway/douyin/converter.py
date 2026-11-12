@@ -91,11 +91,17 @@ class DouyinConverter:
             if not peer_id and sender and str(sender) != str(self_uid or ""):
                 peer_id = str(sender)
         sender_id = str(sender) if sender is not None else None
+        sender_sec_uid = str(raw.get("sender_sec_uid") or "") or None
         # 昵称：content.name/nick_name → 发送者昵称（好友/会话）→ 才回退 peer_id（不裸显示 uid）
         peer_name = str(content.get("name") or content.get("nick_name") or "")
         if not peer_name and self._nickname_provider is not None:
             try:
-                peer_name = str(self._nickname_provider(sender) or "")
+                peer_name = str(self._nickname_provider(sender, sender_sec_uid) or "")
+            except TypeError:
+                try:
+                    peer_name = str(self._nickname_provider(sender) or "")
+                except Exception:
+                    peer_name = ""
             except Exception:
                 peer_name = ""
         if not peer_name:
@@ -117,6 +123,7 @@ class DouyinConverter:
             conversation_type=conv_type,
             group_id=group_id,
             sender_id=sender_id,
+            sender_sec_uid=sender_sec_uid,
         )
 
     @staticmethod

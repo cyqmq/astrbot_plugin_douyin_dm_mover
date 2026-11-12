@@ -181,6 +181,7 @@ class DouyinReceiver:
                 {
                     "message_type": msg_type,
                     "sender": sender,
+                    "sender_sec_uid": field_str(msg_body, 14),
                     "content": content_json,
                     "share_item_id": share_item_id,
                     "conversation_id": field_str(msg_body, 1),

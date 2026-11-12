@@ -101,14 +101,14 @@ def _decode_response(resp) -> list[dict]:
         if field_int(conv, 3) != CONV_TYPE_GROUP:  # 只留群聊
             continue
         ext = field_sub(conv, 50)  # ConversationExtInfo
-        # 群成员：first_page_participants(6) -> participants(1) -> {user_id=1, role=3}
+        # 群成员：first_page_participants(6) -> participants(1) -> {user_id=1, sec_uid=5, role=3}
         # （实测 16 成员全到 TYLOO；alias(4) 实测全空不取）
         members: list[dict] = []
         fpp = field_sub(conv, 6)
         for m in fpp.get(1, []) or []:  # participants（repeated）
             if isinstance(m, int):
                 if m:
-                    members.append({"uid": str(m), "role": 0})
+                    members.append({"uid": str(m), "sec_uid": "", "role": 0})
                 continue
             try:
                 pn = decode_fields(m)
@@ -116,7 +116,13 @@ def _decode_response(resp) -> list[dict]:
                 continue
             uid = field_int(pn, 1)
             if uid:
-                members.append({"uid": str(uid), "role": field_int(pn, 3, 0)})
+                members.append(
+                    {
+                        "uid": str(uid),
+                        "sec_uid": field_str(pn, 5),  # 批量昵称/头像接口用
+                        "role": field_int(pn, 3, 0),
+                    }
+                )
         # 最后一条消息发送者昵称：last_sender(20) -> nickname(4)（群列表响应自带）
         last_sender_nickname = field_str(field_sub(conv, 20), 4)
         groups.append(

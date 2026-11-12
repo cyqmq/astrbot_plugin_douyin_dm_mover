@@ -67,6 +67,8 @@ onMounted(() => {
       </div>
       <ul class="list gr-members">
         <li v-for="m in (sel.members || [])" :key="m.uid">
+          <img v-if="m.avatar" :src="m.avatar" class="gr-mavatar" alt="">
+          <span v-else class="gr-mavatar gr-mavatar-ph">{{ (m.nickname || '友').slice(0, 1) }}</span>
           <span class="fr-name">{{ m.nickname || m.uid }}</span>
           <span class="gr-role" :class="{ lead: Number(m.role) === 1 }">{{ roleOf(m.role) }}</span>
           <span class="muted">{{ m.uid }}</span>

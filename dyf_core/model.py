@@ -43,6 +43,7 @@ class InboundMessage:
     conversation_type: int = 1  # 1=单聊 c2c, 2=群聊 group
     group_id: str | None = None  # 群聊时为群 ID（纯数字 conversation_id）
     sender_id: str | None = None  # 发送者 uid（群聊时=群成员）
+    sender_sec_uid: str | None = None  # 发送者 sec_uid（批量拉昵称/头像接口用）
 
     def to_dict(self) -> dict:
         """返回可 JSON 序列化的 dict（枚举 → 字符串）。"""
@@ -62,6 +63,7 @@ class InboundMessage:
             "conversation_type": int(self.conversation_type),
             "group_id": self.group_id,
             "sender_id": self.sender_id,
+            "sender_sec_uid": self.sender_sec_uid,
         }
         return d
 

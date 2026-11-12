@@ -91,17 +91,41 @@ class DouyinGateway(MessageGateway):
         self._friends_ts: float = 0.0     # 好友缓存时间戳（TTL 300s）
         self._http: DouyinHttpPy | None = None  # 视频详情/好友列表 HTTP（懒建，随会话 Cookie）
 
-    def _lookup_nickname(self, uid) -> str:
-        """发送者昵称：查好友缓存（{uid,nickname}）；找不到返回空（调用方回退 peer_id）。"""
+    def _lookup_nickname(self, uid, sec_uid="") -> str:
+        """发送者昵称：先查好友缓存，再 sec_uid 查 im/user/info（缓存优先，未命中同步拉一次）。"""
         if uid in (None, ""):
             return ""
         try:
             suid = str(uid)
             for f in self._friends or []:
                 if str(f.get("uid") or f.get("user_id") or "") == suid:
-                    return str(f.get("nickname") or f.get("nick_name") or "")
+                    n = str(f.get("nickname") or f.get("nick_name") or "")
+                    if n:
+                        return n
         except Exception:
-            return ""
+            pass
+        if sec_uid:
+            try:
+                from .user import UserInfoCache, fetch_user_info
+
+                cache = getattr(self, "_user_info_cache", None)
+                if cache is None:
+                    cache = UserInfoCache()
+                    self._user_info_cache = cache
+                p = cache.get(sec_uid)
+                if not p and self._device_id and self._device_id.isdigit():
+                    prof = fetch_user_info(
+                        self._get_http(),
+                        self._device_id,
+                        getattr(self._http, "guid", "") or "",
+                        [sec_uid],
+                        cache,
+                    )
+                    p = prof.get(sec_uid)
+                if p and p.get("nickname"):
+                    return p["nickname"]
+            except Exception:
+                pass
         return ""
 
     # ---- 好友缓存持久化（重载后内存清空，用文件缓存避免每次全量重拉） ----
@@ -665,16 +689,42 @@ class DouyinGateway(MessageGateway):
     async def fetch_groups(self) -> list[dict]:
         """拉取群列表（HTTP protobuf cmd=2006，前端来源卡群下拉）。
 
-        未登录/无数字 device_id 返回 []；失败仅告警不抛（下拉可空）。
+        对每群 members[].sec_uid 批量拉昵称/头像（im/user/info，缓存），
+        并回成员 nickname/avatar。未登录/无数字 device_id 返回 []。
         """
         if not self._device_id or not self._device_id.isdigit():
             return []
         try:
             from .group import fetch_group_list
+            from .user import UserInfoCache, fetch_user_info
 
-            return await asyncio.to_thread(
+            groups = await asyncio.to_thread(
                 fetch_group_list, self._get_http(), self._device_id
             )
+            # 合并成员昵称/头像（sec_uid 批量，≤50/批；失败/缺字段回退 uid）
+            all_sec: list[str] = []
+            for g in groups:
+                all_sec.extend(m.get("sec_uid", "") for m in g.get("members") or [])
+            if all_sec:
+                cache = getattr(self, "_user_info_cache", None)
+                if cache is None:
+                    cache = UserInfoCache()
+                    self._user_info_cache = cache
+                profiles = await asyncio.to_thread(
+                    fetch_user_info,
+                    self._get_http(),
+                    self._device_id,
+                    getattr(self._http, "guid", "") or "",
+                    all_sec,
+                    cache,
+                )
+                for g in groups:
+                    for m in g.get("members") or []:
+                        p = profiles.get(m.get("sec_uid", ""))
+                        if p:
+                            m["nickname"] = p.get("nickname", "")
+                            m["avatar"] = p.get("avatar", "")
+            return groups
         except Exception as e:
             logger.warning(f"[dyf] 群列表拉取失败: {e}")
             return []
