@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+## [1.2.60] - 2026-11-11
+
+### Fixed
+- **inprocess 网关 `alemonjs_www` 不生效**：`subprocess_gateway` 有 `alemonjs_www` 分支（www 扫码产票），但 `gateway.py`（inprocess）没有，`alemonjs_www` 落 `else` → vendored `qrcode_login`（不产票）。修复：`gateway.py` 补 `alemonjs_www` 分支（与 subprocess 对称），登录后同步票据（ticket/ts_sign/private_key/client_cert/server_cert）到运行态 `_auth`。
+- **移除 `alemonjs_node` 死选项**：commit `7117950` 已删 Node 桥接代码，但 `store.js` SELECTS 还留着 `alemonjs_node` 选项，选中后落 `else`（与 `douyin_spider` 同）误导用户。移除。
+
 ## [1.2.59] - 2026-11-11
 
 ### Fixed

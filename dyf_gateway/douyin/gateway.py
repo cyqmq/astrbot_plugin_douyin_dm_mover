@@ -286,6 +286,31 @@ class DouyinGateway(MessageGateway):
                 if dev:
                     auth.device_id = str(dev)
                 auth._login_backend = "alemonjs"
+            elif backend in ("alemonjs_www", "www"):
+                logger.info("[dyf] 登录后端：www 扫码（DouYin_Spider vendored 链，响应头产票）")
+                from .login.www_login import www_qrcode_login_async
+
+                result = await www_qrcode_login_async(
+                    timeout=timeout, on_qrcode=self._on_qr_alemonjs
+                )
+                saved_backend = "alemonjs_www"
+                cookie_str = result.cookie_str
+                uid = int(result.uid) if result.uid else None
+                dev = None
+                auth = DouyinAuth(
+                    cookie_str=cookie_str,
+                    web_protect=self._config.get("douyin_web_protect", ""),
+                    keys=self._config.get("douyin_keys", ""),
+                )
+                auth.uid = uid
+                auth._login_backend = "alemonjs_www"
+                # www 登录响应头 bd-ticket-guard-server-data 解析出的票据
+                auth.ticket = getattr(result, "ticket", "") or ""
+                auth.ts_sign = getattr(result, "ts_sign", "") or ""
+                auth.private_key = getattr(result, "private_key", "") or ""
+                auth.client_cert = getattr(result, "client_cert", "") or ""
+                if getattr(result, "server_cert", ""):
+                    auth.server_cert = result.server_cert
             else:
                 loop = asyncio.get_running_loop()
                 auth = await loop.run_in_executor(
@@ -309,6 +334,10 @@ class DouyinGateway(MessageGateway):
             if dev:
                 self._device_id = str(dev)
             self._auth.uid = self._self_uid
+            # 同步票据到运行态 _auth（session 已持久化，此处保持一致供读取）
+            for attr in ("ticket", "ts_sign", "private_key", "client_cert", "server_cert"):
+                if getattr(auth, attr, None):
+                    setattr(self._auth, attr, getattr(auth, attr))
             # 账户档案（昵称/头像）：仅纯 Python 登录会带回，存为登录态附加信息
             if getattr(result, "profile", None):
                 self._profile = result.profile

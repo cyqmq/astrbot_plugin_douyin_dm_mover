@@ -93,7 +93,7 @@ export const LABELS = {
 export const lbl = k => LABELS[k] || k
 
 export const SELECTS = {
-  login_backend: [['alemonjs', '@alemonjs/douyin（纯 Python，imdesktop 扫码）'], ['alemonjs_www', 'www 扫码（自动产票，关注/粉丝/回关）'], ['alemonjs_node', 'Node 桥接（可选回退）'], ['douyin_spider', '旧 vendored']],
+  login_backend: [['alemonjs', '@alemonjs/douyin（纯 Python，imdesktop 扫码）'], ['alemonjs_www', 'www 扫码（自动产票，关注/粉丝/回关）'], ['douyin_spider', '旧 vendored']],
   gateway_mode: [['inprocess', '进程内（默认）'], ['subprocess', '子进程隔离']],
   mfa_mode: [['auto_sms', '自动短信'], ['manual_command', '手动指令'], ['alert_wait', '仅告警等 App']],
   qq_adapter_id: [['aiocqhttp', 'NapCat (aiocqhttp)'], ['qq_official', 'QQ 官方机器人'], ['telegram', 'Telegram'], ['wecom', '企业微信']],
