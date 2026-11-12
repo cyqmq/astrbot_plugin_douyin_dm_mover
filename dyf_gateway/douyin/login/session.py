@@ -28,8 +28,19 @@ class SessionStore:
 
         ``backend`` 标记登录后端（alemonjs / douyin_spider）；alemonjs 会话
         无 ticket/private_key（由 SDK cookie 直接建 WS），has_valid 据此放宽。
+
+        保留旧值兜底：www 登录不带 sec_uid、profile 风控时 uid/sec_uid 空，
+        覆盖为空会跳过 following/follower，故保留旧值。主登录覆盖整文件，
+        保留 ``www`` 登录态（域隔离：following/follower 用）。
         """
         cookie = dict(getattr(auth, "cookie", None) or {})
+        old = self.load() or {}
+        uid = getattr(auth, "uid", None)
+        sec_uid = getattr(auth, "sec_uid", None) or ""
+        if not uid:
+            uid = old.get("uid")
+        if not sec_uid:
+            sec_uid = old.get("sec_uid") or ""
         data = {
             "cookie": cookie,
             "cookie_str": "; ".join(f"{k}={v}" for k, v in cookie.items()),
@@ -42,8 +53,10 @@ class SessionStore:
             "web_version": getattr(auth, "web_version", None) or "",
             "web_sign_type": getattr(auth, "web_sign_type", None) or "",
             "dtrait_blob": getattr(auth, "dtrait_blob", None) or "",
-            "uid": getattr(auth, "uid", None),
-            "sec_uid": getattr(auth, "sec_uid", None) or "",
+            "uid": uid,
+            "sec_uid": sec_uid,
+            # 主登录(save)覆盖整文件，保留 www 登录态（域隔离：following/follower 用）
+            "www": old.get("www") or {},
             "device_id": cookie.get("device_id") or getattr(auth, "device_id", None),
             "backend": backend or getattr(auth, "_login_backend", None) or "douyin_spider",
             "saved_at": int(time.time()),

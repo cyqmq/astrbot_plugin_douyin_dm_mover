@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.2.70] - 2026-11-12
+
+### Fixed
+- **`session.save` 覆盖丢失 www 登录态 + sec_uid 空**：每次登录重建整个 data dict 覆盖 session.json——`www` 键丢失 → `load_www()` 返回 `{}` → `dashboard.friends` 的 `www_http=None` → `fetch_contact_lists` `with_www=False` → following/follower 整段跳过（静默）；www 登录（`alemonjs_www`）不带 sec_uid → save 落空 → `if with_www and uid and sec_uid` 不满足 → 跳过。修复：`save` 保留旧值兜底（uid/sec_uid 空时保留旧值）+ 保留 `www` 键（域隔离独立存储）。
+
 ## [1.2.69] - 2026-11-12
 
 ### Fixed
