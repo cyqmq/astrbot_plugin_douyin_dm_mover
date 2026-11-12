@@ -662,6 +662,23 @@ class DouyinGateway(MessageGateway):
     def self_uid(self) -> int | None:
         return self._self_uid
 
+    async def fetch_groups(self) -> list[dict]:
+        """拉取群列表（HTTP protobuf cmd=2006，前端来源卡群下拉）。
+
+        未登录/无数字 device_id 返回 []；失败仅告警不抛（下拉可空）。
+        """
+        if not self._device_id or not self._device_id.isdigit():
+            return []
+        try:
+            from .group import fetch_group_list
+
+            return await asyncio.to_thread(
+                fetch_group_list, self._get_http(), self._device_id
+            )
+        except Exception as e:
+            logger.warning(f"[dyf] 群列表拉取失败: {e}")
+            return []
+
     async def set_self_uid(self, uid: int | None) -> None:
         """/dyf uid 命令写入：更新解析器缓存与运行态。"""
         self._resolver.cache(uid)

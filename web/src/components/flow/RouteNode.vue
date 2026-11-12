@@ -10,7 +10,7 @@ const r = d.route
 const types = computed(() => (r.match && r.match.types) || [])
 
 function toggleType(v) {
-  if (!r.match) r.match = { types: [], senders_include: [] }
+  if (!r.match) r.match = { types: [], senders_include: [], groups_include: [] }
   const t = r.match.types
   const k = t.indexOf(v)
   if (k >= 0) t.splice(k, 1); else t.push(v)

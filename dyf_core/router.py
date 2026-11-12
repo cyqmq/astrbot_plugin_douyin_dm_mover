@@ -12,7 +12,8 @@ class Route:
     target: str = ""
     targets: list[str] = field(default_factory=list)  # 多目标（targets 优先，target 兼容旧配置）
     types: set[MessageType] = field(default_factory=set)  # 空=全部
-    senders_include: set[str] = field(default_factory=set)  # 已连接来源 uid（空=全部来源）
+    senders_include: set[str] = field(default_factory=set)  # 好友来源 uid（仅单聊；空=全部单聊）
+    groups_include: set[str] = field(default_factory=set)  # 群来源 group_id（仅群聊；空=全部群）
 
     def all_targets(self) -> list[str]:
         return [t for t in (self.targets or []) if t] or ([self.target] if self.target else [])
@@ -20,10 +21,15 @@ class Route:
     def matches(self, msg: InboundMessage) -> bool:
         if self.types and msg.type not in self.types:
             return False
+        if msg.conversation_type == 2:  # 群聊：按 group_id 匹配（好友来源路由不接群聊）
+            if self.groups_include:
+                return str(msg.group_id or "") in self.groups_include
+            return not self.senders_include
+        # 单聊：按 peer_id 匹配（群来源路由不接单聊）
         pid = str(msg.peer_id or "")
         if self.senders_include:
             return pid and pid in self.senders_include
-        return True
+        return not self.groups_include
 
 
 def _type_set(values) -> set[MessageType]:
@@ -61,6 +67,7 @@ class RouteResolver:
                     targets=[str(t) for t in targets if t],
                     types=_type_set(match.get("types")),
                     senders_include=_str_set(match.get("senders_include")),
+                    groups_include=_str_set(match.get("groups_include")),
                 )
             )
 

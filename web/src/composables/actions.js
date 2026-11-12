@@ -97,6 +97,14 @@ export async function loadFriends(refresh) {
   store.friendsLoadedAt = Date.now()
 }
 
+export async function loadSourceGroups(refresh) {
+  store.sourceGroupsLoading = true
+  const d = await apiGet(refresh ? 'source_groups?refresh=1' : 'source_groups')
+  store.sourceGroupsLoading = false
+  store.sourceGroups = d.groups || []
+  store.sourceGroupsLoadedAt = Date.now()
+}
+
 export async function followFriend(f) {
   if (!f || !f.uid || !f.sec_uid) { toast('缺少 uid/sec_uid'); return false }
   const d = await apiPostBody('follow', { uid: f.uid, sec_uid: f.sec_uid, action: 1 })

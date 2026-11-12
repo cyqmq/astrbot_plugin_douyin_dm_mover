@@ -98,10 +98,14 @@ function onConnect(c) {
     const r = rn && rn.data && rn.data.route
     const srcObj = sources.value.find(x => x.id === sid)
     const uid = srcObj ? (srcObj.uid || '') : ''
-    if (r && !uid) { toast('请先在来源卡选择来源，再连接到路由'); return }
-    if (r && uid) {
-      if (!r.match) r.match = { types: [], senders_include: [] }
-      if (!r.match.senders_include.includes(uid)) r.match.senders_include.push(uid)
+    const gid = srcObj ? (srcObj.group_id || '') : ''
+    const isGroup = !!(srcObj && srcObj.type === 'group')
+    if (r && !uid && !gid) { toast('请先在来源卡选择来源，再连接到路由'); return }
+    if (r && (uid || gid)) {
+      if (!r.match) r.match = { types: [], senders_include: [], groups_include: [] }
+      const arr = isGroup ? r.match.groups_include : r.match.senders_include
+      const key = isGroup ? gid : uid
+      if (!arr.includes(key)) arr.push(key)
       scheduleLiveSave()
       buildEdges()
     }
@@ -127,8 +131,13 @@ function onEdgesDelete(list) {
     if (!r) return
     if (d.kind === 'src-route') {
       if (r.match) {
-        const i = r.match.senders_include.indexOf(d.uid)
-        if (i >= 0) r.match.senders_include.splice(i, 1)
+        if (d.gid && r.match.groups_include) {
+          const i = r.match.groups_include.indexOf(d.gid)
+          if (i >= 0) r.match.groups_include.splice(i, 1)
+        } else if (d.uid && r.match.senders_include) {
+          const i = r.match.senders_include.indexOf(d.uid)
+          if (i >= 0) r.match.senders_include.splice(i, 1)
+        }
       }
     } else if (d.kind === 'route-tgt') {
       const ts = r.targets || []
@@ -192,11 +201,15 @@ function buildEdges() {
   const es = []
   sources.value.forEach(s => {
     const uid = s.uid || ''
-    if (!uid) return
+    const gid = s.group_id || ''
+    const isGroup = s.type === 'group'
+    if (!uid && !gid) return
     store.routes.forEach((r, ri) => {
-      if ((r.match && r.match.senders_include || []).includes(uid))
+      const arr = isGroup ? ((r.match && r.match.groups_include) || []) : ((r.match && r.match.senders_include) || [])
+      const key = isGroup ? gid : uid
+      if (arr.includes(key))
         es.push(edgeTo(`e|src|${s.id}|${ri}`, 'src|' + s.id, 'route|' + ri, 'hit',
-          { kind: 'src-route', uid, route: r }))
+          { kind: 'src-route', uid, gid, route: r }))
     })
   })
   store.routes.forEach((r, ri) => {
@@ -216,7 +229,8 @@ watch(() => JSON.stringify({ r: store.routes.length, t: targetList.value, c: sto
   a: store.advancedTargets, g: store.routes.map(r => r.target).join('|') }), build)
 // 内容变化（类型/来源连接）→ 只重建边（保焦点）
 watch(() => JSON.stringify(store.routes.map(r => ((r.match && r.match.types) || []).join(',') + '|' +
-  ((r.match && r.match.senders_include) || []).join(','))), buildEdges)
+  ((r.match && r.match.senders_include) || []).join(',') + '|' +
+  ((r.match && r.match.groups_include) || []).join(','))), buildEdges)
 
 // 实时保存
 let liveReady = false

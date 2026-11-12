@@ -106,6 +106,8 @@ class DashboardApi:
         reg("douyin_dm_mover/config/set", self.config_set, ["POST"], "dyf 保存配置")
         reg("douyin_dm_mover/profile", self.profile, ["GET"], "dyf 账户昵称/头像")
         reg("douyin_dm_mover/friends", self.friends, ["GET"], "dyf 好友列表（familiar-list）")
+        reg("douyin_dm_mover/groups", self.groups, ["GET"], "dyf 机器人可访问群列表（目标平台）")
+        reg("douyin_dm_mover/source_groups", self.source_groups, ["GET"], "dyf 抖音源群列表（conversation/list cmd=2006）")
         reg("douyin_dm_mover/follow", self.follow, ["POST"], "dyf 回关/取关好友")
         reg("douyin_dm_mover/import_cookies", self.import_cookies, ["POST"], "dyf 手动导入 www 网页登录 Cookie（建 BDTicket）")
         reg("douyin_dm_mover/groups", self.groups, ["GET"], "dyf 可发送群列表（AstrBot get_group_list）")
@@ -180,6 +182,15 @@ class DashboardApi:
 
     async def senders(self):
         return {"senders": self.fm.tracker.senders()}
+
+    async def source_groups(self):
+        """抖音源群列表（前端来源卡群下拉）；subprocess 模式无该方法则返回空。"""
+        fn = getattr(self.gateway, "fetch_groups", None)
+        try:
+            g = await fn() if callable(fn) else []
+        except Exception:
+            g = []
+        return {"groups": list(g or [])}
 
     async def records(self):
         return {"records": self.fm.tracker.records()}
