@@ -43,6 +43,7 @@ class SessionStore:
             "web_sign_type": getattr(auth, "web_sign_type", None) or "",
             "dtrait_blob": getattr(auth, "dtrait_blob", None) or "",
             "uid": getattr(auth, "uid", None),
+            "sec_uid": getattr(auth, "sec_uid", None) or "",
             "device_id": cookie.get("device_id") or getattr(auth, "device_id", None),
             "backend": backend or getattr(auth, "_login_backend", None) or "douyin_spider",
             "saved_at": int(time.time()),
@@ -91,6 +92,7 @@ class SessionStore:
         auth.server_cert = data.get("server_cert") or ""
         auth.dtrait_blob = data.get("dtrait_blob") or ""
         auth.uid = data.get("uid")
+        auth.sec_uid = data.get("sec_uid") or ""
         if data.get("device_id"):
             auth.device_id = data["device_id"]
         return auth

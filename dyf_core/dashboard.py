@@ -447,16 +447,25 @@ class DashboardApi:
                 except Exception:
                     pass
             # following/follower 需要本人真实 uid/sec_uid（uid_tt 是加密值不能当 uid，
-            # 用 profile/self 拿真实 uid；profile 失败才 fallback auth.uid，绝不读 uid_tt）
+            # 用 profile/self 拿真实 uid；profile 失败才 fallback session 持久化的
+            # uid/sec_uid，绝不读 uid_tt——否则 www 链路被跳过）
             uid = ""
             sec_uid = ""
             try:
                 prof = await asyncio.to_thread(fetch_desktop_self_profile, http)
-                uid = prof.get("uid") or str(getattr(auth, "uid", None) or "")
+                uid = prof.get("uid") or ""
                 sec_uid = prof.get("sec_uid") or ""
             except Exception as exc:
-                uid = str(getattr(auth, "uid", None) or "")
                 logger.warning(f"[dyf] 拉取 self profile 失败(仅 familiar): {exc}")
+            # profile 失败或 sec_uid 缺失（风控）：从持久化 session 读 uid/sec_uid，
+            # 否则 fetch_contact_lists 的 with_www 条件不满足，following/follower 被跳过
+            if not uid or not sec_uid:
+                try:
+                    sess = gw._login_flow.session.load() or {}
+                except Exception:
+                    sess = {}
+                uid = uid or str(sess.get("uid") or getattr(auth, "uid", None) or "")
+                sec_uid = sec_uid or (sess.get("sec_uid") or "")
             friends = await asyncio.to_thread(
                 fetch_contact_lists,
                 http,

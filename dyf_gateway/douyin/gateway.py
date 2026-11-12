@@ -296,6 +296,7 @@ class DouyinGateway(MessageGateway):
                     keys=self._config.get("douyin_keys", ""),
                 )
                 auth.uid = uid
+                auth.sec_uid = getattr(result, "sec_uid", "") or ""
                 if dev:
                     auth.device_id = str(dev)
                 auth._login_backend = "alemonjs"

@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.2.69] - 2026-11-12
+
+### Fixed
+- **following/follower 不显示（sec_uid 未持久化）**：`dashboard.friends` 的 uid/sec_uid 靠 profile 实时拿；familiar 8（风控）时 profile 也失败 → `sec_uid=""` → `fetch_contact_lists` 的 `if with_www and uid and sec_uid` 不满足 → following/follower 整段跳过（不是失败，是没执行）。修复：`session.save`/`build_auth` 持久化 `sec_uid`；`AlemonjsResult` 加 `sec_uid`（profile 提取）+ `gateway`/`subprocess_gateway` alemonjs 分支 `auth.sec_uid = result.sec_uid`；`dashboard.friends` profile 失败时 fallback session 的 uid/sec_uid（不只 uid）。
+
 ## [1.2.68] - 2026-11-12
 
 ### Changed

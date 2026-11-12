@@ -298,6 +298,7 @@ class SubprocessGateway(MessageGateway):
                     keys=self._config.get("douyin_keys", ""),
                 )
                 auth.uid = int(result.uid) if result.uid else None
+                auth.sec_uid = getattr(result, "sec_uid", "") or ""
                 if result.device_id:
                     auth.device_id = str(result.device_id)
                 auth._login_backend = "alemonjs"

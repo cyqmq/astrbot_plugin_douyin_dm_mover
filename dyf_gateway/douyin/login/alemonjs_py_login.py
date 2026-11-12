@@ -18,6 +18,7 @@ class AlemonjsResult:
 
     cookie_str: str
     uid: str
+    sec_uid: str = ""
     device_id: str | None = None
     user_data: dict | None = None
     profile: dict | None = None
@@ -87,6 +88,7 @@ class AlemonsPyLogin:
         return AlemonjsResult(
             cookie_str=session["cookies"],
             uid=session["platformUid"],
+            sec_uid=(session.get("profile") or {}).get("sec_uid") or "",
             device_id=device_id,
             user_data=session.get("userData"),
             profile=session.get("profile"),
