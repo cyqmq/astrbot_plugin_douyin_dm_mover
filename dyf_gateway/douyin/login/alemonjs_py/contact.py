@@ -119,9 +119,15 @@ def fetch_contact_lists(
 
     域隔离（探针 2026-11-12）：familiar 走 imdesktop 会话（``http``）；following/follower 走
     www 登录态（``www_http``，需 www cookie 导入；无则用 ``http`` 向后兼容）。按 uid 去重，
-    familiar 优先（互关）。following/follower 失败仅软失败记录（``www_errors``）不阻断 familiar。
+    familiar 优先（互关）。familiar 失败仅软失败记录（``http.familiar_error``）不阻断
+    following/follower；following/follower 失败记录（``www_errors``）不阻断 familiar。
     """
-    friends = fetch_friend_list(http)
+    friends = []
+    try:
+        friends = fetch_friend_list(http)
+    except Exception as e:
+        logger.warning(f"[dyf] familiar 拉取失败: {e}")
+        http.familiar_error = str(e)
     by_uid = {f["uid"]: {**f, "_src": "familiar"} for f in friends}
     if with_www and uid and sec_uid:
         www = www_http or http

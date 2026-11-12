@@ -471,10 +471,16 @@ class DashboardApi:
             # 域隔离（探针 2026-11-12）：familiar 走 imdesktop 主登录态；following/follower
             # 走 www 登录态（需 www cookie 导入）。无 www cookie 时 following/follower 缺失提示。
             detail = ""
-            if not www_http:
+            fam_err = getattr(http, "familiar_error", "") or ""
+            www_err = getattr(www_http, "www_errors", "") if www_http else ""
+            if fam_err and www_err:
+                detail = f"familiar 拉取失败: {fam_err}; following/follower 拉取失败: {www_err}"
+            elif fam_err:
+                detail = f"familiar 拉取失败: {fam_err}"
+            elif not www_http:
                 detail = "following/follower 需 www 登录态——好友页「导入 Cookie」（浏览器 www.douyin.com 登录复制 Cookie 串）"
-            elif getattr(www_http, "www_errors", ""):
-                detail = f"following/follower 拉取失败: {www_http.www_errors}"
+            elif www_err:
+                detail = f"following/follower 拉取失败: {www_err}"
             return {"friends": friends, "detail": detail}
         except Exception as e:
             logger.warning(f"[dyf] 拉取好友列表失败: {e}")

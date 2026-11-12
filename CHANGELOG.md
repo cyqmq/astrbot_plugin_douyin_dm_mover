@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.2.67] - 2026-11-12
+
+### Fixed
+- **familiar 失败阻断整个 friends**：`fetch_contact_lists` 的 `fetch_friend_list(http)` 无 try 包裹——familiar 失败（如 status_code=8）抛异常阻断整个 friends，following/follower 也不执行。修复：familiar 软失败（记 `http.familiar_error`），与 following/follower 的 `www_errors` 对称；`dashboard.friends` detail 透出 `familiar_error`/`www_errors`（两者都失败时合并提示）。
+
 ## [1.2.66] - 2026-11-12
 
 ### Changed
