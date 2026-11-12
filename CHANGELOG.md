@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.2.59] - 2026-11-11
+
+### Fixed
+- **保存失败：Vue Proxy 无法 structured clone**（`请求失败: Failed to execute 'postMessage'...could not be cloned`）：`ConfigTab.pick()` 从 `store.cfg` 取的对象/数组字段是 Vue 响应式 Proxy（`sources`/`routes` 等），`postMessage` structured clone 无法克隆 Proxy → 保存永远失败。修复：`pick()` 用 `JSON.parse(JSON.stringify(...))` 深拷贝剥离 Proxy（治本）+ `saveConfig` 入口统一克隆兜底（防其他调用方踩坑）。
+
 ## [1.2.58] - 2026-11-11
 
 ### Fixed

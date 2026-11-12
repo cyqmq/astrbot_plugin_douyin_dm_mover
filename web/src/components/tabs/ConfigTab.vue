@@ -11,7 +11,11 @@ async function save() { await saveConfig(pick()) }
 function pick() {
   const out = {}
   keys.forEach(k => {
-    if (Object.prototype.hasOwnProperty.call(store.cfg, k)) out[k] = store.cfg[k]
+    if (Object.prototype.hasOwnProperty.call(store.cfg, k)) {
+      // store.cfg 是 Vue 深度响应式 Proxy——postMessage structured clone 无法克隆
+      // Proxy（对象/数组字段），需 JSON 深拷贝剥离 Proxy
+      out[k] = JSON.parse(JSON.stringify(store.cfg[k]))
+    }
   })
   return out
 }

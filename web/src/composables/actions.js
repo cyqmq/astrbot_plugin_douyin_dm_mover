@@ -48,7 +48,8 @@ export async function loadConfig() {
 }
 
 export async function saveConfig(cfg, opts) {
-  const d = await apiPostBody('config/set', { config: cfg, no_reload: !!(opts && opts.no_reload) })
+  // 兜底：JSON 深拷贝剥离 Vue 响应式 Proxy（postMessage structured clone 无法克隆 Proxy）
+  const d = await apiPostBody('config/set', { config: JSON.parse(JSON.stringify(cfg)), no_reload: !!(opts && opts.no_reload) })
   if (!(opts && opts.silent)) toast(d.ok ? '已保存' : (d.detail || '保存失败'))
 }
 
