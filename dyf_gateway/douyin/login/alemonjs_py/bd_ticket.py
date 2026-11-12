@@ -41,6 +41,39 @@ CLIENT_DATA_COOKIE = "bd_ticket_guard_client_data"
 CLIENT_WEB_DOMAIN_COOKIE = "bd_ticket_guard_client_web_domain"
 GUARD_VERSION = "2"
 ITERATION_VERSION = "1"
+# www 浏览器登录后 Set-Cookie 下发的页面守卫 cookie（自带只读接口完整材料）
+PAGE_GUARD_COOKIE = "bd-web-sign-page-guard"
+
+
+def extract_page_guard(cookie_str: str) -> dict:
+    """从 www cookie 的 ``bd-web-sign-page-guard`` 提取只读接口票据材料。
+
+    探针决定性验证（2026-11-12）：只读接口（following/follower）4 头**无需私钥、无需 HMAC**，
+    ``bd-web-sign-page-guard`` cookie 自带完整材料（ts_sign + ree_public_key 客户端公钥 +
+    web_version + web_sign_type），浏览器私钥不导出也不影响——直接抄 cookie 字段即可。
+
+    Returns: {"ts_sign", "ree_public_key", "web_version", "web_sign_type"} 或 {}。
+    """
+    import re
+
+    m = re.search(rf"{PAGE_GUARD_COOKIE}=([^;]+)", cookie_str or "")
+    if not m:
+        return {}
+    from urllib.parse import unquote
+
+    v = unquote(m.group(1)).strip().replace("-", "+").replace("_", "/")
+    try:
+        s = base64.b64decode(v + "=" * (-len(v) % 4)).decode("utf-8")
+    except Exception:
+        return {}
+    out = {}
+    for k in ("ts_sign", "web_version", "ree_public_key", "web_sign_type"):
+        mm = re.search(rf'"{k}"\s*:\s*"([^"]*)"', s)
+        if mm:
+            out[k] = mm.group(1)
+    if out.get("ts_sign") and out.get("ree_public_key"):
+        return out
+    return {}
 
 
 def _load_signing_key(prv) -> SigningKey:
@@ -244,20 +277,31 @@ def build_bd_ticket(http: DouyinHttpPy, headers: dict | None = None) -> dict:
 def bd_ticket_headers(ticket: dict) -> dict:
     """只读接口的 bd-ticket-guard 4 个头（with_bd_readonly，无 client-data）。
 
-    探针实测（2026-11-12）：``ree-public-key`` 是**客户端公钥**（``get_ree_key(private_key)``，
-    非服务端 client_cert）；``web-sign-type`` = ``1`` if client_cert 有 ``pub.`` 前缀（hmac）
-    else ``0``（ecdsa）。无 ts_sign/private_key 返回 {}（只读列表降级仅 familiar 并告警）。
+    探针实测（2026-11-12）：``ree-public-key`` 是**客户端公钥**——www 导入场景直接用 cookie
+    ``bd-web-sign-page-guard`` 的 ``ree_public_key``（免私钥）；否则从 ``private_key`` 派生
+    （``get_ree_key``）。``web-sign-type`` = ``1`` if web_sign_type=="1" or client_cert 有
+    ``pub.`` 前缀（hmac）else ``0``（ecdsa）。无 ts_sign/公钥返回 {}（只读列表降级仅 familiar）。
     """
     ts_sign = (ticket or {}).get("ts_sign") or ""
-    client_cert = (ticket or {}).get("client_cert") or ""
+    ree = (ticket or {}).get("ree_public_key") or ""
     private_key = (ticket or {}).get("private_key") or ""
-    if not ts_sign or not private_key:
+    if not ts_sign:
         return {}
+    if not ree and private_key:
+        ree = get_ree_key(private_key)
+    if not ree:
+        return {}
+    client_cert = (ticket or {}).get("client_cert") or ""
+    web_sign_type = str((ticket or {}).get("web_sign_type") or "")
+    sign_type = "1" if (web_sign_type == "1" or client_cert.startswith("pub.")) else "0"
     return {
-        "bd-ticket-guard-ree-public-key": get_ree_key(private_key),  # 客户端公钥（65B 含 0x04）
+        "bd-ticket-guard-ree-public-key": ree,  # 客户端公钥（www cookie 直抄 / 私钥派生）
         "bd-ticket-guard-version": GUARD_VERSION,
-        "bd-ticket-guard-web-version": str(ticket_guard_version(ts_sign)),
-        "bd-ticket-guard-web-sign-type": "1" if client_cert.startswith("pub.") else "0",
+        "bd-ticket-guard-web-version": str(
+            (ticket or {}).get("web_version")
+            or ticket_guard_version(ts_sign)
+        ),
+        "bd-ticket-guard-web-sign-type": sign_type,
     }
 
 
@@ -270,13 +314,13 @@ def import_www_session(
 ) -> dict:
     """手动网页 Cookie 导入：用户在浏览器 www.douyin.com 登录后复制 Cookie 串。
 
-    探针实测（2026-11-12）：浏览器 www 登录后 Set-Cookie 下发 ``bd_ticket_guard_server_data``
-    （服务端已签发票据）；此处先 ``publish_public_key``（发布客户端公钥），再解析 Server-Data
-    （jar 里的 ``bd_ticket_guard_server_data`` / get_client_cert 响应头）。也可直接补填完整
-    票据（ts_sign/private_key/client_cert/server_cert，从浏览器 localStorage/抓包取）。
+    探针决定性验证（2026-11-12）：优先从 cookie 的 ``bd-web-sign-page-guard`` 提取只读接口
+    材料（ts_sign + ree_public_key + web_version + web_sign_type，免私钥/免重签）；无该 cookie
+    时回退发布公钥重签（``publish_public_key`` + 解析 Server-Data）。也可直接补填完整票据
+    （ts_sign/private_key/client_cert/server_cert，从浏览器 localStorage/抓包取）。
 
-    Returns: {"cookie_str", "ts_sign", "private_key", "client_cert", "server_cert"}
-    或 {"error": "..."}。
+    Returns: {"cookie_str", "ts_sign", "ree_public_key", "web_version", "web_sign_type"} 或
+    {"cookie_str", "ts_sign", "private_key", "client_cert", "server_cert"} 或 {"error": "..."}。
     """
     if not cookie_str or "sessionid=" not in cookie_str:
         return {
@@ -291,11 +335,16 @@ def import_www_session(
             "client_cert": client_cert,
             "server_cert": server_cert,
         }
+    # 优先：cookie 的 bd-web-sign-page-guard 自带只读材料（免私钥/免重签）
+    guard = extract_page_guard(cookie_str)
+    if guard:
+        return {"cookie_str": cookie_str, **guard}
+    # 回退：发布公钥重签（服务端签发 Server-Data）
     publish_public_key(http)
     ticket = build_bd_ticket(http)
     if ticket.get("ts_sign"):
         return {"cookie_str": cookie_str, **ticket}
     return {
         "error": ticket.get("error")
-        or "www 票据生成失败（浏览器登录后应下发 bd_ticket_guard_server_data），或补填完整票据"
+        or "cookie 无 bd-web-sign-page-guard 且票据生成失败，请在 www.douyin.com 登录后复制完整 Cookie 串"
     }

@@ -38,6 +38,9 @@ class SessionStore:
             "client_cert": getattr(auth, "client_cert", None) or "",
             "private_key": getattr(auth, "private_key", None) or "",
             "server_cert": getattr(auth, "server_cert", None) or "",
+            "ree_public_key": getattr(auth, "ree_public_key", None) or "",
+            "web_version": getattr(auth, "web_version", None) or "",
+            "web_sign_type": getattr(auth, "web_sign_type", None) or "",
             "dtrait_blob": getattr(auth, "dtrait_blob", None) or "",
             "uid": getattr(auth, "uid", None),
             "device_id": cookie.get("device_id") or getattr(auth, "device_id", None),
@@ -101,7 +104,8 @@ class SessionStore:
         )
 
     def load_bd_ticket(self) -> dict:
-        """载入持久化 BDTicket（ticket/ts_sign/private_key/client_cert/server_cert）。"""
+        """载入持久化 BDTicket（ticket/ts_sign/private_key/client_cert/server_cert/
+        ree_public_key/web_version/web_sign_type——www 导入免私钥型）。"""
         data = self.load()
         if not data:
             return {}
@@ -111,6 +115,9 @@ class SessionStore:
             "private_key": data.get("private_key") or "",
             "client_cert": data.get("client_cert") or "",
             "server_cert": data.get("server_cert") or "",
+            "ree_public_key": data.get("ree_public_key") or "",
+            "web_version": data.get("web_version") or "",
+            "web_sign_type": data.get("web_sign_type") or "",
         }
 
     def clear(self) -> None:

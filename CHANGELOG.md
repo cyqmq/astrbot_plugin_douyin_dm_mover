@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.2.65] - 2026-11-12
+
+### Changed
+- **www cookie 导入免私钥（探针决定性验证复刻）**：只读接口（following/follower）4 头无需私钥、无需 HMAC——`bd-web-sign-page-guard` cookie 自带完整材料（ts_sign + ree_public_key 客户端公钥 + web_version + web_sign_type），直接抄字段即可，浏览器私钥不导出也不影响。`import_www_session` 优先 `extract_page_guard`（cookie 提取）；无该 cookie 回退发布公钥重签。`bd_ticket_headers` 支持 guard 型（直抄 ree_public_key，无 client-data）+ ECDH 型（私钥派生）。`session.py`/`gateway.import_login` 持久化 `ree_public_key/web_version/web_sign_type`。
+
 ## [1.2.64] - 2026-11-12
 
 ### Changed

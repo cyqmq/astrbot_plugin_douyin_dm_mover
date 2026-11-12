@@ -453,6 +453,10 @@ class DouyinGateway(MessageGateway):
         auth.client_cert = ticket.get("client_cert") or ""
         if ticket.get("server_cert"):
             auth.server_cert = ticket["server_cert"]
+        # www 导入免私钥型：bd-web-sign-page-guard 直接抄的只读材料
+        auth.ree_public_key = ticket.get("ree_public_key") or ""
+        auth.web_version = ticket.get("web_version") or ""
+        auth.web_sign_type = ticket.get("web_sign_type") or ""
         auth._login_backend = "alemonjs"
         self._auth = auth
         self._persist_login_config(cookie_str, getattr(auth, "uid", None), None)
