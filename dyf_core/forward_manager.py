@@ -113,8 +113,10 @@ class ForwardManager:
                 ).hexdigest()
         if msg.message_id:
             return msg.message_id
+        # 会话聚合：群聊按群聚合、单聊按对端聚合（群内多成员不被当多来源）
+        conv = msg.group_id or msg.peer_id or ""
         return hashlib.md5(
-            f"{msg.source_platform}:{msg.peer_id}:{msg.type}:{msg.text}".encode()
+            f"{msg.source_platform}:{conv}:{msg.type}:{msg.text}".encode()
         ).hexdigest()
 
     def _resolve_targets(self, msg: InboundMessage) -> list[tuple[str, str]]:
@@ -144,8 +146,8 @@ class ForwardManager:
         # 去重后才记录发石者：抖音推两帧（视频卡/图集，server_message_id 不同）
         # 第二帧被去重拦，不应计入明细（否则明细两份、转发一份）
         self.tracker.add_sender(msg)
-        if not self.rate.allow(msg.peer_id):
-            logger.warning(f"[dyf] 限流跳过: sender={msg.peer_id}")
+        if not self.rate.allow(msg.group_id or msg.peer_id):
+            logger.warning(f"[dyf] 限流跳过: conv={msg.group_id or msg.peer_id}")
             return
 
         targets = self._resolve_targets(msg)

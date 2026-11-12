@@ -12,7 +12,7 @@ from astrbot.api import logger
 
 from dyf_core.model import InboundMessage, MessageType
 
-from .peer import is_outgoing, resolve_peer
+from .peer import is_outgoing, resolve_conv, resolve_peer
 
 _SKIP_TYPES = {50001, 50002}  # 50001 对方已读 / 50002 消息更新扩展，均非独立媒体
 
@@ -81,10 +81,16 @@ class DouyinConverter:
                 f"[dyf] raw full: {json.dumps(raw, ensure_ascii=False)[:500]}"
             )
 
-        peer_id = resolve_peer(conversation_id, self_uid)
-        # 纯数字短 id conv 解析失败时用发送者兜底（sender 为对端 uid，非 self）
-        if not peer_id and sender and str(sender) != str(self_uid or ""):
-            peer_id = str(sender)
+        conv_type, group_id = resolve_conv(conversation_id)
+        if conv_type == 2:
+            # 群聊：group_id=纯数字 conversation_id，peer_id=发送者（群成员）
+            peer_id = str(sender) if sender is not None else None
+        else:
+            peer_id = resolve_peer(conversation_id, self_uid)
+            # 单聊 conv 解析失败时用发送者兜底（sender 为对端 uid，非 self）
+            if not peer_id and sender and str(sender) != str(self_uid or ""):
+                peer_id = str(sender)
+        sender_id = str(sender) if sender is not None else None
         # 昵称：content.name/nick_name → 发送者昵称（好友/会话）→ 才回退 peer_id（不裸显示 uid）
         peer_name = str(content.get("name") or content.get("nick_name") or "")
         if not peer_name and self._nickname_provider is not None:
@@ -108,6 +114,9 @@ class DouyinConverter:
             timestamp=_timestamp_of(raw),
             is_outgoing=is_outgoing(sender, self_uid),
             raw=raw,
+            conversation_type=conv_type,
+            group_id=group_id,
+            sender_id=sender_id,
         )
 
     @staticmethod

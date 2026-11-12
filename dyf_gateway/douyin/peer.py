@@ -8,6 +8,7 @@ from __future__ import annotations
 import re
 
 _CONV_RE = re.compile(r"^0:\d+:(\d+):(\d+)$")
+_CONV_NUMERIC = re.compile(r"^\d+$")
 
 
 def resolve_peer(conversation_id: str, self_uid: int | None) -> str | None:
@@ -24,6 +25,19 @@ def resolve_peer(conversation_id: str, self_uid: int | None) -> str | None:
     if a == self_s and b == self_s:
         return None
     return b if a == self_s else a
+
+
+def resolve_conv(conversation_id: str) -> tuple[int, str | None]:
+    r"""按 conversation_id 形态判定会话类型。
+
+    alemonjs receiver.js 推断规则：纯数字 `^\d+$` → 群聊(type=2, group_id=该值)；
+    `0:1:uid:secuid` → 单聊(type=1, group_id=None)。互斥、无歧义；形态不匹配
+    回退单聊(type=1)（兜底不丢消息）。
+    """
+    cid = conversation_id or ""
+    if cid and _CONV_NUMERIC.match(cid):
+        return 2, cid
+    return 1, None
 
 
 def is_outgoing(sender_id: int | None, self_uid: int | None) -> bool:

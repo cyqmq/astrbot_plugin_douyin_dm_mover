@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import threading
 import time
 from collections.abc import Callable
@@ -183,6 +184,16 @@ class DouyinReceiver:
                     "content": content_json,
                     "share_item_id": share_item_id,
                     "conversation_id": field_str(msg_body, 1),
+                    # 群聊判定：alemonjs receiver.js 用 conversation_id 格式推断——
+                    # 纯数字 `^\d+$` → 群聊(type=2)，`0:1:uid:secuid` → 单聊(type=1)
+                    "conversation_type": 2
+                    if re.fullmatch(r"\d+", field_str(msg_body, 1) or "")
+                    else 1,
+                    "group_id": (
+                        field_str(msg_body, 1)
+                        if re.fullmatch(r"\d+", field_str(msg_body, 1) or "")
+                        else ""
+                    ),
                     "server_message_id": field_int(msg_body, 3),
                     "index_in_conversation": field_int(msg_body, 4),
                     "conversation_short_id": field_int(msg_body, 5),
