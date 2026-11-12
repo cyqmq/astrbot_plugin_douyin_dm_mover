@@ -95,7 +95,12 @@ function setNick(e) { src.value.nickname = e.target.value; scheduleLiveSave() }
           <div v-for="g in filteredGroups" :key="g.group_id" class="src-drop-item"
             :class="{ sel: isGroup && src.group_id === String(g.group_id || '') }"
             @mousedown.prevent="pickGroup(g)">
-            <span class="src-drop-name">{{ g.name || '群' }}</span>
+            <div class="src-drop-main">
+              <span class="src-drop-name">{{ g.name || '群' }}</span>
+              <span class="src-drop-sub" v-if="g.member_count || g.last_sender_nickname">
+                {{ g.member_count ? `${g.member_count}人` : '' }}<template v-if="g.member_count && g.last_sender_nickname"> · </template><template v-if="g.last_sender_nickname">最后:{{ g.last_sender_nickname }}</template>
+              </span>
+            </div>
             <span class="src-drop-uid">{{ g.group_id }}</span>
           </div>
         </template>

@@ -287,6 +287,8 @@ kbd { background:var(--card); border:1px solid var(--border2); border-radius:4px
 .vf-src .src-drop-item.sel { background:rgba(9,105,218,.18); }
 .vf-src .src-drop-name { color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .vf-src .src-drop-uid { color:var(--muted); flex-shrink:0; }
+.vf-src .src-drop-main { display:flex; flex-direction:column; min-width:0; }
+.vf-src .src-drop-sub { color:var(--muted); font-size:10px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .vf-src .src-drop-empty { padding:8px; font-size:12px; color:var(--muted); text-align:center; }
 /* 好友页（FriendsTab） */
 .fr-search { flex:1; min-width:120px; max-width:280px; font-size:12px; padding:5px 10px;

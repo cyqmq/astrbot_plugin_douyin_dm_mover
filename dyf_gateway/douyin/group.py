@@ -14,7 +14,8 @@ POST https://imapi3-normal.zijieapi.com/v1/conversation/list，cmd=2006。
 - ResponsePayload.conversation_list=2006
 - ConversationListResponse.conversations=1
 - Conversation{conversation_id=1,short_id=2,type=3,members=6,ext_info=50}
-- ConversationMembers.members=1 -> uid=1
+- Conversation.first_page_participants=6 -> participants=1 -> {user_id=1, role=3}
+- Conversation.last_sender=20 -> nickname=4
 - ConversationExtInfo{name=5,avatar=7}
 """
 from __future__ import annotations
@@ -100,26 +101,33 @@ def _decode_response(resp) -> list[dict]:
         if field_int(conv, 3) != CONV_TYPE_GROUP:  # 只留群聊
             continue
         ext = field_sub(conv, 50)  # ConversationExtInfo
-        members: list[str] = []
-        mem = field_sub(conv, 6)  # ConversationMembers
-        for m in mem.get(1, []) or []:  # members（repeated：varint uid 或嵌套 {uid=1}）
+        # 群成员：first_page_participants(6) -> participants(1) -> {user_id=1, role=3}
+        # （实测 16 成员全到 TYLOO；alias(4) 实测全空不取）
+        members: list[dict] = []
+        fpp = field_sub(conv, 6)
+        for m in fpp.get(1, []) or []:  # participants（repeated）
             if isinstance(m, int):
                 if m:
-                    members.append(str(m))
+                    members.append({"uid": str(m), "role": 0})
                 continue
             try:
-                uid = field_int(decode_fields(m), 1)
+                pn = decode_fields(m)
             except Exception:
                 continue
+            uid = field_int(pn, 1)
             if uid:
-                members.append(str(uid))
+                members.append({"uid": str(uid), "role": field_int(pn, 3, 0)})
+        # 最后一条消息发送者昵称：last_sender(20) -> nickname(4)（群列表响应自带）
+        last_sender_nickname = field_str(field_sub(conv, 20), 4)
         groups.append(
             {
                 "group_id": field_str(conv, 1),  # 纯数字 conversation_id
                 "short_id": str(field_int(conv, 2)),
                 "name": field_str(ext, 5),  # ConversationExtInfo.name
                 "avatar": field_str(ext, 7),  # ConversationExtInfo.avatar
+                "members": members,  # [{uid, role}]
                 "member_count": len(members),
+                "last_sender_nickname": last_sender_nickname,
             }
         )
     return groups
@@ -128,7 +136,8 @@ def _decode_response(resp) -> list[dict]:
 def fetch_group_list(http, device_id: str, limit: int = 50) -> list[dict]:
     """拉取群列表（cmds=2006）。http 为 DouyinHttpPy（已带 imdesktop Cookie）。
 
-    返回 [{group_id, short_id, name, avatar, member_count}]（仅群聊）。
+    返回 [{group_id, short_id, name, avatar, members:[{uid,role}], member_count,
+    last_sender_nickname}]（仅群聊）。
     """
     body = _build_request(device_id)
     url = f"{_LIST_URL}?{_desktop_im_query(device_id)}"
