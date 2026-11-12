@@ -413,8 +413,8 @@ class DashboardApi:
             cookie_str = getattr(auth, "cookie_str", "") or ""
             if not cookie_str:
                 return {"friends": [], "detail": "无会话 Cookie"}
-            # 诊断：登录态 cookie 键（看有没有 BDTicket/bd_ticket_guard/__ac_nonce）
-            logger.info(
+            # 诊断：登录态 cookie 键（看有没有 BDTicket/bd_ticket_guard/__ac_nonce）；探针残留，降 debug
+            logger.debug(
                 "[dyf] COOKIE_KEYS: "
                 + ", ".join(
                     sorted(

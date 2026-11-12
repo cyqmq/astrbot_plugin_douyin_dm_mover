@@ -186,45 +186,13 @@ def fetch_friend_list(
         if data.get("status_code") not in (0, None):
             raise RuntimeError(f"familiar/list status_code={data.get('status_code')}")
         for u in data.get("user_list") or []:
-            # 诊断：只打关系字段值（follow/relation/is_），不截断——一次拉好友页
-            # 看每个好友的 follow_status/is_following/relation 实际值，定三态映射。
-            logger.info(
-                "[dyf] REL: "
-                + " ".join(
-                    f"{k}={u.get(k)}"
-                    for k in sorted(u.keys())
-                    if any(s in k.lower() for s in ("follow", "relation", "is_"))
-                )
-            )
-            uid = (
-                u.get("uid")
-                or (str(u["user_id"]) if u.get("user_id") not in (None, "") else "")
-                or ""
-            )
             # 只滤真正无效的（已取消 且 已关注）；未回关的（follow_status=0，即使
             # user_canceled=1）保留显示——familiar/list 返回全部好友含未回关。
             if u.get("user_canceled") and u.get("follow_status", 0) != 0:
                 continue
-            if not uid or uid in ("0", 0):
-                continue
-            thumb = u.get("avatar_thumb") or {}
-            url_list = thumb.get("url_list") or []
-            friends.append(
-                {
-                    "uid": str(uid),
-                    "nickname": u.get("nickname") or "",
-                    "sec_uid": u.get("sec_uid") or "",
-                    "remark_name": u.get("remark_name") or "",
-                    "signature": u.get("signature") or "",
-                    "avatar": url_list[0] if url_list else "",
-                    # 关系状态透传（供好友页三态展示，实测字段名）：
-                    # follow_status 我是否已关注他（0 未 / 1,2 已）；follower_status 他是否已关注我（1=是）；
-                    # relation_label 关系标签（好友/互关等）。
-                    "follow_status": u.get("follow_status", 0),
-                    "follower_status": u.get("follower_status", 0),
-                    "relation_label": u.get("relation_label", ""),
-                }
-            )
+            entry = _user_entry(u)
+            if entry:
+                friends.append(entry)
         has_more = bool(data.get("has_more"))
         cur = str(data.get("cursor") or cur)
         page += 1

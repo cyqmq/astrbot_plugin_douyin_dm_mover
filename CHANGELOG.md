@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+## [1.2.68] - 2026-11-12
+
+### Changed
+- **去重 + 精简（低风险）**：`fetch_friend_list` 内联构造用户项改用 `_user_entry`（去 ~25 行重复）；删 REL 调试 `logger.info`（每好友一行，三态已定生产噪音）；`CERT_HEADERS`/`COOKIE_KEYS` 诊断日志降 `debug`（探针残留）。
+- **删 bd_ticket.py 死代码**：`_pem_body`/`_server_pub_point`/`_hkdf_sha256`/`derive_ecdh_key`/`get_req_sign`/`get_req_sign_hmac`（约 60 行 ECDH/HMAC 签名残留——只读 4 头不签名，回关 follow 走 imdesktop 也不用）+ 连带 `_P256_SPKI_PREFIX`/`hashlib`/`hmac`/`VerifyingKey`/`sigencode_der` import。
+
 ## [1.2.67] - 2026-11-12
 
 ### Fixed
