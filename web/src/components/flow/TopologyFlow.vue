@@ -242,7 +242,7 @@ onMounted(() => { build(); setTimeout(() => { liveReady = true }, 600) })
        <VueFlow :nodes="nodes" :edges="edges" :min-zoom="0.3" :max-zoom="1.8"
          :default-edge-options="{ type: 'bezier' }" :nodes-connectable="true" :edges-connectable="true"
          :nodes-draggable="true" :pan-on-drag="true" fit-view-on-init
-         :delete-key-code="'Delete'" :delete-key-code-prevent-default="true"
+         :delete-key-code="['Delete', 'Backspace']" :delete-key-code-prevent-default="true"
          @connect="onConnect" @edges-delete="onEdgesDelete" @node-drag-stop="onDragStop">
         <template #node-source="p"><SourceNode :data="p.data" /></template>
         <template #node-route="p"><RouteNode :data="p.data" /></template>
