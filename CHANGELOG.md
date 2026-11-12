@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.2.61] - 2026-11-11
+
+### Fixed
+- **登出漏清 `worker_config.json` 致重载自动登录**：登出只清了 3 处（session.json、内存 dict、AstrBot 主配置），漏 `_write_config()` → `worker_config.json` 仍留旧 `douyin_cookies`；重载时新 worker 读它自动登录。且 `save_config()` 用 revision 乐观锁（登出后 worker 自动登录写更高 revision → 清空被跳过不提交）。修复：`subprocess_gateway.logout` 补调 `_write_config()` 强制清空 `worker_config.json`，不依赖 revision 机制。
+
 ## [1.2.60] - 2026-11-11
 
 ### Fixed

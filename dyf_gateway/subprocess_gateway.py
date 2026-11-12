@@ -371,6 +371,10 @@ class SubprocessGateway(MessageGateway):
                     save()
             except Exception as e:
                 logger.warning(f"[dyf] 登出清主配置失败: {e}")
+        # 立即清空 worker_config.json（防重载时 worker 读旧 douyin_cookies 自动登录）。
+        # save_config() 用 revision 乐观锁可能跳过提交（登出后 worker 自动登录又写了更高
+        # revision），所以必须直接 _write_config() 强制清空 worker 配置，不依赖该机制。
+        self._write_config()
         self._state = AuthState.UNKNOWN
         self._emit_event(GatewayEvent("logout", "已登出并清除会话"))
         return True
