@@ -66,22 +66,28 @@ function addRoute() {
     match: { types: ['text', 'video_card'], senders_include: [] } })
   scheduleLiveSave()
 }
-function moveRoute(i, d) {
+function moveRoute(route, d) {
+  const i = store.routes.indexOf(route)
   const j = i + d
-  if (j < 0 || j >= store.routes.length) return
+  if (i < 0 || j < 0 || j >= store.routes.length) return
   const t = store.routes[i]; store.routes[i] = store.routes[j]; store.routes[j] = t
   scheduleLiveSave()
 }
-function delRoute(i) { store.routes.splice(i, 1); scheduleLiveSave() }
+function delRoute(route) {
+  const i = store.routes.indexOf(route)
+  if (i >= 0) store.routes.splice(i, 1)
+  scheduleLiveSave()
+}
 
 // ---- 手动连接：来源→路由（uid 进 senders_include）/ 路由→目标（target=UMO） ----
 function onConnect(c) {
   const s = c.source || '', t = c.target || ''
   if (s.startsWith('src|') && t.startsWith('route|')) {
-    const sid = s.split('|')[1], ri = +t.split('|')[1]
+    const sid = s.split('|')[1]
+    const rn = nodes.value.find(n => n.id === t)
+    const r = rn && rn.data && rn.data.route
     const srcObj = sources.value.find(x => x.id === sid)
     const uid = srcObj ? (srcObj.uid || '') : ''
-    const r = store.routes[ri]
     if (r && !uid) { toast('请先在来源卡选择来源，再连接到路由'); return }
     if (r && uid) {
       if (!r.match) r.match = { types: [], senders_include: [] }
@@ -90,9 +96,10 @@ function onConnect(c) {
       buildEdges()
     }
   } else if (s.startsWith('route|') && t.startsWith('tgt|')) {
-    const ri = +s.split('|')[1], tid = t.split('|')[1]
+    const tid = t.split('|')[1]
+    const rn = nodes.value.find(n => n.id === s)
+    const r = rn && rn.data && rn.data.route
     const tgt = targetList.value.find(x => x.id === tid)
-    const r = store.routes[ri]
     if (r && tgt) {
       const umo = umoOf(tgt)
       const sess = String(umo).split(':')[2] || ''
@@ -104,15 +111,15 @@ function onConnect(c) {
 function onEdgesDelete(list) {
   (list || []).forEach(e => {
     const d = e.data || {}
+    const r = d.route
+    if (!r) return
     if (d.kind === 'src-route') {
-      const r = store.routes[d.ri]
-      if (r && r.match) {
+      if (r.match) {
         const i = r.match.senders_include.indexOf(d.uid)
         if (i >= 0) r.match.senders_include.splice(i, 1)
       }
     } else if (d.kind === 'route-tgt') {
-      const r = store.routes[d.ri]
-      if (r && r.target === d.umo) r.target = ''
+      if (r.target === d.umo) r.target = ''
     }
   })
   scheduleLiveSave()
@@ -127,7 +134,8 @@ function onDragStop({ node }) {
     const src = sources.value.find(x => x.id === id.split('|')[1])
     if (src) src.pos = p
   } else if (id.startsWith('route|')) {
-    const r = store.routes[+id.split('|')[1]]
+    const rn = getNodes.value.find(n => n.id === id)
+    const r = rn && rn.data && rn.data.route
     if (r) r.pos = p
   } else if (id.startsWith('tgt|')) {
     const t = targetList.value.find(x => x.id === id.split('|')[1])
@@ -173,14 +181,14 @@ function buildEdges() {
     store.routes.forEach((r, ri) => {
       if ((r.match && r.match.senders_include || []).includes(uid))
         es.push(edgeTo(`e|src|${s.id}|${ri}`, 'src|' + s.id, 'route|' + ri, 'hit',
-          { kind: 'src-route', uid, ri }))
+          { kind: 'src-route', uid, route: r }))
     })
   })
   store.routes.forEach((r, ri) => {
     if (!r.target) return
     const ti = targetList.value.findIndex(t => umoOf(t) === r.target)
     if (ti >= 0) es.push(edgeTo(`e|route|${ri}|${ti}`, 'route|' + ri, 'tgt|' + targetList.value[ti].id, 'hit',
-      { kind: 'route-tgt', ri, umo: r.target }))
+      { kind: 'route-tgt', umo: r.target, route: r }))
   })
   edges.value = es
 }

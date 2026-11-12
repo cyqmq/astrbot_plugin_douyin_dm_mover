@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.2.72] - 2026-11-12
+
+### Fixed
+- **路由卡删错卡（位置索引失效）**：`RouteNode` 用节点构建时的 `store.routes` 位置索引（`data.index` 快照）做删/移/边/连接；`moveRoute` 原地交换后 watcher（只在 `routes.length`/`targets` 拼接串等变化时 `build()`）不触发——长度不变、target 相同时 join 不变 → 节点 `data.index` 依旧 → 交换后点 A 卡 `×` 删 `routes[0]`（实为 B）。修复：路由卡删/移/边删除/连接/拖拽全改用**路由对象引用**（`indexOf(route)`/`data.route`），不再用位置索引。
+
 ## [1.2.71] - 2026-11-12
 
 ### Fixed
