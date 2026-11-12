@@ -4,6 +4,14 @@
 
 ## [Unreleased]
 
+## [1.2.64] - 2026-11-12
+
+### Changed
+- **BDTicket 产票改造（探针实测复刻）**：imdesktop 流从不 set `bd_ticket_guard_ts_sign_id`（Set-Cookie 只有 reg-store-region 清理 + `bd_ticket_guard_server_data`），原 `build_bd_ticket` 读错键永远产票失败。改为：登录前 `publish_public_key`（写 `bd_ticket_guard_client_data` cookie 发布客户端公钥，缺了它扫码成功但服务端不签发票据）+ confirmed/get_client_cert 后解析响应头 `Bd-Ticket-Guard-Server-Data`（或 Set-Cookie `bd_ticket_guard_server_data`，base64 URL→JSON `{ticket,ts_sign,client_cert,log_id,create_time}`）。`qr.login_by_qrcode` 取码前 `publish_public_key`；`import_www_session` 同样发布公钥 + 解析 Server-Data 产票（供 www 票据生成复用）。
+
+### Fixed
+- **只读 4 头两个错误（探针实测）**：`bd_ticket_headers` 的 `bd-ticket-guard-ree-public-key` 应为**客户端公钥**（`get_ree_key(private_key)`，非服务端 `client_cert`）；`web-sign-type` 反了——应为 `1` if client_cert 有 `pub.` 前缀（hmac）else `0`（ecdsa），原 `pub.`→`0` 错。无 `private_key` 返回 `{}`。
+
 ## [1.2.63] - 2026-11-11
 
 ### Fixed

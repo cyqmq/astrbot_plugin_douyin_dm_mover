@@ -30,6 +30,17 @@ _P256_SPKI_PREFIX = bytes.fromhex(
 
 GET_CLIENT_CERT_API = "/passport/ticket_guard/get_client_cert/"
 TICKET_COOKIE = "bd_ticket_guard_ts_sign_id"
+# 探针实测（2026-11-12）：imdesktop 流从不 set bd_ticket_guard_ts_sign_id（Set-Cookie 只有
+# reg-store-region 清理 + bd_ticket_guard_server_data）。正确机制：登录前 publish_public_key
+# 写 bd_ticket_guard_client_data cookie（公钥交服务端）→ 服务端 confirmed 响应头
+# Bd-Ticket-Guard-Server-Data（base64 URL→JSON {ticket,ts_sign,client_cert,log_id,create_time}）
+# 签发完整票据，同时 Set-Cookie 下发 bd_ticket_guard_server_data（同值）。
+SERVER_DATA_COOKIE = "bd_ticket_guard_server_data"
+SERVER_DATA_HEADER = "bd-ticket-guard-server-data"
+CLIENT_DATA_COOKIE = "bd_ticket_guard_client_data"
+CLIENT_WEB_DOMAIN_COOKIE = "bd_ticket_guard_client_web_domain"
+GUARD_VERSION = "2"
+ITERATION_VERSION = "1"
 
 
 def _load_signing_key(prv) -> SigningKey:
@@ -147,26 +158,84 @@ def fetch_server_cert(http: DouyinHttpPy, aid: str = "6383") -> tuple[str, str]:
     return cert, sn
 
 
-def build_bd_ticket(http: DouyinHttpPy) -> dict:
-    """登录后建 BDTicket：先取服务端证书（get_client_cert 可能 set-cookie ts_sign），再读 ts_sign。
+def publish_public_key(http: DouyinHttpPy, private_key: str = "") -> str:
+    """登录前把客户端 P-256 公钥发布到 bd_ticket_guard_client_data cookie。
 
-    Returns: {"ts_sign", "private_key", "client_cert", "server_cert", "server_sn"}
-    或 {"error": "..."}（fetch_server_cert 失败 / cookie 仍未 set 票据）。
+    探针实测（2026-11-12）：此步是关键——缺了它扫码依然成功，但服务端不会签发票据。
+    ``private_key`` 为空时生成新私钥并缓存到 ``http._bd_ticket_private_key``（与后续
+    ``build_bd_ticket`` 共用，保证 ree-public-key 与 ECDH 私钥一致）。返回私钥 hex。
+    """
+    if private_key:
+        sk = _load_signing_key(private_key)
+    else:
+        private_key = getattr(http, "_bd_ticket_private_key", "") or ""
+        if private_key:
+            sk = _load_signing_key(private_key)
+        else:
+            sk = SigningKey.generate(curve=NIST256p)
+            private_key = sk.to_string().hex()
+            http._bd_ticket_private_key = private_key
+    pub = base64.b64encode(b"\x04" + sk.get_verifying_key().to_string()).decode()
+    payload = json.dumps(
+        {
+            "bd-ticket-guard-version": int(GUARD_VERSION),
+            "bd-ticket-guard-iteration-version": int(ITERATION_VERSION),
+            "bd-ticket-guard-ree-public-key": pub,
+            "bd-ticket-guard-web-version": int(GUARD_VERSION),
+        },
+        separators=(",", ":"),
+    )
+    from urllib.parse import quote
+
+    http.jar.set(CLIENT_DATA_COOKIE, quote(base64.b64encode(payload.encode("utf-8")).decode()))
+    http.jar.set(CLIENT_WEB_DOMAIN_COOKIE, GUARD_VERSION)
+    return private_key
+
+
+def apply_server_data(http: DouyinHttpPy, headers: dict | None = None) -> dict | None:
+    """解析服务端签发票据：响应头 bd-ticket-guard-server-data 或 Set-Cookie 同值。
+
+    Returns: {"ticket", "ts_sign", "client_cert", "log_id", "create_time"} 或 None。
+    """
+    raw = (headers or {}).get(SERVER_DATA_HEADER) or http.jar.get(SERVER_DATA_COOKIE) or ""
+    if not raw:
+        return None
+    from urllib.parse import unquote
+
+    try:
+        info = json.loads(base64.b64decode(unquote(raw)).decode("utf-8"))
+    except Exception:
+        return None
+    if not all(info.get(k) for k in ("ticket", "ts_sign", "client_cert")):
+        return None
+    return info
+
+
+def build_bd_ticket(http: DouyinHttpPy, headers: dict | None = None) -> dict:
+    """登录后建 BDTicket：取服务端证书 + 解析服务端签发的 Server-Data。
+
+    探针实测（2026-11-12）：imdesktop 流从不 set ``bd_ticket_guard_ts_sign_id`` cookie，
+    正确入口是响应头 ``Bd-Ticket-Guard-Server-Data``（或 Set-Cookie ``bd_ticket_guard_server_data``，
+    登录前需先 ``publish_public_key``）。``headers`` 可传 confirmed/get_client_cert 响应头。
+
+    Returns: {"ticket", "ts_sign", "private_key", "client_cert"(服务端证书), "server_cert",
+    "server_sn"} 或 {"error": "..."}。
     """
     try:
         server_cert, server_sn = fetch_server_cert(http)
     except Exception as e:
         return {"error": f"fetch_server_cert: {e}"}
-    ts_sign = http.jar.get(TICKET_COOKIE) or ""
-    if not ts_sign:
-        return {"error": "get_client_cert 未 set bd_ticket_guard_ts_sign_id"}
-    sk = SigningKey.generate(curve=NIST256p)
-    private_key = sk.to_string().hex()
-    client_cert = "pub." + get_ree_key(private_key)
+    info = apply_server_data(http, headers)
+    if not info:
+        return {"error": "get_client_cert 响应无 bd-ticket-guard-server-data"}
+    private_key = getattr(http, "_bd_ticket_private_key", "") or (
+        SigningKey.generate(curve=NIST256p).to_string().hex()
+    )
     return {
-        "ts_sign": ts_sign,
+        "ticket": info.get("ticket", ""),
+        "ts_sign": info.get("ts_sign", ""),
         "private_key": private_key,
-        "client_cert": client_cert,
+        "client_cert": info.get("client_cert", ""),  # 服务端证书（pub. 前缀，web-sign-type 判据）
         "server_cert": server_cert,
         "server_sn": server_sn,
     }
@@ -175,20 +244,20 @@ def build_bd_ticket(http: DouyinHttpPy) -> dict:
 def bd_ticket_headers(ticket: dict) -> dict:
     """只读接口的 bd-ticket-guard 4 个头（with_bd_readonly，无 client-data）。
 
-    ``bd-ticket-guard-ree-public-key`` 用 client_cert（去 ``pub.`` 前缀）；
-    ``web-sign-type``：``pub.`` 前缀 -> ``0``（ecdsa），否则 ``1``（hmac）。
-    无 ts_sign/client_cert 返回 {}（不带票据头，只读列表降级仅 familiar 并告警）。
+    探针实测（2026-11-12）：``ree-public-key`` 是**客户端公钥**（``get_ree_key(private_key)``，
+    非服务端 client_cert）；``web-sign-type`` = ``1`` if client_cert 有 ``pub.`` 前缀（hmac）
+    else ``0``（ecdsa）。无 ts_sign/private_key 返回 {}（只读列表降级仅 familiar 并告警）。
     """
     ts_sign = (ticket or {}).get("ts_sign") or ""
     client_cert = (ticket or {}).get("client_cert") or ""
-    if not ts_sign or not client_cert:
+    private_key = (ticket or {}).get("private_key") or ""
+    if not ts_sign or not private_key:
         return {}
-    key = client_cert.removeprefix("pub.")
     return {
-        "bd-ticket-guard-ree-public-key": key,
-        "bd-ticket-guard-version": "2",
+        "bd-ticket-guard-ree-public-key": get_ree_key(private_key),  # 客户端公钥（65B 含 0x04）
+        "bd-ticket-guard-version": GUARD_VERSION,
         "bd-ticket-guard-web-version": str(ticket_guard_version(ts_sign)),
-        "bd-ticket-guard-web-sign-type": "0" if client_cert.startswith("pub.") else "1",
+        "bd-ticket-guard-web-sign-type": "1" if client_cert.startswith("pub.") else "0",
     }
 
 
@@ -201,9 +270,10 @@ def import_www_session(
 ) -> dict:
     """手动网页 Cookie 导入：用户在浏览器 www.douyin.com 登录后复制 Cookie 串。
 
-    浏览器登录成功后会把 `bd_ticket_guard_ts_sign_id` 写进 cookie（auth.py 行为），
-    服务端据此建票据（fetch_server_cert + 生成私钥/证书）；也可直接补填完整票据
-    （ts_sign/private_key/client_cert/server_cert，从浏览器 localStorage/抓包取）。
+    探针实测（2026-11-12）：浏览器 www 登录后 Set-Cookie 下发 ``bd_ticket_guard_server_data``
+    （服务端已签发票据）；此处先 ``publish_public_key``（发布客户端公钥），再解析 Server-Data
+    （jar 里的 ``bd_ticket_guard_server_data`` / get_client_cert 响应头）。也可直接补填完整
+    票据（ts_sign/private_key/client_cert/server_cert，从浏览器 localStorage/抓包取）。
 
     Returns: {"cookie_str", "ts_sign", "private_key", "client_cert", "server_cert"}
     或 {"error": "..."}。
@@ -221,10 +291,11 @@ def import_www_session(
             "client_cert": client_cert,
             "server_cert": server_cert,
         }
+    publish_public_key(http)
     ticket = build_bd_ticket(http)
     if ticket.get("ts_sign"):
         return {"cookie_str": cookie_str, **ticket}
     return {
         "error": ticket.get("error")
-        or "cookie 无 bd_ticket_guard_ts_sign_id（浏览器登录后才有该键），或补填完整票据"
+        or "www 票据生成失败（浏览器登录后应下发 bd_ticket_guard_server_data），或补填完整票据"
     }

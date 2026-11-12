@@ -402,5 +402,10 @@ async def _up_sms_mfa_flow(http: DouyinHttpPy, challenge: dict, way: dict, on_st
 
 async def login_by_qrcode(http: DouyinHttpPy, options: dict | None = None) -> dict:
     options = options or {}
+    # 取码前发布客户端公钥（写 bd_ticket_guard_client_data cookie）——否则扫码成功但服务端
+    # 不签发票据（探针实测 2026-11-12）；build_bd_ticket 依赖它从 Server-Data 产票
+    from .bd_ticket import publish_public_key
+
+    publish_public_key(http)
     info = get_qrcode(http)
     return await poll_qr_confirm(http, info["token"], options)
