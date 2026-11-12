@@ -21,6 +21,12 @@ from astrbot.api import logger
 from dyf_core.logs import LogRing
 
 
+def _targets_of(r: dict) -> list[str]:
+    """路由配置的 targets 列表（targets 优先，target 兼容旧配置）。"""
+    ts = r.get("targets") or ([r.get("target")] if r.get("target") else [])
+    return [str(t) for t in ts if t]
+
+
 def _route_diff(old_list, new_list) -> list[str]:
     """路由表结构化 diff（按 name 匹配）：增/删/目标变更/来源连接±/类型±；忽略 pos。
 
@@ -31,13 +37,15 @@ def _route_diff(old_list, new_list) -> list[str]:
     lines: list[str] = []
     for name, nr in new.items():
         if name not in old:
-            lines.append(f'+ 路由 "{name}" → {nr.get("target") or "未连接目标"}')
+            lines.append(f'+ 路由 "{name}" → {", ".join(_targets_of(nr)) or "未连接目标"}')
             continue
         orr = old[name]
-        ot = orr.get("target") or ""
-        nt = nr.get("target") or ""
+        ot = _targets_of(orr)
+        nt = _targets_of(nr)
         if ot != nt:
-            lines.append(f'~ 路由 "{name}" 目标: {ot or "(无)"} → {nt or "(无)"}')
+            lines.append(
+                f'~ 路由 "{name}" 目标: {", ".join(ot) or "(无)"} → {", ".join(nt) or "(无)"}'
+            )
         om = orr.get("match") or {}
         nm = nr.get("match") or {}
         oinc = set(om.get("senders_include") or [])

@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.2.73] - 2026-11-12
+
+### Added
+- **一条路由卡连多个目标卡**：`Route` 增加 `targets: list[str]`（`target` 保留兼容旧配置）；`resolve` 对每命中路由产出全部 targets（`forward_manager._resolve_targets` 已支持多对不变）；`_route_diff` 比较 `targets` 列表。前端 `r.target → r.targets[]`：`addRoute`/`onConnect`(push)/`onEdgesDelete`(splice)/`buildEdges`(遍历 + 边 id 含目标下标)/`delTarget`/`updateTarget` 全改；`loadConfig` 归一化旧 `target` → `targets: [target]`（兼容既有配置）。
+
 ## [1.2.72] - 2026-11-12
 
 ### Fixed

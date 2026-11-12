@@ -9,9 +9,13 @@ from dyf_core.model import InboundMessage, MessageType
 @dataclass
 class Route:
     name: str
-    target: str
+    target: str = ""
+    targets: list[str] = field(default_factory=list)  # 多目标（targets 优先，target 兼容旧配置）
     types: set[MessageType] = field(default_factory=set)  # 空=全部
     senders_include: set[str] = field(default_factory=set)  # 已连接来源 uid（空=全部来源）
+
+    def all_targets(self) -> list[str]:
+        return [t for t in (self.targets or []) if t] or ([self.target] if self.target else [])
 
     def matches(self, msg: InboundMessage) -> bool:
         if self.types and msg.type not in self.types:
@@ -44,25 +48,29 @@ class RouteResolver:
         for item in routes_cfg or []:
             if not isinstance(item, dict):
                 continue
-            target = item.get("target") or ""
-            if not target:
+            targets = item.get("targets") or (
+                [item.get("target")] if item.get("target") else []
+            )
+            if not targets:
                 continue
             match = item.get("match") or {}
             self.routes.append(
                 Route(
                     name=item.get("name", "route"),
-                    target=target,
+                    target=item.get("target") or "",
+                    targets=[str(t) for t in targets if t],
                     types=_type_set(match.get("types")),
                     senders_include=_str_set(match.get("senders_include")),
                 )
             )
 
     def resolve(self, msg: InboundMessage) -> list[tuple[str, str]]:
-        """按序命中路由，返回 [(路由名, target)]；未命中返回空列表。"""
+        """按序命中路由，返回 [(路由名, target)]；每命中路由产出全部 targets；未命中返回空。"""
         hits: list[tuple[str, str]] = []
         for r in self.routes:
             if r.matches(msg):
-                hits.append((r.name, r.target))
+                for t in r.all_targets():
+                    hits.append((r.name, t))
         return hits
 
     def __bool__(self) -> bool:

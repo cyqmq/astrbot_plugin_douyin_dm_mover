@@ -37,7 +37,11 @@ export async function loadConfig() {
   if (!d.config) return
   store.cfg = d.config
   store.schema = d.schema || {}
-  store.routes = JSON.parse(JSON.stringify(d.config.routes || []))
+  // 迁移兼容：旧配置单 target → targets: [target]（多目标卡）
+  store.routes = (JSON.parse(JSON.stringify(d.config.routes || [])) || []).map(r => {
+    if (!r.targets && r.target) r.targets = [r.target]
+    return r
+  })
   store.customSources = (d.config.custom_sources || []).map((s, i) => ({
     id: s.id || ('srcm' + (i + 1)), uid: s.uid || '', nickname: s.nickname || '', pos: s.pos || null
   }))

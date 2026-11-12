@@ -49,20 +49,30 @@ function delTarget(t) {
   const list = store.advancedTargets ? store.customTargets : store.simpleTargets
   const i = list.indexOf(t)
   if (i >= 0) list.splice(i, 1)
-  store.routes.forEach(r => { if (r.target === old) r.target = '' })
+  store.routes.forEach(r => {
+    const ts = r.targets || []
+    const k = ts.indexOf(old)
+    if (k >= 0) ts.splice(k, 1)
+    if (r.target === old) r.target = ''
+  })
   scheduleLiveSave()
 }
 function updateTarget(t, patch) {
   const old = umoOf(t)
   Object.assign(t, patch)
   const neu = umoOf(t)
-  store.routes.forEach(r => { if (r.target === old) r.target = neu })
+  store.routes.forEach(r => {
+    const ts = r.targets || []
+    const k = ts.indexOf(old)
+    if (k >= 0) ts[k] = neu
+    if (r.target === old) r.target = neu
+  })
   scheduleLiveSave()
 }
 let routeSeq = 0
 function addRoute() {
   // 唯一名称：时间戳 + 序号，避免删中间路由后重名（_route_diff 按 name 匹配）
-  store.routes.push({ name: 'route' + Date.now().toString(36) + '_' + (++routeSeq), target: '', pos: null,
+  store.routes.push({ name: 'route' + Date.now().toString(36) + '_' + (++routeSeq), target: '', targets: [], pos: null,
     match: { types: ['text', 'video_card'], senders_include: [] } })
   scheduleLiveSave()
 }
@@ -104,7 +114,9 @@ function onConnect(c) {
       const umo = umoOf(tgt)
       const sess = String(umo).split(':')[2] || ''
       if (!sess) { toast('目标未填写群号/OpenID，请先填写目标再连接'); return }
-      r.target = umo; scheduleLiveSave(); buildEdges()
+      if (!r.targets) r.targets = []
+      if (!r.targets.includes(umo)) r.targets.push(umo)
+      scheduleLiveSave(); buildEdges()
     }
   }
 }
@@ -119,7 +131,10 @@ function onEdgesDelete(list) {
         if (i >= 0) r.match.senders_include.splice(i, 1)
       }
     } else if (d.kind === 'route-tgt') {
-      if (r.target === d.umo) r.target = ''
+      const ts = r.targets || []
+      const i = ts.indexOf(d.umo)
+      if (i >= 0) ts.splice(i, 1)
+      if (r.target === d.umo) r.target = ''  // 兼容旧单 target
     }
   })
   scheduleLiveSave()
@@ -185,10 +200,12 @@ function buildEdges() {
     })
   })
   store.routes.forEach((r, ri) => {
-    if (!r.target) return
-    const ti = targetList.value.findIndex(t => umoOf(t) === r.target)
-    if (ti >= 0) es.push(edgeTo(`e|route|${ri}|${ti}`, 'route|' + ri, 'tgt|' + targetList.value[ti].id, 'hit',
-      { kind: 'route-tgt', umo: r.target, route: r }))
+    const ts = r.targets && r.targets.length ? r.targets : (r.target ? [r.target] : [])
+    ts.forEach((umo, k) => {
+      const ti = targetList.value.findIndex(t => umoOf(t) === umo)
+      if (ti >= 0) es.push(edgeTo(`e|route|${ri}|${k}|${ti}`, 'route|' + ri, 'tgt|' + targetList.value[ti].id, 'hit',
+        { kind: 'route-tgt', umo, route: r }))
+    })
   })
   edges.value = es
 }
