@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.7.0] - 2026-11-13
+
+### Added
+- **路由页目标卡加 UMO 会话下拉**：目标卡无 UMO 下拉、群列表通常不含 qq_official 群 openid UMO（官方机器人群目标只能靠 UMO 会话选）。`TargetNode` 目标类型下方加「选择已记录会话…」下拉（`store.umos`/`apiGet('umos')`），`pickUmo` 一次写回三字段（adapter/kind/value 从 `umo.split(':')`）；保留群列表 select + 手输兜底。
+
 ## [1.6.1] - 2026-11-13
 
 ### Fixed
