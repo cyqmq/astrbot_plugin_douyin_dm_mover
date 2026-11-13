@@ -53,3 +53,15 @@ class MessageSender:
         from astrbot.api.message_components import Plain
 
         return await self.send(target, MessageChain([Plain(text)]))
+
+
+def is_qq_official_group_target(target: str) -> bool:
+    """QQ 官方机器人仅支持群聊（私聊主动消息受限）；非官方适配器/纯群号放行。
+
+    目标 UMO adapter=qq_official 且类型非 GroupMessage → False（拒绝）。
+    aiocqhttp（NapCat）私聊不受限 → True；纯群号（无冒号）→ True。
+    """
+    parts = str(target or "").split(":")
+    if len(parts) >= 3 and parts[0] == "qq_official":
+        return parts[1] == "GroupMessage"
+    return True

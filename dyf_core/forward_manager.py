@@ -11,7 +11,7 @@ from dyf_core.alert import AlertService
 from dyf_core.cache_manager import CacheManager
 from dyf_core.card import render_card_safe
 from dyf_core.message_builder import MessageBuilder
-from dyf_core.message_sender import MessageSender
+from dyf_core.message_sender import MessageSender, is_qq_official_group_target
 from dyf_core.model import InboundMessage, MessageType
 from dyf_core.ratelimit import RateLimiter
 from dyf_core.retry_manager import RetryManager
@@ -46,6 +46,14 @@ class ForwardManager:
             sender_max_per_min=config.get("rate_limit_sender_max_per_min", 10),
         )
         self.router = RouteResolver(config.get("routes"))
+        # qq_official 仅群聊（私聊主动消息受限）：配置加载时剔除非群聊 UMO
+        for k in ("default_target_group", "alert_target"):
+            v = str(config.get(k, "") or "")
+            if v and not is_qq_official_group_target(v):
+                logger.warning(
+                    f"[dyf] {k} 含 qq_official 非群聊 UMO，已忽略（官方机器人私聊受限）"
+                )
+                config[k] = ""
         self.default_target_group = str(config.get("default_target_group", "") or "")
         self.builder = MessageBuilder(
             header_template=config.get("header_template", ""),
@@ -176,6 +184,10 @@ class ForwardManager:
         else:
             batches.append((list(msg.media_urls), True))
         for name, target in targets:
+            # qq_official 仅群聊：发送前跳过私聊目标（官方机器人私聊主动消息受限）
+            if not is_qq_official_group_target(target):
+                logger.warning(f"[dyf] 跳过 qq_official 私聊目标: {target}")
+                continue
             logger.info(f"[dyf] 命中路由 {name} -> {target}")
             if target in self._in_flight:
                 continue
