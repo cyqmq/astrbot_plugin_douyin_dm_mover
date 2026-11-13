@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.6.0] - 2026-11-13
+
+### Added
+- **UMO 会话下拉改后端端点**（`/umos`，免 token/无 CORS）：原生 fetch `/api/v1/sessions/active-umos` 有认证 401/403、同源 CORS、display_name 缺失三问题；改 `dashboard.umos` 进程内调 `SessionManagementService.list_active_umos()`（免 Dashboard token），前端 `apiGet('umos')`（bridge SDK，无 CORS），display_name 缺失回退完整 umo；保留手输兜底。
+
 ## [1.5.0] - 2026-11-13
 
 ### Added
