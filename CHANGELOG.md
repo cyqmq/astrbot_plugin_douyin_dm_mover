@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-11-13
+
+### Added
+- **设置页 UMO 字段加会话下拉**（active-umos）：`ConfigField.vue` umo 字段顶部加会话下拉（原生 fetch 直调 AstrBot 全局 `/api/v1/sessions/active-umos` + Bearer token），选项 value=umo/label=display_name||umo，选中写完整 UMO；保留下方 adapter+群号手输兜底（未记录会话）；认证失败/跨域静默。
+
 ## [1.4.0] - 2026-11-13
 
 ### Added
