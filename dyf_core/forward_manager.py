@@ -124,7 +124,10 @@ class ForwardManager:
         if hits:
             return hits
         if self.default_target_group:
-            return [("default", self.sender.build_origin(self.default_target_group))]
+            # 兼容 UMO（含冒号，如 aiocqhttp:GroupMessage:123456）/纯群号/qq:group
+            origin, _ = self.sender.normalize_target(self.default_target_group)
+            if origin:
+                return [("default", origin)]
         return []
 
     async def handle(self, msg: InboundMessage) -> None:

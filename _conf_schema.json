@@ -70,7 +70,8 @@
     "type": "string",
     "default": "",
     "description": "告警目标（管理员 QQ 群/私聊），如 aiocqhttp:GroupMessage:123456；留空则仅日志",
-    "hint": "格式: 适配器:GroupMessage:群号 或 群号"
+    "hint": "格式: 适配器:GroupMessage:群号 或 群号",
+    "_special": "umo"
   },
   "alert_only_once": {
     "type": "bool",
@@ -115,7 +116,8 @@
   "default_target_group": {
     "type": "string",
     "default": "",
-    "description": "默认目标群号（当路由表未命中时使用）；留空则仅按 routes 路由"
+    "description": "默认目标群聊（当路由表未命中时使用）；留空则仅按 routes 路由",
+    "_special": "umo"
   },
   "routes": {
     "type": "list",
