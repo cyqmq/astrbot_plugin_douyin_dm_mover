@@ -626,6 +626,14 @@ class DashboardApi:
                         name = name or str(pcfg.get("name") or "")
                     if not pid:
                         continue
+                # 高级目标卡（advanced_target_cards）开启才显示 webchat（网页聊天，默认隐藏）
+                show_all = bool(
+                    (getattr(self, "fm", None) and self.fm.config or {}).get(
+                        "advanced_target_cards", False
+                    )
+                )
+                if not show_all and (pid == "webchat" or str(ptype).lower() == "webchat"):
+                    continue
                 out.append({"id": pid, "type": str(ptype or ""), "name": str(name or ptype or pid)})
             return {"platforms": out}
         except Exception as e:
