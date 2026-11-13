@@ -4,6 +4,13 @@
 
 ## [Unreleased]
 
+## [1.9.0] - 2026-11-13
+
+### Added
+- **模板 API + 保存校验**（任务 5）：新增 `douyin_dm_mover/templates/get`（返回模板列表 + markdown_enabled/sanitize_body/max_message_length）与 `templates/set`（保存模板并落盘，不触发插件重载）。
+- **占位符白名单校验**：`_bad_placeholders` 正则扫描 `{xxx}`（跳过 `{{`/`}}` 转义），仅允许 `source/peer_name/time/title/desc/link/image_url`；非法占位符或内容超 `max_message_length` → 明确错误信息拒绝保存（替代静默回退）。
+- **模板规范**：保存时归一化 `{id,name,content,markdown,for_media}`，id 唯一校验。
+
 ## [1.8.0] - 2026-11-13
 
 ### Added

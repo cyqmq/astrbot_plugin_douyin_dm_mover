@@ -13,6 +13,7 @@ from __future__ import annotations
 import asyncio
 import base64
 import io
+import re
 import time
 
 import qrcode
@@ -25,6 +26,20 @@ def _targets_of(r: dict) -> list[str]:
     """路由配置的 targets 列表（targets 优先，target 兼容旧配置）。"""
     ts = r.get("targets") or ([r.get("target")] if r.get("target") else [])
     return [str(t) for t in ts if t]
+
+
+_PLACEHOLDER_RE = re.compile(r"(?<!\{)\{([^{}]+)\}(?!\})")
+_ALLOWED_PLACEHOLDERS = {"source", "peer_name", "time", "title", "desc", "link", "image_url"}
+
+
+def _bad_placeholders(content: str) -> list[str]:
+    """返回内容中非法占位符列表（跳过 {{ }} 转义；空=全部合法）。"""
+    bad = []
+    for m in _PLACEHOLDER_RE.finditer(content):
+        key = m.group(1).strip()
+        if key not in _ALLOWED_PLACEHOLDERS:
+            bad.append(key)
+    return bad
 
 
 def _route_diff(old_list, new_list) -> list[str]:
@@ -113,6 +128,8 @@ class DashboardApi:
         reg("douyin_dm_mover/import_cookies", self.import_cookies, ["POST"], "dyf 手动导入 www 网页登录 Cookie（建 BDTicket）")
         reg("douyin_dm_mover/groups", self.groups, ["GET"], "dyf 可发送群列表（AstrBot get_group_list）")
         reg("douyin_dm_mover/platforms", self.platforms, ["GET"], "dyf 已加载平台实例列表")
+        reg("douyin_dm_mover/templates/get", self.templates_get, ["GET"], "dyf 读取推送模板")
+        reg("douyin_dm_mover/templates/set", self.templates_set, ["POST"], "dyf 保存推送模板（含校验）")
 
     async def reload_plugin(self):
         """后台重载本插件：终止当前实例并重新加载，使深层代码（dyf_gateway 等）生效。"""
@@ -385,6 +402,78 @@ class DashboardApi:
         if not bool((data or {}).get("no_reload")):
             self._schedule_reload()
         return {"ok": True, "detail": "已保存并自动重载插件，稍候生效" if not bool((data or {}).get("no_reload")) else "已保存"}
+
+    # ---- 推送模板（编辑器走独立端点，不走 AstrBot 配置页）----
+    async def templates_get(self):
+        """读取推送模板列表 + 相关配置（编辑器加载用）。"""
+        return {
+            "ok": True,
+            "templates": self.fm.config.get("templates") or [],
+            "markdown_enabled": bool(self.fm.config.get("markdown_enabled", True)),
+            "sanitize_body": bool(self.fm.config.get("sanitize_body", True)),
+            "max_message_length": int(self.fm.config.get("max_message_length", 1000) or 0),
+        }
+
+    async def templates_set(self):
+        """保存推送模板：占位符白名单 + 长度校验，非法拒绝（400 语义走 detail）。"""
+        try:
+            from astrbot.api.web import request as web_request
+
+            data = await web_request.json(default={}) or {}
+        except Exception:
+            data = {}
+        templates = data.get("templates")
+        if not isinstance(templates, list):
+            return {"ok": False, "detail": "templates 必须是列表"}
+        max_len = int(self.fm.config.get("max_message_length", 1000) or 0)
+        seen: set[str] = set()
+        cleaned = []
+        for t in templates:
+            if not isinstance(t, dict):
+                return {"ok": False, "detail": "模板项必须是对象"}
+            tid = str(t.get("id") or "").strip()
+            name = str(t.get("name") or "").strip()
+            content = str(t.get("content") or "")
+            if not tid or not name or not content.strip():
+                return {"ok": False, "detail": "模板 id/name/content 不能为空"}
+            if tid in seen:
+                return {"ok": False, "detail": f"模板 id 重复: {tid}"}
+            seen.add(tid)
+            if max_len and len(content) > max_len:
+                return {
+                    "ok": False,
+                    "detail": f"模板「{name}」长度 {len(content)} 超过上限 {max_len}",
+                }
+            bad = sorted(_bad_placeholders(content))
+            if bad:
+                allowed = ", ".join(sorted(_ALLOWED_PLACEHOLDERS))
+                return {
+                    "ok": False,
+                    "detail": f"模板「{name}」含非法占位符: {', '.join(bad)}（允许: {allowed}）",
+                }
+            cleaned.append(
+                {
+                    "id": tid,
+                    "name": name,
+                    "content": content,
+                    "markdown": bool(t.get("markdown", True)),
+                    "for_media": bool(t.get("for_media", False)),
+                }
+            )
+        self.fm.config["templates"] = cleaned
+        self.fm.config["template_version"] = 1
+        if self._config_obj is not None:
+            try:
+                self._config_obj.update({"templates": cleaned, "template_version": 1})
+                save = getattr(self._config_obj, "save_config", None)
+                if save is not None:
+                    save()
+            except Exception as e:
+                logger.warning(f"[dyf] 模板落盘失败: {e!r}")
+                return {"ok": False, "detail": f"模板保存失败: {e}"}
+        logger.info(f"[dyf] 模板已保存: {len(cleaned)} 个")
+        # 不自动重载：保存模板不打断连接；builder 支持动态读 config 即即时生效
+        return {"ok": True, "detail": f"已保存 {len(cleaned)} 个模板"}
 
     def _schedule_reload(self) -> None:
         """后台自动重载本插件，让配置/深层代码即时生效。"""
