@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { store, SELECTS, UMO_KEYS, JSON_KEYS, lbl, umoSplit } from '../composables/store.js'
 import { toast } from '../composables/store.js'
 
@@ -22,6 +22,26 @@ const val = computed({
   get: () => store.cfg[key.value],
   set: v => { store.cfg[key.value] = v }
 })
+
+// UMO 会话下拉：直调 AstrBot 全局 /api/v1/sessions/active-umos（bridge SDK
+// 只能调插件端点、无法直达全局）；Bearer token 存 localStorage['token']（同源可读）。
+const umos = ref([])
+async function loadUmOs() {
+  try {
+    const token = localStorage.getItem('token') || ''
+    const resp = await fetch('/api/v1/sessions/active-umos', {
+      headers: { Authorization: 'Bearer ' + token }
+    })
+    if (!resp.ok) { umos.value = []; return }
+    const data = await resp.json()
+    umos.value = (data && data.umo_infos) || []
+  } catch { umos.value = [] }  // 认证失败/跨域静默：下拉空，手输兜底
+}
+function pickUmo(e) {
+  const v = e.target.value
+  if (v) store.cfg[key.value] = v
+}
+onMounted(() => { if (fieldType.value === 'umo') loadUmOs() })
 
 // sender list
 const items = computed(() => String(val.value || '').split(',').map(s => s.trim()).filter(Boolean))
@@ -70,11 +90,15 @@ function setGroup(e) {
       <input type="number" v-model="val" style="width:130px">
     </template>
     <template v-else-if="fieldType === 'umo'">
+      <select v-if="umos.length" :value="val" @change="pickUmo($event)">
+        <option value="">— 选择已记录会话 —</option>
+        <option v-for="u in umos" :key="u.umo" :value="u.umo">{{ u.display_name || u.umo }}</option>
+      </select>
       <div class="umo-row">
         <select :value="umo.adapter" @change="setAdapter($event.target.value)">
           <option v-for="[v, l] in SELECTS.qq_adapter_id" :key="v" :value="v">{{ l }}</option>
         </select>
-        <input :value="umo.group" placeholder="群号" @input="setGroup($event)">
+        <input :value="umo.group" placeholder="群号（手输兜底，未记录会话）" @input="setGroup($event)">
       </div>
     </template>
     <template v-else-if="fieldType === 'json'">
