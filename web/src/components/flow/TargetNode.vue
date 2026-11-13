@@ -1,8 +1,8 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { Handle, Position } from '@vue-flow/core'
 import { store } from '../../composables/store.js'
-import { loadGroups, loadPlatforms } from '../../composables/actions.js'
+import { loadGroups, loadPlatforms, loadUmOs } from '../../composables/actions.js'
 
 const props = defineProps({ data: { type: Object, required: true } })
 const t = props.data.target
@@ -28,6 +28,16 @@ function setKind(e) {
 function setValue(e) { props.data.update(t, { value: e.target.value }) }
 function setGroup(e) { props.data.update(t, { group: e.target.value }) }
 function onGroupFocus() { if (!store.groups.length && !store.groupsLoading) loadGroups(ad.value) }
+// 已记录会话 UMO 下拉：一次写回 平台实例/目标类型/群号 三字段
+const curUmo = computed(() => umos.value.find(u => u.umo === umo.value)?.umo || '')
+const umos = computed(() => store.umos || [])
+function pickUmo(e) {
+  const v = e.target.value
+  if (!v) return
+  const [adapter, msgType, id] = v.split(':')
+  props.data.update(t, { adapter, kind: msgType === 'PrivateMessage' ? 'private' : 'group', value: id })
+}
+onMounted(() => { if (!store.umos.length) loadUmOs() })
 </script>
 
 <template>
@@ -60,6 +70,12 @@ function onGroupFocus() { if (!store.groups.length && !store.groupsLoading) load
         <select :value="kind" class="nodrag" @change="setKind($event)">
           <option value="group">群聊</option>
           <option value="private" :disabled="isOfficial">私聊</option>
+        </select>
+      </div>
+      <div class="rc-row" v-if="umos.length"><span>会话</span>
+        <select :value="curUmo" class="nodrag" @change="pickUmo($event)">
+          <option value="">选择已记录会话…</option>
+          <option v-for="u in umos" :key="u.umo" :value="u.umo">{{ u.display_name || u.umo }}</option>
         </select>
       </div>
       <div class="rc-row"><span>{{ kind === 'private' ? 'OpenID' : '群号' }}</span>

@@ -162,6 +162,7 @@ export const store = reactive({
   sourceGroups: [],
   sourceGroupsLoading: false,
   sourceGroupsLoadedAt: 0,
+  umos: [],
   groups: [],
   groupsDetail: '',
   groupsLoading: false,

@@ -107,6 +107,11 @@ export async function loadSourceGroups(refresh) {
   store.sourceGroupsLoadedAt = Date.now()
 }
 
+export async function loadUmOs() {
+  const d = await apiGet('umos')
+  store.umos = d.umos || []
+}
+
 export async function followFriend(f) {
   if (!f || !f.uid || !f.sec_uid) { toast('缺少 uid/sec_uid'); return false }
   const d = await apiPostBody('follow', { uid: f.uid, sec_uid: f.sec_uid, action: 1 })
