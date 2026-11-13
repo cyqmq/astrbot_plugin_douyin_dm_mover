@@ -33,6 +33,7 @@ class ForwardManager:
         self.context = context
         self.config = config
         self.data_dir = config.get("_data_dir") or DEFAULT_DATA_DIR
+        self._migrate_templates(config)
 
         self.dedup_enabled = bool(config.get("dedup_enabled", True))
         self.cache = CacheManager(
@@ -63,7 +64,7 @@ class ForwardManager:
         self.sender = MessageSender(
             context,
             qq_adapter_id=config.get("qq_adapter_id", "aiocqhttp"),
-            markdown_enabled=bool(config.get("markdown_enabled", False)),
+            markdown_enabled=bool(config.get("markdown_enabled", True)),
         )
         self.retry = RetryManager(
             self.cache,
@@ -88,6 +89,27 @@ class ForwardManager:
         )
         self._in_flight: set[str] = set()
         self.tracker = RecentStore()
+
+    @staticmethod
+    def _migrate_templates(config: dict) -> None:
+        version = int(config.get("template_version") or 0)
+        if version >= 1:
+            return
+        legacy = str(config.get("header_template") or "").strip()
+        markdown = bool(config.get("markdown_enabled", True))
+        existing = config.get("templates")
+        if not existing and legacy:
+            config["templates"] = [
+                {
+                    "id": "default",
+                    "name": "默认模板",
+                    "content": legacy,
+                    "markdown": markdown,
+                    "for_media": False,
+                }
+            ]
+        config["template_version"] = 1
+        logger.info("[dyf] 模板结构已迁移至 v1（header_template → templates[0]）")
 
     # ---- 来源/类型开关 ----
     def _source_enabled(self, platform: str) -> bool:

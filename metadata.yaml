@@ -1,7 +1,7 @@
 name: douyin_dm_mover
 display_name: "搬搬抖音的石"
 desc: 把抖音 Bot 账号收到的私信视频/分享卡片，自动搬进指定 QQ 群。
-version: 1.7.2
+version: 1.8.0
 author: astrbot_plugin_douyin_dm_mover
 repo: https://github.com/cyqmq/astrbot_plugin_douyin_dm_mover
 astrbot_version: ">=4.16,<5"

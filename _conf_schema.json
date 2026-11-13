@@ -111,7 +111,7 @@
   "header_template": {
     "type": "string",
     "default": "[转发] {source} {peer_name} · {time}",
-    "description": "转发消息头模板。占位符: {source} {peer_name} {time}"
+    "description": "转发消息头模板（legacy：已迁移至 templates[0]，保留读取兼容勿删）。占位符: {source} {peer_name} {time}"
   },
   "default_target_group": {
     "type": "string",
@@ -121,8 +121,23 @@
   },
   "markdown_enabled": {
     "type": "bool",
-    "default": false,
+    "default": true,
     "description": "qq_official 通道发送 Markdown 富文本（官方已无需申请；aiocqhttp 不生效，维持纯文本）"
+  },
+  "sanitize_body": {
+    "type": "bool",
+    "default": true,
+    "description": "转发消息正文保留净化（移除危险/非法字符）；关闭则原样透传（仅建议在受信来源时关闭）"
+  },
+  "templates": {
+    "type": "list",
+    "default": [],
+    "description": "推送模板列表：元素 {id,name,content,markdown,for_media}；content 为一段 Markdown/纯文本，占位符 {source} {peer_name} {time} {title} {desc} {link} {image_url}（编辑器走网页，勿在此手输）"
+  },
+  "template_version": {
+    "type": "int",
+    "default": 0,
+    "description": "模板结构迁移标记（0=待迁移，1=已迁移；勿手改）"
   },
   "routes": {
     "type": "list",

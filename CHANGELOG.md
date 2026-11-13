@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+## [1.8.0] - 2026-11-13
+
+### Added
+- **模板存储 schema + 迁移**（任务 4，存储结构先行）：`_conf_schema.json` 新增 `sanitize_body`（默认 true）、`templates`（list，元素 `{id,name,content,markdown,for_media}`）、`template_version`（int，默认 0）；`markdown_enabled` 默认改 true；`header_template` 标记 legacy（保留读取兼容勿删）。
+- **配置迁移**：`ForwardManager.__init__` 加载配置时执行 `_migrate_templates`——`template_version` 缺失/0 且存在 `header_template` → 迁移为 `templates[0]`（`content=header_template`，`markdown=markdown_enabled`），置 `template_version=1`；幂等只跑一次，不写盘（重载重迁无副作用）。
+
 ## [1.7.2] - 2026-11-13
 
 ### Added
