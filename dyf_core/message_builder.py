@@ -88,10 +88,12 @@ class MessageBuilder:
         """模板是否内嵌图片（含 {image_url} 占位符）→ markdown 场景跳过 Image 组件。"""
         return "{image_url}" in self._template_content(for_media)
 
-    def _header(self, msg: InboundMessage) -> str:
+    def _header(self, msg: InboundMessage, for_media: bool = False) -> str:
         ctx = self._context(msg)
-        content = self._template_content()
-        rendered = self._render_text(content, ctx, markdown=self.markdown_enabled)
+        content = self._template_content(for_media)
+        # 媒体链（视频/语音/文件）强制纯文本：避免 Markdown 语法原样暴露
+        markdown = self.markdown_enabled and not for_media
+        rendered = self._render_text(content, ctx, markdown=markdown)
         return _truncate(rendered, self.max_length)
 
     def _body(self, msg: InboundMessage) -> str:
@@ -122,13 +124,20 @@ class MessageBuilder:
             media: 指定要发的媒体子集；None 表示全部。
             with_text: 是否带 header + 正文（媒体分批时仅第一批带）。
         """
-        parts = [Plain(self._header(msg))] if with_text else []
+        # 媒体链（视频/语音/文件，非图片卡）→ for_media 模板 + 强制纯文本
+        is_media_chain = msg.type not in (
+            MessageType.IMAGE,
+            MessageType.VIDEO_CARD,
+        ) and bool(msg.media_urls or media)
+        parts = [Plain(self._header(msg, for_media=is_media_chain))] if with_text else []
         body = self._body(msg) if with_text else ""
         if body:
             # 前置换行：AstrBot 拼接多个 Plain 无换行，正文需独立一行（否则紧贴 header）
             parts.append(Plain("\n" + body))
         # markdown + 模板内嵌图片：卡片图/首媒体不再 append（模板已含 ![..](image_url)）
-        md_image_inline = self.markdown_enabled and self._template_embeds_image()
+        md_image_inline = (
+            self.markdown_enabled and not is_media_chain and self._template_embeds_image(False)
+        )
         # 卡片图（含封面+标题）替换首个媒体（封面），其余媒体照发；失败退回原媒体
         media_urls = list(media if media is not None else msg.media_urls)
         if card_image:

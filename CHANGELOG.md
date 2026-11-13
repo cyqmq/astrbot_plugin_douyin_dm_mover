@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+## [1.11.0] - 2026-11-13
+
+### Added
+- **媒体链降级**（任务 6）：`build_chain` 检测媒体链（视频/语音/文件，非图片卡）→ `for_media` 模板 + 强制纯文本（`markdown_enabled` 仍开也不发 Markdown，避免语法原样暴露）；媒体组件照发 `[附件]`。
+- **adapter 降级**：markdown 发送失败由 adapter 自带 `_send_with_markdown_fallback` 自动降纯文本（免费获得）；图片渲染失败先做「仅文本降级」（文本保留，图片丢失），图片回退留后续增强。
+
 ## [1.10.0] - 2026-11-13
 
 ### Added
