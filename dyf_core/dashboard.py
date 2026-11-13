@@ -616,7 +616,16 @@ class DashboardApi:
                     name = getattr(meta, "name", None) or ""
                 pid = str(pid or "")
                 if not pid:
-                    continue
+                    # 无 metadata 的适配器（如 qq_official：Platform.__init__ 不设 self.metadata）
+                    # 回退实例 config.id（manager.load_platform 用 platform_config["id"] 作实例标识），
+                    # 否则被 continue 丢弃 → 目标卡永远无该平台（配了也读不到 id）
+                    pcfg = getattr(p, "config", None) or {}
+                    if isinstance(pcfg, dict):
+                        pid = str(pcfg.get("id") or "")
+                        ptype = ptype or str(pcfg.get("type") or "")
+                        name = name or str(pcfg.get("name") or "")
+                    if not pid:
+                        continue
                 out.append({"id": pid, "type": str(ptype or ""), "name": str(name or ptype or pid)})
             return {"platforms": out}
         except Exception as e:
