@@ -60,6 +60,9 @@ class ForwardManager:
             header_template=config.get("header_template", ""),
             include_link=config.get("include_link", True),
             max_length=config.get("max_message_length", 1000),
+            templates=config.get("templates") or [],
+            markdown_enabled=bool(config.get("markdown_enabled", True)),
+            sanitize_body=bool(config.get("sanitize_body", True)),
         )
         self.sender = MessageSender(
             context,

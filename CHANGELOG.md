@@ -4,6 +4,14 @@
 
 ## [Unreleased]
 
+## [1.10.0] - 2026-11-13
+
+### Added
+- **模板核心渲染**（任务 3）：`MessageBuilder` 新增 `templates/markdown_enabled/sanitize_body` 参数；`_context` 提供 `{source}/{peer_name}/{time}/{title}/{desc}/{link}/{image_url}` 占位符上下文；`_render_text` 用 `.format()` 容错（`{{`/`}}` 转义生效，未知键回退逐键替换）。
+- **Markdown 感知渲染**：`markdown_enabled` 开 → 模板渲染保留 Markdown 字符（`**`/`` ` `` 等）；关 → `_sanitize` 净化。正文净化独立由 `sanitize_body` 控制（默认 true）。
+- **图片内嵌**：markdown + 模板含 `{image_url}` → 跳过 Image 组件与卡片图（模板已内嵌 `![..](url)`），避免重复图片。
+- **ForwardManager**：`MessageBuilder` 构造传入 `templates/markdown_enabled/sanitize_body`（config 透传）。
+
 ## [1.9.0] - 2026-11-13
 
 ### Added
