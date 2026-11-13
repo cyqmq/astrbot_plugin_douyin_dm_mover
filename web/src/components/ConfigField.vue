@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
-import { store, SELECTS, UMO_KEYS, JSON_KEYS, lbl, umoSplit } from '../composables/store.js'
+import { store, SELECTS, UMO_KEYS, JSON_KEYS, lbl, umoSplit, apiGet } from '../composables/store.js'
 import { toast } from '../composables/store.js'
 
 const props = defineProps({ field: { type: String, required: true } })
@@ -23,19 +23,14 @@ const val = computed({
   set: v => { store.cfg[key.value] = v }
 })
 
-// UMO 会话下拉：直调 AstrBot 全局 /api/v1/sessions/active-umos（bridge SDK
-// 只能调插件端点、无法直达全局）；Bearer token 存 localStorage['token']（同源可读）。
+// UMO 会话下拉：走 bridge SDK 调插件端点 /umos（后端进程内调 AstrBot
+// SessionManagementService，免 Dashboard token、无 CORS；认证失败/异常静默）。
 const umos = ref([])
 async function loadUmOs() {
   try {
-    const token = localStorage.getItem('token') || ''
-    const resp = await fetch('/api/v1/sessions/active-umos', {
-      headers: { Authorization: 'Bearer ' + token }
-    })
-    if (!resp.ok) { umos.value = []; return }
-    const data = await resp.json()
-    umos.value = (data && data.umo_infos) || []
-  } catch { umos.value = [] }  // 认证失败/跨域静默：下拉空，手输兜底
+    const d = await apiGet('umos')
+    umos.value = (d && d.umos) || []
+  } catch { umos.value = [] }  // 服务异常静默：下拉空，手输兜底
 }
 function pickUmo(e) {
   const v = e.target.value

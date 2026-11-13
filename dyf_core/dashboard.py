@@ -108,6 +108,7 @@ class DashboardApi:
         reg("douyin_dm_mover/friends", self.friends, ["GET"], "dyf 好友列表（familiar-list）")
         reg("douyin_dm_mover/groups", self.groups, ["GET"], "dyf 机器人可访问群列表（目标平台）")
         reg("douyin_dm_mover/source_groups", self.source_groups, ["GET"], "dyf 抖音源群列表（conversation/list cmd=2006）")
+        reg("douyin_dm_mover/umos", self.umos, ["GET"], "dyf 已记录会话 UMO 列表")
         reg("douyin_dm_mover/follow", self.follow, ["POST"], "dyf 回关/取关好友")
         reg("douyin_dm_mover/import_cookies", self.import_cookies, ["POST"], "dyf 手动导入 www 网页登录 Cookie（建 BDTicket）")
         reg("douyin_dm_mover/groups", self.groups, ["GET"], "dyf 可发送群列表（AstrBot get_group_list）")
@@ -191,6 +192,38 @@ class DashboardApi:
         except Exception:
             g = []
         return {"groups": list(g or [])}
+
+    async def umos(self):
+        """已记录会话 UMO 列表（AstrBot SessionManagementService.list_active_umos）。
+
+        进程内调会话服务，免 Dashboard token（不会 401）；display_name 缺失回退完整 umo。
+        """
+        try:
+            from astrbot.api.web import request as web_request
+
+            app = getattr(web_request, "app", None)
+            services = None
+            if app is not None:
+                services = getattr(getattr(app, "state", None), "services", None)
+            sessions = getattr(services, "sessions", None)
+            if sessions is None or not hasattr(sessions, "list_active_umos"):
+                return {"umos": [], "detail": "无 sessions.list_active_umos 服务"}
+            raw = sessions.list_active_umos()
+            items = raw.get("umo_infos") or raw.get("umos") or [] if isinstance(raw, dict) else (raw or [])
+            infos = []
+            for it in items:
+                if isinstance(it, dict):
+                    umo = str(it.get("umo") or it.get("umo_str") or "")
+                    name = str(it.get("display_name") or it.get("name") or "")
+                else:
+                    umo = str(getattr(it, "umo", "") or "")
+                    name = str(getattr(it, "display_name", "") or "")
+                if umo:
+                    infos.append({"umo": umo, "display_name": name or umo})
+            return {"umos": infos}
+        except Exception as e:
+            logger.warning(f"[dyf] 获取活跃 UMO 失败: {e}")
+            return {"umos": [], "detail": str(e)}
 
     async def records(self):
         return {"records": self.fm.tracker.records()}
