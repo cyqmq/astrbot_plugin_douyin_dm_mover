@@ -201,14 +201,19 @@ class DashboardApi:
         try:
             from astrbot.api.web import request as web_request
 
-            app = getattr(web_request, "app", None)
-            services = None
-            if app is not None:
-                services = getattr(getattr(app, "state", None), "services", None)
+            # proxy 无 app → 取原始 FastAPI request（PluginRequest._request），
+            # 与 AstrBot get_service 同一路径：request.app.state.services.sessions
+            raw_req = getattr(web_request, "_request", None)
+            app = getattr(raw_req, "app", None) if raw_req is not None else None
+            services = (
+                getattr(getattr(app, "state", None), "services", None)
+                if app is not None
+                else None
+            )
             sessions = getattr(services, "sessions", None)
             if sessions is None or not hasattr(sessions, "list_active_umos"):
                 return {"umos": [], "detail": "无 sessions.list_active_umos 服务"}
-            raw = sessions.list_active_umos()
+            raw = await sessions.list_active_umos()  # list_active_umos 是 async
             items = raw.get("umo_infos") or raw.get("umos") or [] if isinstance(raw, dict) else (raw or [])
             infos = []
             for it in items:

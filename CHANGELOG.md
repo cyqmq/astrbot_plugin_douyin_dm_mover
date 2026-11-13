@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.6.1] - 2026-11-13
+
+### Fixed
+- **umos 端点恒空**：`web_request` 是 `PluginRequestProxy`（无 `app`，`__getattr__` 转发到 `PluginRequest` 也无）→ `getattr(web_request,"app",None)` 恒 None → services None → 提前返回"无服务"；且 `list_active_umos()` 是 **async** 未 await → coroutine 遍历异常。修复：取原始 FastAPI request（`PluginRequest._request`）`.app.state.services.sessions`（与 AstrBot `get_service` 同一路径）+ `await sessions.list_active_umos()`。
+
 ## [1.6.0] - 2026-11-13
 
 ### Added
