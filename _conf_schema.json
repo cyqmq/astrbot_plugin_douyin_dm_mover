@@ -119,6 +119,11 @@
     "description": "默认目标群聊（当路由表未命中时使用）；留空则仅按 routes 路由",
     "_special": "umo"
   },
+  "markdown_enabled": {
+    "type": "bool",
+    "default": false,
+    "description": "qq_official 通道发送 Markdown 富文本（官方已无需申请；aiocqhttp 不生效，维持纯文本）"
+  },
   "routes": {
     "type": "list",
     "default": [],

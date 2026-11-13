@@ -8,9 +8,10 @@ from astrbot.api.event import MessageChain
 
 
 class MessageSender:
-    def __init__(self, context, qq_adapter_id: str = "aiocqhttp"):
+    def __init__(self, context, qq_adapter_id: str = "aiocqhttp", markdown_enabled: bool = False):
         self.context = context
         self.qq_adapter_id = qq_adapter_id or "aiocqhttp"
+        self.markdown_enabled = bool(markdown_enabled)
 
     def build_origin(self, group_id: str) -> str:
         return f"{self.qq_adapter_id}:GroupMessage:{group_id}"
@@ -41,6 +42,14 @@ class MessageSender:
         origin, _ = self.normalize_target(target)
         if not origin:
             return False, "空目标"
+        # qq_official 官方已无需申请 Markdown：开启时链设 use_markdown(True)，
+        # adapter 把 plain_text 作为 MarkdownPayload 发送（msg_type=2）；
+        # 带媒体链（Image/Record/Video/File）adapter 自动构造 msg_type=7 并 pop markdown。
+        if origin.startswith("qq_official:") and self.markdown_enabled:
+            try:
+                chain.use_markdown(True)
+            except Exception:
+                pass  # 旧版本无 use_markdown → 忽略（纯文本发送）
         try:
             await self.context.send_message(origin, chain)
             return True, ""

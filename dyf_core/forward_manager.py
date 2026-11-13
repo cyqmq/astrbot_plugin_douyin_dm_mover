@@ -60,7 +60,11 @@ class ForwardManager:
             include_link=config.get("include_link", True),
             max_length=config.get("max_message_length", 1000),
         )
-        self.sender = MessageSender(context, qq_adapter_id=config.get("qq_adapter_id", "aiocqhttp"))
+        self.sender = MessageSender(
+            context,
+            qq_adapter_id=config.get("qq_adapter_id", "aiocqhttp"),
+            markdown_enabled=bool(config.get("markdown_enabled", False)),
+        )
         self.retry = RetryManager(
             self.cache,
             self.sender,

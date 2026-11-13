@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.7.2] - 2026-11-13
+
+### Added
+- **Markdown 发送层**（任务 2，改造地基）：`MessageSender` 加 `markdown_enabled`（config 传入），`send()` 时 qq_official + 开关开启 → `chain.use_markdown(True)`（官方已无需申请；带媒体链 adapter 自动 pop markdown 走 msg_type=7）；aiocqhttp 不生效维持纯文本；`_conf_schema.json` 加 `markdown_enabled`（默认 false）。
+
 ## [1.7.1] - 2026-11-13
 
 ### Added
