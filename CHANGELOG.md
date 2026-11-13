@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.12.1] - 2026-11-13
+
+### Fixed
+- **模板保存后不生效**：`MessageBuilder` 改为动态读 config 引用（`config` 参数，`_template_content` 渲染时 `self.config.get("templates")` 读）——`templates_set` 更新 `fm.config["templates"]` 后**即时生效**，无需手动重载插件；`ForwardManager` 构造传 `config=config` 引用。
+
 ## [1.12.0] - 2026-11-13
 
 ### Added

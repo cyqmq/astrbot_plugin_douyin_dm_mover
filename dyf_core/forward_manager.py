@@ -63,6 +63,8 @@ class ForwardManager:
             templates=config.get("templates") or [],
             markdown_enabled=bool(config.get("markdown_enabled", True)),
             sanitize_body=bool(config.get("sanitize_body", True)),
+            # 传 config 引用：模板保存（templates_set）后动态读即时生效，无需重载插件
+            config=config,
         )
         self.sender = MessageSender(
             context,

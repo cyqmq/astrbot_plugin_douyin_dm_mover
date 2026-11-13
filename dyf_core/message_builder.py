@@ -36,6 +36,7 @@ class MessageBuilder:
         templates: list[dict] | None = None,
         markdown_enabled: bool = True,
         sanitize_body: bool = True,
+        config: dict | None = None,
     ):
         self.header_template = header_template or "[转发] {source} {peer_name} · {time}"
         self.include_link = include_link
@@ -43,6 +44,8 @@ class MessageBuilder:
         self.templates = templates or []
         self.markdown_enabled = bool(markdown_enabled)
         self.sanitize_body = bool(sanitize_body)
+        # 配置引用（动态读优先）：templates_set 更新 fm.config 后即时生效，无需重载插件
+        self.config = config
 
     # ---- 模板渲染 ----
     def _context(self, msg: InboundMessage) -> dict:
@@ -78,8 +81,15 @@ class MessageBuilder:
         return rendered
 
     def _template_content(self, for_media: bool = False) -> str:
-        """模板 content（媒体场景优先 for_media）；空回退 header_template。"""
-        for t in (self.templates or []):
+        """模板 content（媒体场景优先 for_media）；空回退 header_template。
+        动态读 config（templates_set 保存后即时生效），无 config 回退 __init__ 副本。
+        """
+        templates = None
+        if self.config is not None:
+            templates = self.config.get("templates")
+        if templates is None:
+            templates = self.templates
+        for t in (templates or []):
             if bool(t.get("for_media")) == for_media:
                 return str(t.get("content") or "")
         return self.header_template
