@@ -68,6 +68,7 @@ export const ROUTE_TYPES = [['text', '文本'], ['video_card', '视频卡片'], 
 export const TITLES = {
   overview: ['总览', '登录态与最近搬运概览'],
   routes: ['路由', '转发路由表'],
+  cards: ['卡片', '推送卡片编辑'],
   friends: ['好友', '抖音好友列表与回关'],
   groups: ['群聊', '抖音群列表与成员'],
   policy: ['策略', '限流 / 去重 / 过滤 / 告警'],
