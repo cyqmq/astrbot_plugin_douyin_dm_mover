@@ -4,6 +4,26 @@
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-11-13
+
+### Added
+- **群聊入站识别**（conversation_id 形态推断）：纯数字 `^\d+$` → 群聊(type=2)，`0:1:uid:secuid` → 单聊；`resolve_conv` 透传 conversation_type/group_id/sender_id；去重/限流按 `group_id or peer_id` 聚合。
+- **群列表拉取**（HTTP protobuf cmd=2006）：`POST imapi3-normal.zijieapi.com/v1/conversation/list`，vendored/proto 加纯 Python 编码；实测修复 cmd=2006/string 类型/inbox_type 删除/sort_type=2（TYLOO 拉到）。
+- **群来源前端可见**（frontend）：来源卡好友/群聊切换 + 群下拉；路由 `groups_include` 匹配（群聊按 group_id、好友路由不接群聊）；`Route.matches` 分流。
+- **群聊页**（新 Tab）：卡片形式显示群聊，点卡片显示群成员 uid+role（群主/管理员/成员）+ 昵称/头像。
+- **群成员/消息发送者昵称头像**（`im/user/info` 批量）：`fetch_user_info` 去重 ≤50/批 + 缓存；`receiver` 补 sender_sec_uid(field 14)；`fetch_groups` 合并成员昵称/头像；`_lookup_nickname(uid,sec_uid)` 好友缓存优先→sec_uid 查。
+- **default_target_group/alert_target 用 UMO 选择器**（`_special:"umo"`）：配置页「选择会话」按钮存完整 UMO；`_resolve_targets` 用 `normalize_target`（兼容 UMO/纯群号/qq:group，避免双重前缀）。
+- **qq_official 强制群聊**：`is_qq_official_group_target`——qq_official 非 GroupMessage 拒绝（加载剔除+发送跳过），aiocqhttp 私聊保留。
+
+### Fixed
+- **device_id hex 握手 400**：派生 sha256 hex（含 a-f）被抖音 WS 拒；改数字派生（`int(sha256,16)%10**19`）+ 配置/缓存值 isdigit() 校验 + 登录写回仅数字。
+- **profile 全空**：`fetch_desktop_self_profile` a_bogus 签名端 `data.user` 为空；改 `_fingerprint`（desktopFingerprint query 无 a_bogus）→ 完整 uid/nickname/sec_uid/avatar。
+- **群聊来源加载丢失 type/group_id**：`loadConfig` 只保留 id/uid/nickname/pos；改保留 type/group_id/group_name + addSource 默认类型 + SourceNode find 真实项写回。
+- **qq_official 目标卡永远缺失**：platforms 端点无 metadata 丢弃；改回退实例 `config.id`（manager.load_platform 用 platform_config["id"] 作实例标识）。
+- **webchat 默认隐藏**：platforms 端点按 `advanced_target_cards` 控制 webchat 显隐。
+- **删除键 Backspace**：`delete-key-code` 补 `['Delete','Backspace']`。
+- **群成员/最后发送者昵称实测全空**：抖音 IM proto 全链路不返回昵称；保留 uid+role（可靠）+ last_sender uid；昵称走 `im/user/info`（独立用户信息接口）。
+
 ## [1.3.1] - 2026-11-12
 
 ### Fixed
