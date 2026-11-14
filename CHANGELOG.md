@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.15.1] - 2026-11-13
+
+### Fixed
+- **构建产物缺失**：`views/status/assets/index-DC3D80qk.css` 清理时误删（与上轮 hash 相同被当旧文件 rm），`index.html` 引用它 404 导致 webui 无样式（背景/图标/布局全丢）；重建恢复（hash 不变）+ git 补跟踪。
+
 ## [1.15.0] - 2026-11-13
 
 ### Added
