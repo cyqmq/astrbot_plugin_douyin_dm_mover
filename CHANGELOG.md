@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.15.4] - 2026-11-13
+
+### Fixed
+- **删边未生效（线删了还在已保存状态）**：`onEdgesDelete` 仍用 `d.route`（边 `data` 存的 route 引用）——`loadConfig` 替换后是失效旧对象，`splice` 改不到当前 `store.routes`，`buildEdges` 重画把已保存的线画回来。改从**边 id 解析路由索引**直取当前 `store.routes`（src-route 第 4 段 / route-tgt 第 3 段，正则 `^e\|(?:src\|[^|]+\|(\d+)|route\|(\d+))`），解析失败回退 `d.route`。
+
 ## [1.15.3] - 2026-11-13
 
 ### Fixed

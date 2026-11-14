@@ -125,7 +125,11 @@ function onConnect(c) {
 function onEdgesDelete(list) {
   (list || []).forEach(e => {
     const d = e.data || {}
-    const r = d.route
+    // 从边 id 解析路由索引，直取当前 store.routes（避免删的是渲染快照旧对象，targets 改不到）
+    // 边 id：src-route=`e|src|{srcId}|{ri}`（第4段），route-tgt=`e|route|{ri}|{k}|{ti}`（第3段）
+    const m = /^e\|(?:src\|[^|]+\|(\d+)|route\|(\d+))/.exec(e.id || '')
+    const ri = m ? (m[1] !== undefined ? +m[1] : +m[2]) : -1
+    const r = ri >= 0 ? store.routes[ri] : d.route
     if (!r) return
     if (d.kind === 'src-route') {
       if (r.match) {
