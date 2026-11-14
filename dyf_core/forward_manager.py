@@ -115,6 +115,7 @@ class ForwardManager:
                     "name": t.get("name") or "默认模板",
                     "blocks": [{"type": "text", "data": {"text": content}}] if content else [],
                     "for_media": bool(t.get("for_media", False)),
+                    "auto": True,
                 }
             )
         if not migrated and config.get("header_template"):
@@ -126,6 +127,7 @@ class ForwardManager:
                         {"type": "text", "data": {"text": str(config.get("header_template"))}}
                     ],
                     "for_media": False,
+                    "auto": True,
                 }
             )
         config["templates"] = migrated

@@ -103,6 +103,12 @@ class MessageBuilder:
                 return t
         return None
 
+    def _is_user_template(self, tpl: dict | None) -> bool:
+        """用户显式设置的模板：积木 blocks 非空且非迁移自动生成（auto）。
+        迁移生成的默认模板（header_template → text 积木）不算用户设置，走现有行为。
+        """
+        return bool(tpl and tpl.get("blocks") and not tpl.get("auto"))
+
     def _template_content(self, for_media: bool = False) -> str:
         """模板 content（旧结构兼容）；空回退 header_template。"""
         tpl = self._template(for_media)
@@ -207,6 +213,16 @@ class MessageBuilder:
             MessageType.IMAGE,
             MessageType.VIDEO_CARD,
         ) and bool(msg.media_urls or media)
+        # 用户模板（积木 blocks 非空且非迁移自动生成）= 整条消息：积木渲染即发送内容，
+        # 不再附加正文/媒体（占位符积木取视频卡字段，媒体链用 for_media 模板）
+        tpl = self._template(for_media=is_media_chain)
+        if self._is_user_template(tpl):
+            ctx = self._context(msg)
+            markdown = self.markdown_enabled and not is_media_chain
+            content = self.render_blocks(tpl.get("blocks") or [], ctx, markdown=markdown)
+            if not content.strip():
+                return None
+            return MessageChain([Plain(content)])
         parts = [Plain(self._header(msg, for_media=is_media_chain))] if with_text else []
         body = self._body(msg) if with_text else ""
         if body:
