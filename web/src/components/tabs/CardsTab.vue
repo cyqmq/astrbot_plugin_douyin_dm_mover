@@ -105,7 +105,7 @@ async function saveDraft() {
   const r = validateBlocks(blocks.value)
   if (!r.ok) return
   try {
-    const d = await apiPostBody('messages/draft', { blocks: blocks.value })
+    const d = await apiPostBody('messages/draft', { blocks: JSON.parse(JSON.stringify(blocks.value)) })
     saveHint.value = (d && d.ok) ? '草稿已自动保存' : ('草稿保存失败: ' + ((d && d.detail) || ''))
   } catch (e) {
     saveHint.value = '草稿保存失败'
@@ -119,7 +119,7 @@ async function saveAsTemplate() {
   saving.value = true
   try {
     const d = await apiPostBody('templates/set', {
-      templates: [{ id: 'default', name: '默认模板', blocks: blocks.value, for_media: false }],
+      templates: [{ id: 'default', name: '默认模板', blocks: JSON.parse(JSON.stringify(blocks.value)), for_media: false }],
     })
     if (d && d.ok) {
       toast(d.detail || '已保存为模板')

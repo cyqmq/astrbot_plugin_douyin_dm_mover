@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.14.1] - 2026-11-13
+
+### Fixed
+- **卡片页保存失败**：`CardsTab.vue` `saveDraft`/`saveAsTemplate` 把 `blocks.value`（Vue 深度响应式 Proxy）直接传桥接 SDK——`window.postMessage` 结构化克隆无法克隆 Proxy（`[object Object] could not be cloned`）。改为 `JSON.parse(JSON.stringify(...))` 剥离响应式代理（与 `actions.js:58 saveConfig`/`ConfigTab` 同一约定）。
+
 ## [1.14.0] - 2026-11-13
 
 ### Added
