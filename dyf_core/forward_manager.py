@@ -98,23 +98,39 @@ class ForwardManager:
     @staticmethod
     def _migrate_templates(config: dict) -> None:
         version = int(config.get("template_version") or 0)
-        if version >= 1:
+        if version >= 2:
             return
-        legacy = str(config.get("header_template") or "").strip()
-        markdown = bool(config.get("markdown_enabled", True))
-        existing = config.get("templates")
-        if not existing and legacy:
-            config["templates"] = [
+        templates = config.get("templates") or []
+        migrated = []
+        for t in templates:
+            if not isinstance(t, dict):
+                continue
+            if t.get("blocks"):
+                migrated.append(t)
+                continue
+            content = str(t.get("content") or "")
+            migrated.append(
+                {
+                    "id": t.get("id") or "default",
+                    "name": t.get("name") or "默认模板",
+                    "blocks": [{"type": "text", "data": {"text": content}}] if content else [],
+                    "for_media": bool(t.get("for_media", False)),
+                }
+            )
+        if not migrated and config.get("header_template"):
+            migrated.append(
                 {
                     "id": "default",
                     "name": "默认模板",
-                    "content": legacy,
-                    "markdown": markdown,
+                    "blocks": [
+                        {"type": "text", "data": {"text": str(config.get("header_template"))}}
+                    ],
                     "for_media": False,
                 }
-            ]
-        config["template_version"] = 1
-        logger.info("[dyf] 模板结构已迁移至 v1（header_template → templates[0]）")
+            )
+        config["templates"] = migrated
+        config["template_version"] = 2
+        logger.info("[dyf] 模板结构已迁移至 v2（content → text 积木）")
 
     # ---- 来源/类型开关 ----
     def _source_enabled(self, platform: str) -> bool:

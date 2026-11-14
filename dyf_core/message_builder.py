@@ -80,30 +80,85 @@ class MessageBuilder:
             rendered = _sanitize(rendered)
         return rendered
 
-    def _template_content(self, for_media: bool = False) -> str:
-        """模板 content（媒体场景优先 for_media）；空回退 header_template。
-        动态读 config（templates_set 保存后即时生效），无 config 回退 __init__ 副本。
-        """
-        templates = None
-        if self.config is not None:
-            templates = self.config.get("templates")
-        if templates is None:
-            templates = self.templates
-        for t in (templates or []):
+    def _config_templates(self) -> list[dict]:
+        """模板列表：config 引用动态读优先（templates_set 保存后即时生效），回退 __init__ 副本。"""
+        if self.config is not None and self.config.get("templates") is not None:
+            return self.config.get("templates") or []
+        return self.templates
+
+    def _template(self, for_media: bool = False) -> dict | None:
+        """匹配模板（媒体场景优先 for_media）；无匹配 None。"""
+        for t in self._config_templates():
             if bool(t.get("for_media")) == for_media:
-                return str(t.get("content") or "")
-        return self.header_template
+                return t
+        return None
+
+    def _template_content(self, for_media: bool = False) -> str:
+        """模板 content（旧结构兼容）；空回退 header_template。"""
+        tpl = self._template(for_media)
+        return str((tpl or {}).get("content") or self.header_template)
 
     def _template_embeds_image(self, for_media: bool = False) -> bool:
-        """模板是否内嵌图片（含 {image_url} 占位符）→ markdown 场景跳过 Image 组件。"""
-        return "{image_url}" in self._template_content(for_media)
+        """模板是否内嵌图片（media 积木或 content 含 {image_url}）→ markdown 场景跳过 Image 组件。"""
+        tpl = self._template(for_media)
+        if not tpl:
+            return False
+        for b in (tpl.get("blocks") or []):
+            if b.get("type") == "media":
+                return True
+        return "{image_url}" in str(tpl.get("content") or "")
+
+    def _render_blocks(self, blocks: list[dict], ctx: dict, markdown: bool = True) -> str:
+        """积木序列 → 文本（占位符由 _render_text 统一替换）。"""
+        parts = []
+        for b in blocks or []:
+            t = b.get("type")
+            d = b.get("data") or {}
+            if t == "text":
+                parts.append(str(d.get("text", "")))
+            elif t == "heading":
+                title, body = str(d.get("title", "")), str(d.get("body", ""))
+                head = f"# {title}" if markdown else title
+                parts.append(f"{head}\n{body}" if body else head)
+            elif t == "media":
+                img, title, desc = (
+                    str(d.get("image", "")),
+                    str(d.get("title", "")),
+                    str(d.get("desc", "")),
+                )
+                if markdown and img:
+                    parts.append(f"![{title}]({img})")
+                if title:
+                    parts.append(f"# {title}" if markdown else title)
+                if desc:
+                    parts.append(desc)
+            elif t == "link":
+                text, url = str(d.get("text", "")), str(d.get("url", ""))
+                parts.append(f"[{text}]({url})" if markdown else f"{text} {url}".strip())
+            elif t == "button":
+                text, url = str(d.get("text", "")), str(d.get("url", ""))
+                parts.append(f"[{text}]({url})" if markdown else text)
+            elif t == "divider":
+                parts.append("***" if markdown else "—")
+        return "\n\n".join(p for p in parts if p)
+
+    def render_blocks(self, blocks: list[dict], ctx: dict, markdown: bool = True) -> str:
+        """公开渲染入口：积木序列 → 文本（占位符统一替换）。
+        预览（模拟上下文）与转发（真实上下文）共用，保证同源。
+        """
+        rendered = self._render_blocks(blocks, ctx, markdown=markdown)
+        return self._render_text(rendered, ctx, markdown=markdown)
 
     def _header(self, msg: InboundMessage, for_media: bool = False) -> str:
         ctx = self._context(msg)
-        content = self._template_content(for_media)
         # 媒体链（视频/语音/文件）强制纯文本：避免 Markdown 语法原样暴露
         markdown = self.markdown_enabled and not for_media
-        rendered = self._render_text(content, ctx, markdown=markdown)
+        tpl = self._template(for_media)
+        blocks = (tpl or {}).get("blocks")
+        if blocks:
+            rendered = self.render_blocks(blocks, ctx, markdown=markdown)
+        else:
+            rendered = self._render_text(self._template_content(for_media), ctx, markdown=markdown)
         return _truncate(rendered, self.max_length)
 
     def _body(self, msg: InboundMessage) -> str:

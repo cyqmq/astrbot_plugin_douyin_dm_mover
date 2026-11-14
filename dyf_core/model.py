@@ -94,3 +94,34 @@ class DeliveryResult:
 
     def __repr__(self) -> str:
         return f"DeliveryResult(target={self.target!r}, ok={self.ok}, error={self.error!r})"
+
+
+# ---- 积木（推送模板/消息草稿）----
+BLOCK_TYPES = ("text", "heading", "media", "link", "button", "divider")
+
+
+def validate_block(b: dict) -> str | None:
+    """校验单个积木：type 白名单 + 按类型必填字段。返回错误信息或 None。"""
+    if not isinstance(b, dict):
+        return "积木必须是对象"
+    t = b.get("type")
+    if t not in BLOCK_TYPES:
+        return f"非法积木类型: {t!r}（允许: {', '.join(BLOCK_TYPES)}）"
+    d = b.get("data") or {}
+    if not isinstance(d, dict):
+        return f"积木 {t} 的 data 必须是对象"
+    if t == "text" and not str(d.get("text", "")).strip():
+        return "text 积木缺少 text"
+    if t == "heading" and not str(d.get("title", "")).strip():
+        return "heading 积木缺少 title"
+    if (
+        t == "media"
+        and not str(d.get("image", "")).strip()
+        and not str(d.get("title", "")).strip()
+    ):
+        return "media 积木需 image 或 title 至少其一"
+    if t == "link" and not str(d.get("text", "")).strip():
+        return "link 积木缺少 text"
+    if t == "button" and not str(d.get("text", "")).strip():
+        return "button 积木缺少 text"
+    return None

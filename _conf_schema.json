@@ -132,12 +132,17 @@
   "templates": {
     "type": "list",
     "default": [],
-    "description": "推送模板列表：元素 {id,name,content,markdown,for_media}；content 为一段 Markdown/纯文本，占位符 {source} {peer_name} {time} {title} {desc} {link} {image_url}（编辑器走网页，勿在此手输）"
+    "description": "推送模板预设：元素 {id,name,blocks,for_media}；blocks 为积木数组（text/heading/media/link/button/divider），编辑器走网页，勿在此手输"
+  },
+  "draft": {
+    "type": "string",
+    "default": "",
+    "description": "消息草稿（blocks JSON 字符串，编辑器暂存）；发布时渲染为积木发送"
   },
   "template_version": {
     "type": "int",
     "default": 0,
-    "description": "模板结构迁移标记（0=待迁移，1=已迁移；勿手改）"
+    "description": "模板结构迁移标记（0=待迁移，2=已迁移；勿手改）"
   },
   "routes": {
     "type": "list",

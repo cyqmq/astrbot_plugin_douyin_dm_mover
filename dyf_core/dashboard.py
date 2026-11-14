@@ -13,6 +13,7 @@ from __future__ import annotations
 import asyncio
 import base64
 import io
+import json
 import re
 import time
 
@@ -20,6 +21,7 @@ import qrcode
 from astrbot.api import logger
 
 from dyf_core.logs import LogRing
+from dyf_core.model import validate_block
 
 
 def _targets_of(r: dict) -> list[str]:
@@ -130,6 +132,10 @@ class DashboardApi:
         reg("douyin_dm_mover/platforms", self.platforms, ["GET"], "dyf 已加载平台实例列表")
         reg("douyin_dm_mover/templates/get", self.templates_get, ["GET"], "dyf 读取推送模板")
         reg("douyin_dm_mover/templates/set", self.templates_set, ["POST"], "dyf 保存推送模板（含校验）")
+        reg("douyin_dm_mover/render", self.render, ["POST"], "dyf 积木渲染预览（同源）")
+        reg("douyin_dm_mover/messages/draft", self.draft_get, ["GET"], "dyf 读取消息草稿")
+        reg("douyin_dm_mover/messages/draft", self.draft_set, ["POST"], "dyf 保存消息草稿")
+        reg("douyin_dm_mover/messages/publish", self.publish, ["POST"], "dyf 发布草稿（渲染+发送）")
 
     async def reload_plugin(self):
         """后台重载本插件：终止当前实例并重新加载，使深层代码（dyf_gateway 等）生效。"""
@@ -415,7 +421,7 @@ class DashboardApi:
         }
 
     async def templates_set(self):
-        """保存推送模板：占位符白名单 + 长度校验，非法拒绝（400 语义走 detail）。"""
+        """保存推送模板：积木类型白名单 + block 结构校验，非法拒绝（400 语义走 detail）。"""
         try:
             from astrbot.api.web import request as web_request
 
@@ -425,7 +431,6 @@ class DashboardApi:
         templates = data.get("templates")
         if not isinstance(templates, list):
             return {"ok": False, "detail": "templates 必须是列表"}
-        max_len = int(self.fm.config.get("max_message_length", 1000) or 0)
         seen: set[str] = set()
         cleaned = []
         for t in templates:
@@ -433,38 +438,31 @@ class DashboardApi:
                 return {"ok": False, "detail": "模板项必须是对象"}
             tid = str(t.get("id") or "").strip()
             name = str(t.get("name") or "").strip()
-            content = str(t.get("content") or "")
-            if not tid or not name or not content.strip():
-                return {"ok": False, "detail": "模板 id/name/content 不能为空"}
+            blocks = t.get("blocks")
+            if not tid or not name:
+                return {"ok": False, "detail": "模板 id/name 不能为空"}
             if tid in seen:
                 return {"ok": False, "detail": f"模板 id 重复: {tid}"}
             seen.add(tid)
-            if max_len and len(content) > max_len:
-                return {
-                    "ok": False,
-                    "detail": f"模板「{name}」长度 {len(content)} 超过上限 {max_len}",
-                }
-            bad = sorted(_bad_placeholders(content))
-            if bad:
-                allowed = ", ".join(sorted(_ALLOWED_PLACEHOLDERS))
-                return {
-                    "ok": False,
-                    "detail": f"模板「{name}」含非法占位符: {', '.join(bad)}（允许: {allowed}）",
-                }
+            if not isinstance(blocks, list) or not blocks:
+                return {"ok": False, "detail": f"模板「{name}」blocks 不能为空"}
+            for b in blocks:
+                err = validate_block(b)
+                if err:
+                    return {"ok": False, "detail": f"模板「{name}」: {err}"}
             cleaned.append(
                 {
                     "id": tid,
                     "name": name,
-                    "content": content,
-                    "markdown": bool(t.get("markdown", True)),
+                    "blocks": blocks,
                     "for_media": bool(t.get("for_media", False)),
                 }
             )
         self.fm.config["templates"] = cleaned
-        self.fm.config["template_version"] = 1
+        self.fm.config["template_version"] = 2
         if self._config_obj is not None:
             try:
-                self._config_obj.update({"templates": cleaned, "template_version": 1})
+                self._config_obj.update({"templates": cleaned, "template_version": 2})
                 save = getattr(self._config_obj, "save_config", None)
                 if save is not None:
                     save()
@@ -472,8 +470,113 @@ class DashboardApi:
                 logger.warning(f"[dyf] 模板落盘失败: {e!r}")
                 return {"ok": False, "detail": f"模板保存失败: {e}"}
         logger.info(f"[dyf] 模板已保存: {len(cleaned)} 个")
-        # 不自动重载：保存模板不打断连接；builder 支持动态读 config 即即时生效
+        # 不自动重载：builder 动态读 config 即即时生效
         return {"ok": True, "detail": f"已保存 {len(cleaned)} 个模板"}
+
+    # ---- 积木渲染预览（预览与转发同源，共用 builder.render_blocks）----
+    async def render(self):
+        """积木序列 → 渲染文本（模拟上下文；转发用真实上下文，同一 render_blocks）。"""
+        try:
+            from astrbot.api.web import request as web_request
+
+            data = await web_request.json(default={}) or {}
+        except Exception:
+            data = {}
+        blocks = data.get("blocks")
+        if not isinstance(blocks, list):
+            return {"ok": False, "detail": "blocks 必须是列表"}
+        for b in blocks:
+            err = validate_block(b)
+            if err:
+                return {"ok": False, "detail": err}
+        ctx = {
+            "source": "抖音",
+            "peer_name": "示例用户",
+            "time": "14:32",
+            "title": "示例标题",
+            "desc": "示例描述",
+            "link": "https://example.com/video/1",
+            "image_url": "https://example.com/cover.jpg",
+        }
+        content = self.fm.builder.render_blocks(
+            blocks, ctx, markdown=bool(data.get("markdown", True))
+        )
+        return {"ok": True, "content": content}
+
+    # ---- 消息草稿（blocks JSON 字符串存储）----
+    async def draft_get(self):
+        """读取消息草稿（blocks 数组）。"""
+        raw = self.fm.config.get("draft") or ""
+        blocks = []
+        if raw:
+            try:
+                blocks = json.loads(raw)
+            except Exception:
+                blocks = []
+        return {"ok": True, "blocks": blocks, "draft": raw}
+
+    async def draft_set(self):
+        """保存消息草稿（blocks 校验后 JSON 序列化存储，不重载）。"""
+        try:
+            from astrbot.api.web import request as web_request
+
+            data = await web_request.json(default={}) or {}
+        except Exception:
+            data = {}
+        blocks = data.get("blocks")
+        if not isinstance(blocks, list):
+            return {"ok": False, "detail": "blocks 必须是列表"}
+        for b in blocks:
+            err = validate_block(b)
+            if err:
+                return {"ok": False, "detail": err}
+        raw = json.dumps(blocks, ensure_ascii=False)
+        self.fm.config["draft"] = raw
+        if self._config_obj is not None:
+            try:
+                self._config_obj.update({"draft": raw})
+                save = getattr(self._config_obj, "save_config", None)
+                if save is not None:
+                    save()
+            except Exception as e:
+                return {"ok": False, "detail": f"草稿保存失败: {e}"}
+        return {"ok": True, "detail": "草稿已保存"}
+
+    # ---- 发布草稿：积木渲染 → 发送（走现有 sender 链路）----
+    async def publish(self):
+        """发布：blocks → 渲染文本 → 发送到目标（默认 default_target_group）。"""
+        try:
+            from astrbot.api.web import request as web_request
+
+            data = await web_request.json(default={}) or {}
+        except Exception:
+            data = {}
+        blocks = data.get("blocks")
+        if not isinstance(blocks, list):
+            return {"ok": False, "detail": "blocks 必须是列表"}
+        for b in blocks:
+            err = validate_block(b)
+            if err:
+                return {"ok": False, "detail": err}
+        target = str(data.get("target") or self.fm.default_target_group or "")
+        if not target:
+            return {"ok": False, "detail": "未指定发布目标（target 或 default_target_group 为空）"}
+        ctx = {
+            "source": "手动",
+            "peer_name": "",
+            "time": time.strftime("%H:%M"),
+            "title": "",
+            "desc": "",
+            "link": "",
+            "image_url": "",
+        }
+        ctx.update(data.get("context") or {})
+        markdown = bool(data.get("markdown", True))
+        content = self.fm.builder.render_blocks(blocks, ctx, markdown=markdown)
+        if not content.strip():
+            return {"ok": False, "detail": "渲染内容为空"}
+        ok, err = await self.fm.sender.send_raw_text(target, content)
+        return {"ok": ok, "detail": "" if ok else err, "content": content}
 
     def _schedule_reload(self) -> None:
         """后台自动重载本插件，让配置/深层代码即时生效。"""

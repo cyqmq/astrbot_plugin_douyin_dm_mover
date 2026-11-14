@@ -4,6 +4,14 @@
 
 ## [Unreleased]
 
+## [1.13.0] - 2026-11-13
+
+### Added
+- **积木数据模型（B1）**：6 类积木 `text/heading/media/link/button/divider`；`block={type,data}`；模板预设 `{id,name,blocks,for_media}`；`model.validate_block`（type 白名单 + 按类型必填校验）。
+- **积木渲染（B2）**：`MessageBuilder._render_blocks` 积木序列→文本（heading `# title`、media `![title](img)`、link/button `[text](url)`、divider `***`，plain 模式去 Markdown）；公开 `render_blocks`（占位符统一替换）——预览（模拟 ctx）与转发（真实 ctx）共用同源；`_header` 改用积木渲染，content 字符串路径保留兼容。
+- **存储 v2（B3）**：`templates` 元素改 `{id,name,blocks,for_media}`；新增 `draft`（blocks JSON 字符串）；`_migrate_templates` v1 content→text 积木、幂等 v2。
+- **API（B4）**：`render`（积木渲染预览同源）、`messages/draft` GET/POST（草稿暂存）、`messages/publish`（积木渲染→send_raw_text 到目标）；`templates/set` 改积木类型+block 结构校验。
+
 ## [1.12.1] - 2026-11-13
 
 ### Fixed
