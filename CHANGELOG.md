@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.16.0] - 2026-11-13
+
+### Added
+- **连线状态日志**：`config_set` 保存 routes 时打印每条路由的 `targets`（targets 非空优先，兼容旧 `target`），便于确认连线是否落盘（`[dyf] 路由 '…' 连线状态: targets=… (N 个目标)`）。
+
 ## [1.15.2] - 2026-11-13
 
 ### Fixed

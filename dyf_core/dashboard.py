@@ -377,6 +377,15 @@ class DashboardApi:
         if "routes" in updates:
             for line in _route_diff(old_routes, updates.get("routes") or []):
                 logger.info(f"[dyf] {line}")
+            # 连线状态：每次保存 routes 都打印每条路由的 targets，便于确认连线是否落盘
+            for r in updates.get("routes") or []:
+                if isinstance(r, dict) and r.get("name"):
+                    tg = [t for t in (r.get("targets") or []) if t] or (
+                        [r["target"]] if r.get("target") else []
+                    )
+                    logger.info(
+                        f"[dyf] 路由 {r['name']!r} 连线状态: targets={tg or '空'} ({len(tg)} 个目标)"
+                    )
             # 路由即时生效：router 只在 __init__ 建一次，更新 routes 后需重建
             from dyf_core.router import RouteResolver
 
