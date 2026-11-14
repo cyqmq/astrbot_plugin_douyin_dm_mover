@@ -94,8 +94,7 @@ function onConnect(c) {
   const s = c.source || '', t = c.target || ''
   if (s.startsWith('src|') && t.startsWith('route|')) {
     const sid = s.split('|')[1]
-    const rn = nodes.value.find(n => n.id === t)
-    const r = rn && rn.data && rn.data.route
+    const r = store.routes[+t.split('|')[1]]  // 索引直取当前 store.routes（避免渲染快照旧对象）
     const srcObj = sources.value.find(x => x.id === sid)
     const uid = srcObj ? (srcObj.uid || '') : ''
     const gid = srcObj ? (srcObj.group_id || '') : ''
@@ -111,8 +110,7 @@ function onConnect(c) {
     }
   } else if (s.startsWith('route|') && t.startsWith('tgt|')) {
     const tid = t.split('|')[1]
-    const rn = nodes.value.find(n => n.id === s)
-    const r = rn && rn.data && rn.data.route
+    const r = store.routes[+s.split('|')[1]]  // 索引直取当前 store.routes（避免渲染快照旧对象）
     const tgt = targetList.value.find(x => x.id === tid)
     if (r && tgt) {
       const umo = umoOf(tgt)
@@ -226,7 +224,8 @@ function build() { buildNodes(); buildEdges() }
 
 // 结构变化 → 重建；内容变化（类型）→ 只重建边
 watch(() => JSON.stringify({ r: store.routes.length, t: targetList.value, c: store.customSources,
-  a: store.advancedTargets, g: store.routes.map(r => r.target).join('|') }), build)
+  a: store.advancedTargets, g: store.routes.map(r => r.target).join('|') + '|' +
+    store.routes.map(r => (r.targets || []).join(',')).join('|') }), build)
 // 内容变化（类型/来源连接）→ 只重建边（保焦点）
 watch(() => JSON.stringify(store.routes.map(r => ((r.match && r.match.types) || []).join(',') + '|' +
   ((r.match && r.match.senders_include) || []).join(',') + '|' +

@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.15.2] - 2026-11-13
+
+### Fixed
+- **路由连线 targets 丢失**：`TopologyFlow.onConnect` 用 `nodes.value.find`（渲染节点快照）取 route——`loadConfig` 异步替换 `store.routes`（条数/`target` 未变）后 watch 不触发节点重建，连线把 `targets` push 进**旧对象**，保存的是新 `store.routes`（targets 空）→ 后端 `RouteResolver` 丢弃。改用**索引直取 `store.routes[+id.split('|')[1]]`**（src→route 与 route→tgt 两处）；watch getter 补 `routes.map(r=>(r.targets||[]).join(','))` 让 `targets` 变化触发节点重建。`scheduleLiveSave` 空 targets 校验未做（会误报「已连 src 未连 tgt」中间态）。
+
 ## [1.15.1] - 2026-11-13
 
 ### Fixed
