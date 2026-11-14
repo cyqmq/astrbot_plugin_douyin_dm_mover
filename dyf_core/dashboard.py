@@ -462,8 +462,8 @@ class DashboardApi:
             if tid in seen:
                 return {"ok": False, "detail": f"模板 id 重复: {tid}"}
             seen.add(tid)
-            if not isinstance(blocks, list) or not blocks:
-                return {"ok": False, "detail": f"模板「{name}」blocks 不能为空"}
+            if not isinstance(blocks, list):
+                return {"ok": False, "detail": f"模板「{name}」blocks 必须是列表"}
             for b in blocks:
                 err = validate_block(b)
                 if err:

@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.16.1] - 2026-11-13
+
+### Fixed
+- **空模板保存失败**：`templates_set` 拒绝空 blocks（`not blocks`），但空 blocks 合法——`_is_user_template` 对空 blocks 返回 False → 走默认模板（正文+链接+图），即「清空拼装区=用默认」。改为仅校验必须是列表，允许空。
+
 ## [1.16.0] - 2026-11-13
 
 ### Added
