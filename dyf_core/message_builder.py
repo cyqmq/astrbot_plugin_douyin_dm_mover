@@ -11,6 +11,16 @@ from dyf_core.model import InboundMessage, MessageType
 
 _SANITIZE_CHARS = ["**", "`", "~~", "*"]
 _SOURCE_LABEL = {"douyin": "抖音"}
+# 占位符积木类型 → token（转发时由 _render_text 替换为 _context 真实值）
+_PLACEHOLDER_TOKEN = {
+    "source": "{source}",
+    "peer_name": "{peer_name}",
+    "time": "{time}",
+    "title": "{title}",
+    "desc": "{desc}",
+    "link": "{link}",
+    "image_url": "{image_url}",
+}
 
 
 def _sanitize(text: str) -> str:
@@ -114,7 +124,10 @@ class MessageBuilder:
         for b in blocks or []:
             t = b.get("type")
             d = b.get("data") or {}
-            if t == "text":
+            if t in _PLACEHOLDER_TOKEN:
+                # 占位符积木：输出其 token（随后由 _render_text 替换为 _context 真实值）
+                parts.append(_PLACEHOLDER_TOKEN[t])
+            elif t == "text":
                 parts.append(str(d.get("text", "")))
             elif t == "heading":
                 title, body = str(d.get("title", "")), str(d.get("body", ""))

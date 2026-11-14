@@ -3,7 +3,7 @@
 // 点击选中 → 右栏编辑属性；启停/复制/删除
 import { onMounted, ref } from 'vue'
 import { useDraggable } from 'vue-draggable-plus'
-import { BLOCK_TYPES } from './blockTypes.js'
+import { BLOCK_TYPES, placeholderToken } from './blockTypes.js'
 
 // blocks 双向绑定（父组件 v-model，默认 modelValue）
 const blocks = defineModel({ type: Array, default: () => [] })
@@ -30,12 +30,8 @@ function summary(b) {
   const d = b.data || {}
   switch (b.type) {
     case 'text': return d.text || '（空）'
-    case 'heading': return d.title ? `${d.title} · ${d.body || ''}` : '（空）'
-    case 'media': return d.title || d.desc || '（空）'
-    case 'link': return d.text || d.url || '（空）'
-    case 'button': return d.text || '（空）'
     case 'divider': return '分割线'
-    default: return ''
+    default: return placeholderToken(b.type) || (BLOCK_TYPES[b.type] && BLOCK_TYPES[b.type].label) || ''
   }
 }
 </script>

@@ -6,6 +6,9 @@ import { resolve } from 'path'
 export default defineConfig({
   plugins: [vue()],
   base: './',
+  server: {
+    allowedHosts: ['.monkeycode-ai.online'],
+  },
   build: {
     outDir: resolve(__dirname, '../views/status'),
     emptyOutDir: false,

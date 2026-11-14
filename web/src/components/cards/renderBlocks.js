@@ -2,6 +2,8 @@
 // 与后端 _render_blocks 按同一 Schema 契约实现，保证预览与转发同源
 // 发布时后端用同一规则做最终渲染与校验
 
+import { placeholderToken } from './blockTypes.js'
+
 // 渲染积木序列为消息内容（与后端 _render_blocks 同规则：media 用 \n\n 连接、空块跳过）
 export function renderBlocks(blocks, ctx = {}, markdown = true) {
   if (!Array.isArray(blocks)) return ''
@@ -30,12 +32,6 @@ export function renderBlocks(blocks, ctx = {}, markdown = true) {
         if (desc) s += (s ? '\n\n' : '') + desc
         break
       }
-      case 'link': {
-        const text = d.text || ''
-        const url = d.url || ''
-        s = markdown ? `[${text}](${url})` : `${text} ${url}`.trim()
-        break
-      }
       case 'button': {
         const text = d.text || ''
         const url = d.url || ''
@@ -44,6 +40,10 @@ export function renderBlocks(blocks, ctx = {}, markdown = true) {
       }
       case 'divider':
         s = markdown ? '***' : '—'
+        break
+      default:
+        // 占位符积木：输出其 token（fillPlaceholders 随后替换为模拟/真实值）
+        s = placeholderToken(b.type) || ''
         break
     }
     if (s) parts.push(s)

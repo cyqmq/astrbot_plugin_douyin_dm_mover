@@ -4,7 +4,7 @@
 import { ref, watch, onMounted } from 'vue'
 import { apiGet, apiPostBody, toast } from '../../composables/store.js'
 import PhonePreview from '../cards/PhonePreview.vue'
-import BlockLibrary from '../cards/BlockLibrary.vue'
+import PlaceholderLibrary from '../cards/PlaceholderLibrary.vue'
 import MessageComposer from '../cards/MessageComposer.vue'
 import { createBlock, validateBlocks } from '../cards/blockTypes.js'
 
@@ -105,6 +105,8 @@ async function saveDraft() {
   const r = validateBlocks(blocks.value)
   if (!r.ok) return
   try {
+    // 深拷贝剥离 Vue 响应式 Proxy（postMessage structured clone 无法克隆 Proxy），
+    // 与 actions.js saveConfig 的 JSON 深拷贝约定一致
     const d = await apiPostBody('messages/draft', { blocks: JSON.parse(JSON.stringify(blocks.value)) })
     saveHint.value = (d && d.ok) ? '草稿已自动保存' : ('草稿保存失败: ' + ((d && d.detail) || ''))
   } catch (e) {
@@ -119,6 +121,7 @@ async function saveAsTemplate() {
   saving.value = true
   try {
     const d = await apiPostBody('templates/set', {
+      // 深拷贝剥离 Vue 响应式 Proxy（postMessage structured clone 无法克隆 Proxy）
       templates: [{ id: 'default', name: '默认模板', blocks: JSON.parse(JSON.stringify(blocks.value)), for_media: false }],
     })
     if (d && d.ok) {
@@ -171,7 +174,7 @@ onMounted(loadInitial)
 
     <aside class="col col-right">
       <div class="col-head"><h2>积木</h2></div>
-      <BlockLibrary :selected-block="selectedBlock" @add="addBlock" />
+      <PlaceholderLibrary :selected-block="selectedBlock" @add="addBlock" />
     </aside>
   </div>
 </template>

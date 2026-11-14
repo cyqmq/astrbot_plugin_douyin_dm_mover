@@ -4,6 +4,17 @@
 
 ## [Unreleased]
 
+## [1.15.0] - 2026-11-13
+
+### Added
+- **占位符积木库重构**：`model.py` 新增 `PLACEHOLDER_BLOCK_TYPES`（source/peer_name/time/title/desc/link/image_url），`BLOCK_TYPES` = 7 占位符 + text + divider（旧 heading/media/link/button 移除）；`message_builder._PLACEHOLDER_TOKEN` + `_render_blocks` 占位符积木输出 token（转发由 `_context` 替换真实值），旧类型分支保留容错旧模板。
+- **前端占位符积木库**：`blockTypes.js` 重写（`PLACEHOLDERS`/`PLACEHOLDER_LIST`/`STRUCTURAL_TYPES`/`placeholderToken`/`isPlaceholder`）；新增 `PlaceholderLibrary.vue`（占位符 7 格 + 结构积木 + 属性编辑，主题变量）；`MessageComposer.summary`/`renderBlocks` 支持占位符积木；`CardsTab` 换用（`BlockLibrary.vue` 死代码删除）。
+- **渲染语料重写**：`render_fixtures.json` v2 15 用例（占位符积木单测/组合/plain + 旧类型容错），前后端 **15/15 匹配**。
+- **vite.config** 加 `allowedHosts:['.monkeycode-ai.online']`（预览用）。
+
+### Fixed
+- **link 同源**：`renderBlocks.js` 删除旧 `case 'link'`（`[text](url)`），link 积木走占位符 default（token）——与后端 `_PLACEHOLDER_TOKEN` 一致。
+
 ## [1.14.2] - 2026-11-13
 
 ### Fixed

@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "ctx": {
     "source": "抖音",
     "peer_name": "示例用户",
@@ -11,77 +11,97 @@
   },
   "cases": [
     {
-      "name": "single_text",
+      "name": "ph_source",
+      "blocks": [
+        {
+          "type": "source",
+          "data": {}
+        }
+      ],
+      "markdown": true,
+      "expected": "抖音"
+    },
+    {
+      "name": "ph_peer_name",
+      "blocks": [
+        {
+          "type": "peer_name",
+          "data": {}
+        }
+      ],
+      "markdown": true,
+      "expected": "示例用户"
+    },
+    {
+      "name": "ph_time",
+      "blocks": [
+        {
+          "type": "time",
+          "data": {}
+        }
+      ],
+      "markdown": true,
+      "expected": "14:32"
+    },
+    {
+      "name": "ph_title",
+      "blocks": [
+        {
+          "type": "title",
+          "data": {}
+        }
+      ],
+      "markdown": true,
+      "expected": "示例标题"
+    },
+    {
+      "name": "ph_desc",
+      "blocks": [
+        {
+          "type": "desc",
+          "data": {}
+        }
+      ],
+      "markdown": true,
+      "expected": "示例描述"
+    },
+    {
+      "name": "ph_link",
+      "blocks": [
+        {
+          "type": "link",
+          "data": {}
+        }
+      ],
+      "markdown": true,
+      "expected": "https://example.com/video/1"
+    },
+    {
+      "name": "ph_image_url",
+      "blocks": [
+        {
+          "type": "image_url",
+          "data": {}
+        }
+      ],
+      "markdown": true,
+      "expected": "https://example.com/cover.jpg"
+    },
+    {
+      "name": "text_block",
       "blocks": [
         {
           "type": "text",
           "data": {
-            "text": "纯文本消息"
+            "text": "纯文本 {source} {peer_name}"
           }
         }
       ],
       "markdown": true,
-      "expected": "纯文本消息"
+      "expected": "纯文本 抖音 示例用户"
     },
     {
-      "name": "single_heading",
-      "blocks": [
-        {
-          "type": "heading",
-          "data": {
-            "title": "标题",
-            "body": "正文内容"
-          }
-        }
-      ],
-      "markdown": true,
-      "expected": "# 标题\n正文内容"
-    },
-    {
-      "name": "single_media",
-      "blocks": [
-        {
-          "type": "media",
-          "data": {
-            "image": "https://example.com/i.jpg",
-            "title": "封面标题",
-            "desc": "描述文字"
-          }
-        }
-      ],
-      "markdown": true,
-      "expected": "![封面标题](https://example.com/i.jpg)\n\n# 封面标题\n\n描述文字"
-    },
-    {
-      "name": "single_link",
-      "blocks": [
-        {
-          "type": "link",
-          "data": {
-            "text": "查看原文",
-            "url": "https://example.com/v"
-          }
-        }
-      ],
-      "markdown": true,
-      "expected": "[查看原文](https://example.com/v)"
-    },
-    {
-      "name": "single_button",
-      "blocks": [
-        {
-          "type": "button",
-          "data": {
-            "text": "点击",
-            "url": "https://example.com/v"
-          }
-        }
-      ],
-      "markdown": true,
-      "expected": "[点击](https://example.com/v)"
-    },
-    {
-      "name": "single_divider",
+      "name": "divider_block",
       "blocks": [
         {
           "type": "divider",
@@ -92,42 +112,29 @@
       "expected": "***"
     },
     {
-      "name": "multi_all",
+      "name": "multi_ph",
       "blocks": [
-        {
-          "type": "heading",
-          "data": {
-            "title": "聚合标题",
-            "body": "聚合正文"
-          }
-        },
-        {
-          "type": "media",
-          "data": {
-            "image": "https://example.com/i.jpg",
-            "title": "封面",
-            "desc": "描述"
-          }
-        },
         {
           "type": "text",
           "data": {
-            "text": "正文段落"
+            "text": "{source} {peer_name} · {time}"
           }
+        },
+        {
+          "type": "title",
+          "data": {}
+        },
+        {
+          "type": "desc",
+          "data": {}
+        },
+        {
+          "type": "image_url",
+          "data": {}
         },
         {
           "type": "link",
-          "data": {
-            "text": "链接",
-            "url": "https://example.com/l"
-          }
-        },
-        {
-          "type": "button",
-          "data": {
-            "text": "按钮",
-            "url": "https://example.com/b"
-          }
+          "data": {}
         },
         {
           "type": "divider",
@@ -135,23 +142,43 @@
         }
       ],
       "markdown": true,
-      "expected": "# 聚合标题\n聚合正文\n\n![封面](https://example.com/i.jpg)\n\n# 封面\n\n描述\n\n正文段落\n\n[链接](https://example.com/l)\n\n[按钮](https://example.com/b)\n\n***"
+      "expected": "抖音 示例用户 · 14:32\n\n示例标题\n\n示例描述\n\nhttps://example.com/cover.jpg\n\nhttps://example.com/video/1\n\n***"
     },
     {
-      "name": "placeholder_full",
+      "name": "multi_ph_plain",
       "blocks": [
         {
-          "type": "text",
+          "type": "title",
+          "data": {}
+        },
+        {
+          "type": "desc",
+          "data": {}
+        },
+        {
+          "type": "link",
+          "data": {}
+        }
+      ],
+      "markdown": false,
+      "expected": "示例标题\n\n示例描述\n\nhttps://example.com/video/1"
+    },
+    {
+      "name": "legacy_heading",
+      "blocks": [
+        {
+          "type": "heading",
           "data": {
-            "text": "{source} {peer_name} {time} {title} {desc} {link} {image_url}"
+            "title": "{title}",
+            "body": "{desc}"
           }
         }
       ],
       "markdown": true,
-      "expected": "抖音 示例用户 14:32 示例标题 示例描述 https://example.com/video/1 https://example.com/cover.jpg"
+      "expected": "# 示例标题\n示例描述"
     },
     {
-      "name": "placeholder_media",
+      "name": "legacy_media",
       "blocks": [
         {
           "type": "media",
@@ -166,111 +193,18 @@
       "expected": "![示例标题](https://example.com/cover.jpg)\n\n# 示例标题\n\n示例描述"
     },
     {
-      "name": "placeholder_heading",
-      "blocks": [
-        {
-          "type": "heading",
-          "data": {
-            "title": "{title}",
-            "body": "{desc}"
-          }
-        }
-      ],
-      "markdown": true,
-      "expected": "# 示例标题\n示例描述"
-    },
-    {
-      "name": "media_plain",
-      "blocks": [
-        {
-          "type": "media",
-          "data": {
-            "image": "{image_url}",
-            "title": "{title}",
-            "desc": "{desc}"
-          }
-        }
-      ],
-      "markdown": false,
-      "expected": "示例标题\n\n示例描述"
-    },
-    {
-      "name": "heading_plain",
-      "blocks": [
-        {
-          "type": "heading",
-          "data": {
-            "title": "{title}",
-            "body": "{desc}"
-          }
-        }
-      ],
-      "markdown": false,
-      "expected": "示例标题\n示例描述"
-    },
-    {
-      "name": "link_plain",
-      "blocks": [
-        {
-          "type": "link",
-          "data": {
-            "text": "{title}",
-            "url": "{link}"
-          }
-        }
-      ],
-      "markdown": false,
-      "expected": "示例标题 https://example.com/video/1"
-    },
-    {
-      "name": "button_plain",
+      "name": "legacy_button",
       "blocks": [
         {
           "type": "button",
           "data": {
-            "text": "{title}",
+            "text": "点击",
             "url": "{link}"
           }
         }
       ],
-      "markdown": false,
-      "expected": "示例标题"
-    },
-    {
-      "name": "divider_plain",
-      "blocks": [
-        {
-          "type": "divider",
-          "data": {}
-        }
-      ],
-      "markdown": false,
-      "expected": "—"
-    },
-    {
-      "name": "multi_plain",
-      "blocks": [
-        {
-          "type": "heading",
-          "data": {
-            "title": "{title}",
-            "body": "{desc}"
-          }
-        },
-        {
-          "type": "link",
-          "data": {
-            "text": "{title}",
-            "url": "{link}"
-          }
-        },
-        {
-          "type": "divider",
-          "data": {}
-        }
-      ],
-      "markdown": false,
-      "expected": "示例标题\n示例描述\n\n示例标题 https://example.com/video/1\n\n—"
+      "markdown": true,
+      "expected": "[点击](https://example.com/video/1)"
     },
     {
       "name": "empty",

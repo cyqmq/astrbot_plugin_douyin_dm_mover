@@ -97,7 +97,11 @@ class DeliveryResult:
 
 
 # ---- 积木（推送模板/消息草稿）----
-BLOCK_TYPES = ("text", "heading", "media", "link", "button", "divider")
+# 占位符积木（data 为空，token 由 type 派生；与 _ALLOWED_PLACEHOLDERS 一致）
+PLACEHOLDER_BLOCK_TYPES = (
+    "source", "peer_name", "time", "title", "desc", "link", "image_url",
+)
+BLOCK_TYPES = (*PLACEHOLDER_BLOCK_TYPES, "text", "divider")
 
 
 def validate_block(b: dict) -> str | None:
@@ -112,16 +116,4 @@ def validate_block(b: dict) -> str | None:
         return f"积木 {t} 的 data 必须是对象"
     if t == "text" and not str(d.get("text", "")).strip():
         return "text 积木缺少 text"
-    if t == "heading" and not str(d.get("title", "")).strip():
-        return "heading 积木缺少 title"
-    if (
-        t == "media"
-        and not str(d.get("image", "")).strip()
-        and not str(d.get("title", "")).strip()
-    ):
-        return "media 积木需 image 或 title 至少其一"
-    if t == "link" and not str(d.get("text", "")).strip():
-        return "link 积木缺少 text"
-    if t == "button" and not str(d.get("text", "")).strip():
-        return "button 积木缺少 text"
     return None
