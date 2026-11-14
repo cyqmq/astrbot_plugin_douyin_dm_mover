@@ -24,10 +24,12 @@ class Route:
     def matches(self, msg: InboundMessage) -> bool:
         if self.types and msg.type not in self.types:
             return False
-        if msg.conversation_type == 2:  # 群聊：按 group_id 匹配（好友来源路由不接群聊）
+        if msg.conversation_type == 2:  # 群聊：按 group_id，或好友来源按发送者匹配
             if self.groups_include:
                 return str(msg.group_id or "") in self.groups_include
-            return not self.senders_include
+            if self.senders_include:
+                return str(msg.peer_id or "") in self.senders_include
+            return True
         # 单聊：按 peer_id 匹配（群来源路由不接单聊）
         pid = str(msg.peer_id or "")
         if self.senders_include:

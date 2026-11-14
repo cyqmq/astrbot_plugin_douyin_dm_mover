@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.15.8] - 2026-11-13
+
+### Fixed
+- **群聊好友来源不匹配**：`router.matches` 群聊分支原为 `return not self.senders_include`（好友来源路由不接群聊）——群聊消息发送者是来源卡好友时也不匹配（若群聊先到则丢）。改为 `senders_include` 非空时按**发送者**（`peer_id`）匹配群聊消息；`groups_include` 优先按 `group_id`；都空匹配全部。单聊分支不变。
+
 ## [1.15.7] - 2026-11-13
 
 ### Changed
