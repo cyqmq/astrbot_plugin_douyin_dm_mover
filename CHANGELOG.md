@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.15.5] - 2026-11-13
+
+### Changed
+- **删边调试日志**：`onEdgesDelete` 首行加 `console.log('[dyf] onEdgesDelete 触发 n=… 边=[…]')`，便于排查删边解析（浏览器控制台查看）。
+
 ## [1.15.4] - 2026-11-13
 
 ### Fixed

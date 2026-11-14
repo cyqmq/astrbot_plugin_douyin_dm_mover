@@ -123,6 +123,7 @@ function onConnect(c) {
   }
 }
 function onEdgesDelete(list) {
+  console.log('[dyf] onEdgesDelete 触发 n=' + (list || []).length + ' 边=' + JSON.stringify((list || []).map(e => e.id)))
   (list || []).forEach(e => {
     const d = e.data || {}
     // 从边 id 解析路由索引，直取当前 store.routes（避免删的是渲染快照旧对象，targets 改不到）
