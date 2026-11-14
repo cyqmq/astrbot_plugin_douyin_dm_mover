@@ -32,17 +32,17 @@ function addSource() {
   let n = 1
   while (ids.has('src' + n)) n++
   store.customSources.push({ id: 'src' + n, uid: '', nickname: '', type: 'friend', group_id: '', group_name: '' })
-  scheduleLiveSave()
+  scheduleLiveSave(); build()
 }
 function delSource(source) {
   const i = store.customSources.indexOf(source)
-  if (i >= 0) { store.customSources.splice(i, 1); scheduleLiveSave() }
+  if (i >= 0) { store.customSources.splice(i, 1); scheduleLiveSave(); build() }
 }
 function addTarget() {
   const defAd = (store.platforms[0] && store.platforms[0].id) || 'aiocqhttp'
   if (store.advancedTargets) store.customTargets.push({ id: 'tgt' + (store.customTargets.length + 1), adapter: defAd, group: '' })
   else store.simpleTargets.push({ id: 's' + (store.simpleTargets.length + 1), adapter: defAd, kind: 'group', value: '' })
-  scheduleLiveSave()
+  scheduleLiveSave(); build()
 }
 function delTarget(t) {
   const old = umoOf(t)
@@ -55,7 +55,7 @@ function delTarget(t) {
     if (k >= 0) ts.splice(k, 1)
     if (r.target === old) r.target = ''
   })
-  scheduleLiveSave()
+  scheduleLiveSave(); build()
 }
 function updateTarget(t, patch) {
   const old = umoOf(t)
@@ -67,26 +67,26 @@ function updateTarget(t, patch) {
     if (k >= 0) ts[k] = neu
     if (r.target === old) r.target = neu
   })
-  scheduleLiveSave()
+  scheduleLiveSave(); buildEdges()  // 旧 UMO 已换新，重画边
 }
 let routeSeq = 0
 function addRoute() {
   // 唯一名称：时间戳 + 序号，避免删中间路由后重名（_route_diff 按 name 匹配）
   store.routes.push({ name: 'route' + Date.now().toString(36) + '_' + (++routeSeq), target: '', targets: [], pos: null,
     match: { types: ['text', 'video_card'], senders_include: [] } })
-  scheduleLiveSave()
+  scheduleLiveSave(); build()
 }
 function moveRoute(route, d) {
   const i = store.routes.indexOf(route)
   const j = i + d
   if (i < 0 || j < 0 || j >= store.routes.length) return
   const t = store.routes[i]; store.routes[i] = store.routes[j]; store.routes[j] = t
-  scheduleLiveSave()
+  scheduleLiveSave(); build()
 }
 function delRoute(route) {
   const i = store.routes.indexOf(route)
   if (i >= 0) store.routes.splice(i, 1)
-  scheduleLiveSave()
+  scheduleLiveSave(); build()
 }
 
 // ---- 手动连接：来源→路由（uid 进 senders_include）/ 路由→目标（target=UMO） ----
@@ -222,11 +222,7 @@ function buildEdges() {
 }
 function build() { buildNodes(); buildEdges() }
 
-// 结构变化 → 重建；内容变化（类型）→ 只重建边
-watch(() => JSON.stringify({ r: store.routes.length, t: targetList.value, c: store.customSources,
-  a: store.advancedTargets, g: store.routes.map(r => r.target).join('|') + '|' +
-    store.routes.map(r => (r.targets || []).join(',')).join('|') }), build)
-// 内容变化（类型/来源连接）→ 只重建边（保焦点）
+// 内容变化（类型/来源连接）→ 只重建边（保焦点）；节点增删/换序由各操作显式 build()
 watch(() => JSON.stringify(store.routes.map(r => ((r.match && r.match.types) || []).join(',') + '|' +
   ((r.match && r.match.senders_include) || []).join(',') + '|' +
   ((r.match && r.match.groups_include) || []).join(','))), buildEdges)

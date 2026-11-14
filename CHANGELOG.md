@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.15.3] - 2026-11-13
+
+### Fixed
+- **自动连线 bug（移动/改值误触发重画线）**：`TopologyFlow` 删「结构自动重建」watch（getter 含 `targetList`/`customSources` 整个数组 + `pos`，移动/改值也触发 `build`→`buildEdges` 重画线）；改各增删改操作**显式** `build()`（addSource/delSource/addTarget/delTarget/addRoute/delRoute/moveRoute）+ `updateTarget` 加 `buildEdges()`；`onDragStop` 不加 build（节点移动由 VueFlow 自身处理，边自动跟随）。保留类型/来源连接变化重画边 watch + 保存 watch + onConnect/onEdgesDelete 显式 buildEdges。
+
 ## [1.16.0] - 2026-11-13
 
 ### Added
