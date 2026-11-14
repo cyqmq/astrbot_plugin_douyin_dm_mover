@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.15.6] - 2026-11-13
+
+### Fixed
+- **删边不触发（根因）**：`@edges-delete` 在你环境不触发 → `onEdgesDelete` 未执行 → `targets`/`senders_include` 从未清、未保存 → 连一条线 `buildEdges` 把未清掉的已保存连接全画出来。改用 `@edges-change`（监听 edges 任何增删变化，删除必然 `type:'remove'`，且被删边只剩 id）——`onEdgesChange` 按**边 id** 解析清路由（src 边 `e|src|{sid}|{ri}` 清 `senders/groups_include`，route 边 `e|route|{ri}|{k}|{ti}` 清 `targets`），删边后 `scheduleLiveSave` + `buildEdges`（此时已清，不重画残留）。
+
 ## [1.15.5] - 2026-11-13
 
 ### Changed

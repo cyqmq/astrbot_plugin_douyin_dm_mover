@@ -122,31 +122,37 @@ function onConnect(c) {
     }
   }
 }
-function onEdgesDelete(list) {
-  console.log('[dyf] onEdgesDelete 触发 n=' + (list || []).length + ' 边=' + JSON.stringify((list || []).map(e => e.id)))
-  (list || []).forEach(e => {
-    const d = e.data || {}
-    // 从边 id 解析路由索引，直取当前 store.routes（避免删的是渲染快照旧对象，targets 改不到）
-    // 边 id：src-route=`e|src|{srcId}|{ri}`（第4段），route-tgt=`e|route|{ri}|{k}|{ti}`（第3段）
-    const m = /^e\|(?:src\|[^|]+\|(\d+)|route\|(\d+))/.exec(e.id || '')
-    const ri = m ? (m[1] !== undefined ? +m[1] : +m[2]) : -1
-    const r = ri >= 0 ? store.routes[ri] : d.route
-    if (!r) return
-    if (d.kind === 'src-route') {
-      if (r.match) {
-        if (d.gid && r.match.groups_include) {
-          const i = r.match.groups_include.indexOf(d.gid)
-          if (i >= 0) r.match.groups_include.splice(i, 1)
-        } else if (d.uid && r.match.senders_include) {
-          const i = r.match.senders_include.indexOf(d.uid)
-          if (i >= 0) r.match.senders_include.splice(i, 1)
-        }
+function onEdgesChange(changes) {
+  // @edges-change 必然触发增删变化（@edges-delete 在某些环境不触发）；删除时边只剩 id，从 id 解析清路由
+  const removed = (changes || []).filter(c => c.type === 'remove')
+  if (!removed.length) return
+  removed.forEach(c => {
+    const p = (c.id || '').split('|')
+    if (p[0] !== 'e' || p.length < 4) return
+    if (p[1] === 'src') {
+      // e|src|{sid}|{ri}：来源→路由，清 senders/groups_include
+      const r = store.routes[+p[3]]
+      if (!r || !r.match) return
+      const src = sources.value.find(x => x.id === p[2])
+      if (!src) return
+      if (src.type === 'group') {
+        const i = r.match.groups_include.indexOf(src.group_id)
+        if (i >= 0) r.match.groups_include.splice(i, 1)
+      } else if (src.uid) {
+        const i = r.match.senders_include.indexOf(src.uid)
+        if (i >= 0) r.match.senders_include.splice(i, 1)
       }
-    } else if (d.kind === 'route-tgt') {
+    } else if (p[1] === 'route') {
+      // e|route|{ri}|{k}|{ti}：路由→目标，清 targets
+      const r = store.routes[+p[2]]
+      if (!r) return
+      const t = targetList.value[+p[4]]
+      if (!t) return
+      const umo = umoOf(t)
       const ts = r.targets || []
-      const i = ts.indexOf(d.umo)
+      const i = ts.indexOf(umo)
       if (i >= 0) ts.splice(i, 1)
-      if (r.target === d.umo) r.target = ''  // 兼容旧单 target
+      if (r.target === umo) r.target = ''  // 兼容旧单 target
     }
   })
   scheduleLiveSave()
@@ -257,7 +263,7 @@ onMounted(() => { build(); setTimeout(() => { liveReady = true }, 600) })
          :default-edge-options="{ type: 'bezier' }" :nodes-connectable="true" :edges-connectable="true"
          :nodes-draggable="true" :pan-on-drag="true" fit-view-on-init
          :delete-key-code="['Delete', 'Backspace']" :delete-key-code-prevent-default="true"
-         @connect="onConnect" @edges-delete="onEdgesDelete" @node-drag-stop="onDragStop">
+         @connect="onConnect" @edges-change="onEdgesChange" @node-drag-stop="onDragStop">
         <template #node-source="p"><SourceNode :data="p.data" /></template>
         <template #node-route="p"><RouteNode :data="p.data" /></template>
         <template #node-target="p"><TargetNode :data="p.data" /></template>
