@@ -4,6 +4,13 @@
 
 ## [Unreleased]
 
+## [1.14.0] - 2026-11-13
+
+### Added
+- **推送积木化编辑器（前端三栏）**：`web/src/components/cards/`（`blockTypes.js`/`renderBlocks.js`/`PhonePreview.vue`/`BlockLibrary.vue`/`MessageComposer.vue`）+ 重写 `CardsTab.vue`——左手机实时预览 / 中积木序列编排（`vue-draggable-plus` 拖拽、选中/启停/复制/删除）/ 右积木库 + 属性编辑；对接 `messages/draft`（加载草稿→模板→默认，自动保存防抖）、`templates/get`、`templates/set`（保存模板）。
+- **前后端同源**：`renderBlocks.js` 修正 media `\n\n` 连接、加 `markdown` 参数（plain 模式）、空块跳过——与后端 `_render_blocks` 规则一致，跑 `render_fixtures.json` **17/17 匹配**。
+- **依赖**：`vue-draggable-plus@^0.6.1`。
+
 ## [1.13.1] - 2026-11-13
 
 ### Added

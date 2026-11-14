@@ -1,177 +1,257 @@
 <script setup>
-// 推送卡片编辑器：模板列表（一段 Markdown/纯文本）+ 卡片类型骨架 + 图片预览 + 手机预览。
-// 占位符白名单与后端 templates/set 一致：source/peer_name/time/title/desc/link/image_url。
-import { onMounted, ref } from 'vue'
+// 卡片编辑器（重写版）——步骤 2：三栏框架 + 左栏手机预览
+// 三栏布局由 CardsTab 统一控制宽度/高度/间距，各栏组件内不写
+import { ref, watch, onMounted } from 'vue'
 import { apiGet, apiPostBody, toast } from '../../composables/store.js'
+import PhonePreview from '../cards/PhonePreview.vue'
+import BlockLibrary from '../cards/BlockLibrary.vue'
+import MessageComposer from '../cards/MessageComposer.vue'
+import { createBlock, validateBlocks } from '../cards/blockTypes.js'
 
-const templates = ref([])
-const markdownEnabled = ref(true)
-const sanitizeBody = ref(true)
-const maxLen = ref(1000)
+// 积木序列（从草稿/模板加载）
+const blocks = ref([])
+const selectedBlock = ref(null)
+const selectedIndex = ref(-1)
 const loading = ref(false)
 const saving = ref(false)
-const error = ref('')
+const status = ref('idle')  // 预览状态：idle/loading/error
+const errorMsg = ref('')
+const saveHint = ref('')
 
-const PLACEHOLDERS = ['source', 'peer_name', 'time', 'title', 'desc', 'link', 'image_url']
-// 卡片类型 → 模板 content 骨架（用户可再编辑；{image_url} 运行时用转发原图填充）
-const CARD_TYPES = {
-  text: { label: '纯文本', content: '{desc}' },
-  heading: { label: '标题+正文', content: '# {title}\n\n{desc}' },
-  media: { label: '图文', content: '![封面]({image_url})\n\n# {title}\n\n{desc}' },
-  link: { label: '链接', content: '[{title}]({link})' },
-  button: { label: '按钮（文本）', content: '[{title}]({link})' },
-}
-
-async function loadTemplates() {
-  loading.value = true
-  error.value = ''
-  const d = await apiGet('templates/get')
-  loading.value = false
-  if (!d || d.ok === false) { error.value = (d && d.detail) || '加载模板失败'; return }
-  templates.value = Array.isArray(d.templates) ? d.templates.map(normalize) : []
-  markdownEnabled.value = !!d.markdown_enabled
-  sanitizeBody.value = !!d.sanitize_body
-  maxLen.value = d.max_message_length || 1000
-}
-
-function normalize(t) {
-  const c = t.content || ''
+// 归一化积木（补 id、disabled 字段）
+function normalizeBlock(b) {
   return {
-    id: t.id || 't' + Math.random().toString(36).slice(2, 8),
-    name: t.name || '模板',
-    content: c,
-    markdown: t.markdown !== false,
-    for_media: !!t.for_media,
-    cardType: guessCardType(c),
-    previewUrl: '',
+    id: b.id || 'b' + Date.now() + Math.random().toString(36).slice(2, 6),
+    ...b,
+    disabled: b.disabled !== false,
   }
 }
 
-function guessCardType(c) {
-  if (c.includes('{image_url}')) return 'media'
-  if (c.startsWith('# ')) return 'heading'
-  if (c.includes(']({link})') || c.includes(']({link)')) return 'link'
-  return 'text'
+// 加载：先草稿，无草稿用模板，无模板用默认
+async function loadInitial() {
+  loading.value = true
+  status.value = 'loading'
+  try {
+    const d = await apiGet('messages/draft')
+    if (d && d.ok && Array.isArray(d.blocks) && d.blocks.length) {
+      blocks.value = d.blocks.map(normalizeBlock)
+    } else {
+      const t = await apiGet('templates/get')
+      if (t && t.ok && Array.isArray(t.templates) && t.templates.length) {
+        const first = t.templates[0]
+        blocks.value = (first.blocks || []).map(normalizeBlock)
+      } else {
+        blocks.value = [createBlock('text', { text: '{desc}' })]
+      }
+    }
+    status.value = 'idle'
+  } catch (e) {
+    status.value = 'error'
+    errorMsg.value = '加载失败'
+  } finally {
+    loading.value = false
+  }
 }
 
-function addTemplate() {
-  templates.value.push(normalize({ id: '', name: '新模板', content: CARD_TYPES.text.content, markdown: true, for_media: false }))
+// 从积木库添加积木（插在选中积木后面，无选中则追加末尾）
+function addBlock(type) {
+  const b = createBlock(type)
+  if (b) {
+    if (selectedIndex.value >= 0 && selectedIndex.value < blocks.value.length) {
+      blocks.value.splice(selectedIndex.value + 1, 0, b)
+      selectedIndex.value += 1
+    } else {
+      blocks.value.push(b)
+      selectedIndex.value = blocks.value.length - 1
+    }
+    selectedBlock.value = b
+  }
 }
 
-function removeTemplate(i) {
-  templates.value.splice(i, 1)
+// 中栏积木操作
+function selectBlock(i) {
+  selectedIndex.value = i
+  selectedBlock.value = blocks.value[i] || null
+}
+function toggleBlock(i) {
+  const b = blocks.value[i]
+  if (b) b.disabled = !b.disabled
+}
+function duplicateBlock(i) {
+  const src = blocks.value[i]
+  if (!src) return
+  const copy = JSON.parse(JSON.stringify(src))
+  copy.id = 'b' + Date.now() + Math.random().toString(36).slice(2, 6)
+  blocks.value.splice(i + 1, 0, copy)
+}
+function removeBlock(i) {
+  blocks.value.splice(i, 1)
+  if (selectedIndex.value === i) {
+    selectedIndex.value = -1
+    selectedBlock.value = null
+  } else if (selectedIndex.value > i) {
+    selectedIndex.value--
+    selectedBlock.value = blocks.value[selectedIndex.value] || null
+  }
 }
 
-// 切换卡片类型：用对应骨架填充 content（覆盖，用户可再改）
-function setCardType(t, type) {
-  t.cardType = type
-  t.content = CARD_TYPES[type].content
+// 自动保存草稿（防抖 1.5 秒）
+let draftTimer
+function scheduleDraftSave() {
+  clearTimeout(draftTimer)
+  draftTimer = setTimeout(saveDraft, 1500)
+}
+async function saveDraft() {
+  const r = validateBlocks(blocks.value)
+  if (!r.ok) return
+  try {
+    const d = await apiPostBody('messages/draft', { blocks: blocks.value })
+    saveHint.value = (d && d.ok) ? '草稿已自动保存' : ('草稿保存失败: ' + ((d && d.detail) || ''))
+  } catch (e) {
+    saveHint.value = '草稿保存失败'
+  }
 }
 
-function insertPlaceholder(t, key) {
-  const tok = '{' + key + '}'
-  if (t.content.includes(tok)) return
-  t.content = (t.content ? t.content + '\n' : '') + tok
-}
-
-function onFile(t, ev) {
-  const f = ev.target.files && ev.target.files[0]
-  if (!f) return
-  const r = new FileReader()
-  r.onload = () => { t.previewUrl = String(r.result || '') }
-  r.readAsDataURL(f)
-  ev.target.value = ''
-}
-
-async function saveTemplates() {
+// 保存为模板
+async function saveAsTemplate() {
+  const r = validateBlocks(blocks.value)
+  if (!r.ok) { toast(r.detail); return }
   saving.value = true
-  error.value = ''
-  const payload = templates.value.map(t => ({
-    id: t.id, name: t.name, content: t.content,
-    markdown: !!t.markdown, for_media: !!t.for_media,
-  }))
-  const d = await apiPostBody('templates/set', { templates: payload })
-  saving.value = false
-  if (!d || d.ok === false) { error.value = (d && d.detail) || '保存失败'; toast(error.value); return }
-  toast(d.detail || '已保存')
+  try {
+    const d = await apiPostBody('templates/set', {
+      templates: [{ id: 'default', name: '默认模板', blocks: blocks.value, for_media: false }],
+    })
+    if (d && d.ok) {
+      toast(d.detail || '已保存为模板')
+      saveHint.value = '已保存为模板'
+    } else {
+      toast((d && d.detail) || '保存失败')
+      saveHint.value = '保存失败'
+    }
+  } catch (e) {
+    toast('保存失败')
+    saveHint.value = '保存失败'
+  } finally {
+    saving.value = false
+  }
 }
 
-// 预览：转义 HTML 后做最小 Markdown 渲染（仅预览；QQ 实际渲染以收到为准）
-function esc(s) { return String(s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])) }
-function renderMd(s) {
-  let h = esc(s)
-  h = h.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" style="max-width:100%;border-radius:6px;display:block">')
-  h = h.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
-  h = h.replace(/^# (.+)$/gm, '<h3 style="margin:4px 0">$1</h3>')
-  h = h.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>')
-  h = h.replace(/`(.+?)`/g, '<code>$1</code>')
-  h = h.replace(/\n/g, '<br>')
-  return h
-}
+// 监听 blocks 变化，自动保存草稿
+watch(blocks, scheduleDraftSave, { deep: true })
 
-onMounted(loadTemplates)
+onMounted(loadInitial)
 </script>
 
 <template>
-  <section>
-    <div class="bar" style="margin-bottom:10px">
-      <div style="font-weight:600">推送模板</div>
-      <button class="mini" :disabled="loading" @click="loadTemplates">↻ 刷新</button>
-      <button class="mini" @click="addTemplate">＋ 添加模板</button>
-      <button class="mini" :disabled="saving" style="background:var(--acc,#3b82f6);color:#fff" @click="saveTemplates">
-        {{ saving ? '保存中…' : '保存' }}
-      </button>
-      <span class="muted">Markdown 通道: {{ markdownEnabled ? '开' : '关' }} · 正文净化: {{ sanitizeBody ? '开' : '关' }}</span>
-    </div>
+  <div class="cards-app">
+    <aside class="col col-left">
+      <div class="col-head"><h2>手机预览</h2></div>
+      <PhonePreview :blocks="blocks" />
+    </aside>
 
-    <div v-if="error" class="card" style="padding:10px;margin-bottom:10px;color:#ef4444;border:1px solid #ef4444">
-      {{ error }}
-    </div>
-    <div v-if="loading" class="card muted" style="padding:16px;text-align:center">加载中…</div>
-
-    <!-- 模板卡列表 -->
-    <div v-for="(t, i) in templates" :key="t.id" class="card" style="padding:14px;margin-bottom:12px">
-      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-        <input v-model="t.name" class="fr-search" style="flex:1;min-width:160px" placeholder="模板名称">
-        <select v-model="t.cardType" class="fr-search" style="width:auto" @change="setCardType(t, t.cardType)">
-          <option v-for="(v, k) in CARD_TYPES" :key="k" :value="k">{{ v.label }}</option>
-        </select>
-        <label class="muted" style="font-size:12px"><input type="checkbox" v-model="t.markdown"> Markdown</label>
-        <label class="muted" style="font-size:12px"><input type="checkbox" v-model="t.for_media"> 媒体链</label>
-        <button class="mini" style="color:#ef4444" @click="removeTemplate(i)">删除</button>
-      </div>
-
-      <div style="display:flex;gap:12px;margin-top:10px;flex-wrap:wrap">
-        <div style="flex:2;min-width:260px">
-          <textarea v-model="t.content" rows="5" class="fr-search" style="width:100%;font-family:monospace"
-            placeholder="模板内容：一段 Markdown/纯文本，占位符见下方"></textarea>
-          <div class="muted" style="margin-top:6px;font-size:12px">
-            占位符:
-            <button v-for="p in PLACEHOLDERS" :key="p" class="mini" style="margin:2px" @click="insertPlaceholder(t, p)">{{ '{' + p + '}' }}</button>
-          </div>
-          <div class="muted" style="margin-top:4px;font-size:12px">长度上限 {{ maxLen }}；<code>&#123;&#123;</code>/<code>&#125;&#125;</code> 为转义字面量</div>
-        </div>
-
-        <div style="flex:1;min-width:180px">
-          <div class="muted" style="font-size:12px;margin-bottom:4px">封面预览（本地图仅预览，运行时用 {{ '{image_url}' }} 原图填充）</div>
-          <img v-if="t.previewUrl" :src="t.previewUrl" alt="预览" style="max-width:120px;border-radius:6px;display:block">
-          <input type="file" accept="image/*" style="font-size:12px;margin-top:4px" @change="onFile(t, $event)">
-          <div class="muted" style="font-size:11px;margin-top:4px">实际图片以转发消息原图为准</div>
-        </div>
-
-        <!-- 手机预览 -->
-        <div style="flex:1;min-width:220px">
-          <div class="muted" style="font-size:12px;margin-bottom:4px">手机预览（Web 渲染，与 QQ 实际渲染有差异）</div>
-          <div class="card" style="padding:10px;border:1px solid #ddd;background:#fafafa">
-            <div v-html="renderMd(t.content)" style="font-size:13px;line-height:1.5;color:#111"></div>
-          </div>
-          <div class="muted" style="font-size:11px;margin-top:4px">以实际收到为准</div>
+    <main class="col col-center">
+      <div class="col-head">
+        <h2>消息拼装</h2>
+        <div class="head-actions">
+          <span class="save-hint">{{ saveHint }}</span>
+          <button class="btn-save" :disabled="saving" @click="saveAsTemplate">
+            {{ saving ? '保存中…' : '保存为模板' }}
+          </button>
         </div>
       </div>
-    </div>
+      <MessageComposer
+        v-model="blocks"
+        :selected-index="selectedIndex"
+        @select="selectBlock"
+        @toggle="toggleBlock"
+        @duplicate="duplicateBlock"
+        @remove="removeBlock"
+      />
+    </main>
 
-    <div v-if="!loading && !templates.length" class="card" style="padding:16px;text-align:center">
-      <span class="muted">暂无模板，点「添加模板」创建；保存后转发消息头即用模板渲染</span>
-    </div>
-  </section>
+    <aside class="col col-right">
+      <div class="col-head"><h2>积木</h2></div>
+      <BlockLibrary :selected-block="selectedBlock" @add="addBlock" />
+    </aside>
+  </div>
 </template>
+
+<style scoped>
+/* 三栏布局（CardsTab 统一控制，宽度比例/高度/间距） */
+.cards-app{
+  display:grid;
+  grid-template-columns:3fr 4fr 3fr;
+  grid-template-rows:minmax(0, 1fr);
+  gap:8px;
+  padding:8px;
+  height:calc(100vh - 120px);
+  min-height:520px;
+  width:100%;
+  box-sizing:border-box;
+}
+
+.col{
+  background:#fff;
+  border:1px solid #E7E9ED;
+  border-radius:14px;
+  display:flex;
+  flex-direction:column;
+  min-height:0;
+  min-width:0;
+  width:100%;
+  height:100%;
+  overflow:hidden;
+}
+
+.col-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:12px 14px;
+  border-bottom:1px solid #F0F2F5;
+  flex:none;
+  gap:8px;
+}
+.col-head h2{
+  font-size:14px;
+  font-weight:600;
+}
+
+.head-actions{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+.save-hint{
+  font-size:11px;
+  color:#9AA1AC;
+}
+.btn-save{
+  border:none;
+  border-radius:8px;
+  padding:6px 12px;
+  font-size:12px;
+  font-weight:500;
+  cursor:pointer;
+  background:#2E7CF6;
+  color:#fff;
+  transition:.15s;
+}
+.btn-save:hover{ background:#2569D8; }
+.btn-save:disabled{ background:#C7D2DC; cursor:not-allowed; }
+
+.col-body{
+  flex:1;
+  overflow:auto;
+  padding:14px;
+  min-height:0;
+  display:flex;
+  align-items:flex-start;
+  justify-content:flex-start;
+}
+
+/* 左栏：渐变背景（手机预览直接撑满，无外部容器） */
+.col-left{
+  background:linear-gradient(180deg,#FAFBFC 0%,#EDEFF3 100%);
+}
+</style>
