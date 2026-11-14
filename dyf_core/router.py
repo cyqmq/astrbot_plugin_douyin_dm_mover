@@ -1,9 +1,12 @@
 """路由表：按序匹配，支持多命中。target 为 unified_msg_origin 或群号简写。"""
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, field
 
 from dyf_core.model import InboundMessage, MessageType
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -70,6 +73,9 @@ class RouteResolver:
                     groups_include=_str_set(match.get("groups_include")),
                 )
             )
+        logger.info(
+            f"[dyf] 路由表构建: {[(r.name, sorted(map(str, r.types)), sorted(r.senders_include), sorted(r.groups_include), r.all_targets()) for r in self.routes]}"
+        )
 
     def resolve(self, msg: InboundMessage) -> list[tuple[str, str]]:
         """按序命中路由，返回 [(路由名, target)]；每命中路由产出全部 targets；未命中返回空。"""

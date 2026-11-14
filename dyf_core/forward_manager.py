@@ -210,7 +210,10 @@ class ForwardManager:
 
         targets = self._resolve_targets(msg)
         if not targets:
-            logger.info(f"[dyf] 无匹配路由，跳过: type={msg.type} peer={msg.peer_id}")
+            logger.info(
+                f"[dyf] 无匹配路由，跳过: type={msg.type} conv_type={msg.conversation_type} group_id={msg.group_id} peer_id={msg.peer_id} "
+                f"routes={[{'name': r.name, 'types': sorted(map(str, r.types)), 'senders': sorted(r.senders_include), 'groups': sorted(r.groups_include), 'targets': r.all_targets()} for r in self.router.routes]}"
+            )
             return
 
         card_image = None

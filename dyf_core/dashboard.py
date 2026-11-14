@@ -386,6 +386,15 @@ class DashboardApi:
                     logger.info(
                         f"[dyf] 路由 {r['name']!r} 连线状态: targets={tg or '空'} ({len(tg)} 个目标)"
                     )
+            # 完整路由配置：确认落盘的 senders/groups/types/targets
+            for _rt in updates.get("routes") or []:
+                if not isinstance(_rt, dict):
+                    continue
+                _m = _rt.get("match") or {}
+                logger.info(
+                    f"[dyf] 保存路由 '{_rt.get('name')}' types={_m.get('types')} senders={_m.get('senders_include')} "
+                    f"groups={_m.get('groups_include')} targets={_rt.get('targets') or ([_rt.get('target')] if _rt.get('target') else [])}"
+                )
             # 路由即时生效：router 只在 __init__ 建一次，更新 routes 后需重建
             from dyf_core.router import RouteResolver
 

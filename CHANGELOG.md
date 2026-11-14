@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.15.7] - 2026-11-13
+
+### Changed
+- **路由调试日志 3 处**：`config_set` 保存时打印完整路由配置（types/senders/groups/targets）；`RouteResolver.__init__` 末尾打印路由表构建（含 `all_targets`，确认 targets 空丢弃）；`forward_manager` 无匹配时打印消息（type/conv_type/group_id/peer_id）+ 全部路由详情。
+
 ## [1.15.6] - 2026-11-13
 
 ### Fixed
