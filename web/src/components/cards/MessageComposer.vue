@@ -82,7 +82,7 @@ function summary(b) {
 }
 .composer-hint {
   font-size: 11px;
-  color: #9AA1AC;
+  color: var(--muted);
   flex: none;
 }
 .seq {
@@ -96,34 +96,34 @@ function summary(b) {
   padding-right: 4px;
 }
 .seq::-webkit-scrollbar { width: 6px; }
-.seq::-webkit-scrollbar-thumb { background: #DDE1E7; border-radius: 3px; }
+.seq::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
 .seq-item {
   display: flex;
   align-items: center;
   gap: 9px;
   padding: 9px 10px;
-  background: #fff;
-  border: 1px solid #E7E9ED;
+  background: var(--card);
+  border: 1px solid var(--border);
   border-radius: 12px;
   cursor: pointer;
   position: relative;
   transition: .15s;
 }
 .seq-item:hover {
-  border-color: #C7D4EA;
+  border-color: var(--accent);
   box-shadow: 0 3px 10px rgba(16, 24, 40, .07);
 }
 .seq-item.selected {
-  border-color: #2E7CF6;
-  box-shadow: 0 0 0 3px #EBF2FE;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
 }
 .seq-item.off {
-  background: #FAFBFC;
+  background: var(--bg);
   opacity: .6;
 }
-.seq-item.off .seq-name { color: #9AA1AC; }
+.seq-item.off .seq-name { color: var(--muted); }
 .grip {
-  color: #C3C9D2;
+  color: var(--muted);
   font-size: 14px;
   line-height: 1;
   cursor: grab;
@@ -137,16 +137,16 @@ function summary(b) {
   height: 20px;
   border-radius: 6px;
   flex: none;
-  background: #F2F4F7;
-  color: #616A78;
+  background: var(--bg);
+  color: var(--muted);
   font-size: 11px;
   font-weight: 600;
   display: grid;
   place-items: center;
 }
 .seq-item.selected .seq-index {
-  background: #2E7CF6;
-  color: #fff;
+  background: var(--accent);
+  color: var(--card);
 }
 .seq-info {
   flex: 1;
@@ -155,10 +155,10 @@ function summary(b) {
   flex-direction: column;
   gap: 2px;
 }
-.seq-name { font-size: 13px; font-weight: 500; color: #191C21; }
+.seq-name { font-size: 13px; font-weight: 500; color: var(--text); }
 .seq-meta {
   font-size: 11px;
-  color: #9AA1AC;
+  color: var(--muted);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -181,11 +181,11 @@ function summary(b) {
   display: grid;
   place-items: center;
   cursor: pointer;
-  color: #616A78;
+  color: var(--muted);
   font-size: 13px;
 }
-.ico:hover { background: #F2F4F7; color: #191C21; }
-.ico.danger:hover { background: #FEECEE; color: #F04452; }
+.ico:hover { background: var(--bg); color: var(--text); }
+.ico.danger:hover { background: rgba(248,81,73,.14); color: var(--bad); }
 .drag-ghost {
   opacity: .4;
   border-style: dashed;
@@ -194,6 +194,6 @@ function summary(b) {
   padding: 30px 16px;
   text-align: center;
   font-size: 12px;
-  color: #9AA1AC;
+  color: var(--muted);
 }
 </style>

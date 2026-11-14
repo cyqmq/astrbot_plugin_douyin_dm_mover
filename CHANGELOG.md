@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.14.2] - 2026-11-13
+
+### Fixed
+- **卡片页深色主题**：`CardsTab`/`BlockLibrary`/`MessageComposer` 硬编码浅色改为全局主题变量（`var(--card)/var(--bg)/var(--border)/var(--text)/var(--muted)/var(--accent)/var(--bad)`）；`style.css` 新增 `--accent-soft`（`#EBF2FE`/`rgba(88,166,255,.16)`），`.vue-flow__handle` 白描边改 `var(--card)`。深色下卡片页随主题；`PhonePreview` 保留「真机」白屏模拟（刻意设计）。
+
 ## [1.14.1] - 2026-11-13
 
 ### Fixed

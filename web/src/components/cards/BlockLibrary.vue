@@ -84,17 +84,17 @@ function isLong(key) {
   display: flex;
   flex-direction: column;
   min-height: 0;
-  border: 1px solid #E7E9ED;
+  border: 1px solid var(--border);
   border-radius: 12px;
-  background: #FAFBFC;
+  background: var(--bg);
   overflow: hidden;
 }
 .lib-title {
   padding: 10px 14px;
   font-size: 12px;
   font-weight: 600;
-  color: #616A78;
-  border-bottom: 1px solid #F0F2F5;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
   flex: none;
 }
 
@@ -110,19 +110,19 @@ function isLong(key) {
   min-height: 0;
 }
 .lib-item {
-  border: 1px solid #E7E9ED;
+  border: 1px solid var(--border);
   border-radius: 10px;
-  background: #fff;
+  background: var(--card);
   padding: 10px 8px;
   cursor: pointer;
   transition: .15s;
   font-size: 12px;
-  color: #191C21;
+  color: var(--text);
 }
 .lib-item:hover {
-  border-color: #2E7CF6;
-  color: #2E7CF6;
-  background: #EBF2FE;
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-soft);
 }
 .lib-label { display: block; }
 
@@ -134,26 +134,26 @@ function isLong(key) {
 .field label {
   display: block;
   font-size: 12px;
-  color: #616A78;
+  color: var(--muted);
   margin-bottom: 6px;
 }
 .field input,
 .field textarea {
   width: 100%;
-  border: 1px solid #E7E9ED;
+  border: 1px solid var(--border);
   border-radius: 8px;
   padding: 8px 10px;
   font-size: 12.5px;
-  color: #191C21;
-  background: #fff;
+  color: var(--text);
+  background: var(--card);
   outline: none;
   transition: .15s;
   font-family: inherit;
 }
 .field input:focus,
 .field textarea:focus {
-  border-color: #2E7CF6;
-  box-shadow: 0 0 0 3px #EBF2FE;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
 }
 .field textarea {
   resize: vertical;
@@ -162,12 +162,12 @@ function isLong(key) {
 .muted {
   padding: 0 14px 12px;
   font-size: 12px;
-  color: #9AA1AC;
+  color: var(--muted);
 }
 .empty {
   padding: 20px 14px;
   text-align: center;
   font-size: 12px;
-  color: #9AA1AC;
+  color: var(--muted);
 }
 </style>

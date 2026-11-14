@@ -191,8 +191,8 @@ onMounted(loadInitial)
 }
 
 .col{
-  background:#fff;
-  border:1px solid #E7E9ED;
+  background:var(--card);
+  border:1px solid var(--border);
   border-radius:14px;
   display:flex;
   flex-direction:column;
@@ -208,7 +208,7 @@ onMounted(loadInitial)
   align-items:center;
   justify-content:space-between;
   padding:12px 14px;
-  border-bottom:1px solid #F0F2F5;
+  border-bottom:1px solid var(--border);
   flex:none;
   gap:8px;
 }
@@ -224,7 +224,7 @@ onMounted(loadInitial)
 }
 .save-hint{
   font-size:11px;
-  color:#9AA1AC;
+  color:var(--muted);
 }
 .btn-save{
   border:none;
@@ -233,12 +233,12 @@ onMounted(loadInitial)
   font-size:12px;
   font-weight:500;
   cursor:pointer;
-  background:#2E7CF6;
-  color:#fff;
+  background:var(--accent);
+  color:var(--card);
   transition:.15s;
 }
-.btn-save:hover{ background:#2569D8; }
-.btn-save:disabled{ background:#C7D2DC; cursor:not-allowed; }
+.btn-save:hover{ filter:brightness(.9); }
+.btn-save:disabled{ background:var(--border2); cursor:not-allowed; }
 
 .col-body{
   flex:1;
@@ -252,6 +252,6 @@ onMounted(loadInitial)
 
 /* 左栏：渐变背景（手机预览直接撑满，无外部容器） */
 .col-left{
-  background:linear-gradient(180deg,#FAFBFC 0%,#EDEFF3 100%);
+  background:linear-gradient(180deg,var(--bg) 0%,var(--border) 100%);
 }
 </style>
