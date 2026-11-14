@@ -30,6 +30,7 @@ function summary(b) {
   const d = b.data || {}
   switch (b.type) {
     case 'text': return d.text || '（空）'
+    case 'image': return '图片'
     case 'divider': return '分割线'
     default: return placeholderToken(b.type) || (BLOCK_TYPES[b.type] && BLOCK_TYPES[b.type].label) || ''
   }

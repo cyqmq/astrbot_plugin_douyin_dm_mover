@@ -207,6 +207,58 @@
       "expected": "[点击](https://example.com/video/1)"
     },
     {
+      "name": "image_md",
+      "blocks": [
+        {
+          "type": "image",
+          "data": {}
+        }
+      ],
+      "markdown": true,
+      "expected": "![示例标题](https://example.com/cover.jpg)"
+    },
+    {
+      "name": "image_alt_md",
+      "blocks": [
+        {
+          "type": "image",
+          "data": {
+            "alt": "我的封面"
+          }
+        }
+      ],
+      "markdown": true,
+      "expected": "![我的封面](https://example.com/cover.jpg)"
+    },
+    {
+      "name": "image_plain",
+      "blocks": [
+        {
+          "type": "image",
+          "data": {}
+        }
+      ],
+      "markdown": false,
+      "expected": "示例标题"
+    },
+    {
+      "name": "image_text_combined",
+      "blocks": [
+        {
+          "type": "text",
+          "data": {
+            "text": "#满穗"
+          }
+        },
+        {
+          "type": "image",
+          "data": {}
+        }
+      ],
+      "markdown": true,
+      "expected": "#满穗\n\n![示例标题](https://example.com/cover.jpg)"
+    },
+    {
       "name": "empty",
       "blocks": [],
       "markdown": true,

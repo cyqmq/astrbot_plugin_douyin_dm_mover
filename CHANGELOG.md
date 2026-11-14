@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.16.2] - 2026-11-13
+
+### Added
+- **图片积木（image）**：用户模板可自由定位图片位置——积木序列中插入「图片」积木，渲染为 `![alt](image_url)`（markdown），位置由积木决定，不再固定跟在文本后。alt 可留空（默认用标题）。`_template_embeds_image` 检测 image 积木（含旧 media 积木）→ markdown 场景跳过 Image 组件（图片由积木内嵌，不重复 append）。前后端同源（`BLOCK_TYPES` 加 image、`renderBlocks`/`_render_blocks` 加 image 分支、PlaceholderLibrary 加 alt 属性编辑、MessageComposer.summary 加 image）。渲染语料加 4 组 image 用例，前后端 19/19。
+
 ## [1.16.1] - 2026-11-13
 
 ### Fixed

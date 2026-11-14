@@ -85,6 +85,12 @@ function insertToken(token) {
           <div class="ph-info-desc">该积木转发时替换为真实值，无需配置。</div>
         </div>
 
+        <!-- 图片：alt 描述 -->
+        <div v-else-if="selectedBlock.type === 'image'" class="field">
+          <label>图片描述（alt）</label>
+          <input v-model="selectedBlock.data.alt" placeholder="可留空，默认用标题" />
+        </div>
+
         <!-- 纯文本：文本域 + 占位符快捷插入 -->
         <div v-else-if="selectedBlock.type === 'text'" class="field">
           <label>文本内容</label>

@@ -38,6 +38,12 @@ export function renderBlocks(blocks, ctx = {}, markdown = true) {
         s = markdown ? `[${text}](${url})` : text
         break
       }
+      case 'image': {
+        // 图片积木：markdown 渲染 ![alt](image_url)，位置由积木决定；plain 输出 alt
+        const alt = d.alt || '{title}'
+        s = markdown ? `![${alt}]({image_url})` : alt
+        break
+      }
       case 'divider':
         s = markdown ? '***' : '—'
         break

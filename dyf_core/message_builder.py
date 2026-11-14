@@ -115,12 +115,12 @@ class MessageBuilder:
         return str((tpl or {}).get("content") or self.header_template)
 
     def _template_embeds_image(self, for_media: bool = False) -> bool:
-        """模板是否内嵌图片（media 积木或 content 含 {image_url}）→ markdown 场景跳过 Image 组件。"""
+        """模板是否内嵌图片（image 积木 / 旧 media 积木 / content 含 {image_url}）→ markdown 场景跳过 Image 组件。"""
         tpl = self._template(for_media)
         if not tpl:
             return False
         for b in (tpl.get("blocks") or []):
-            if b.get("type") == "media":
+            if b.get("type") in ("image", "media"):
                 return True
         return "{image_url}" in str(tpl.get("content") or "")
 
@@ -133,6 +133,10 @@ class MessageBuilder:
             if t in _PLACEHOLDER_TOKEN:
                 # 占位符积木：输出其 token（随后由 _render_text 替换为 _context 真实值）
                 parts.append(_PLACEHOLDER_TOKEN[t])
+            elif t == "image":
+                # 图片积木：markdown 渲染 ![alt](image_url)，位置由积木决定；plain 输出 alt
+                alt = str(d.get("alt", "")) or "{title}"
+                parts.append(f"![{alt}]({{image_url}})" if markdown else alt)
             elif t == "text":
                 parts.append(str(d.get("text", "")))
             elif t == "heading":

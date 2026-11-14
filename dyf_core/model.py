@@ -101,7 +101,7 @@ class DeliveryResult:
 PLACEHOLDER_BLOCK_TYPES = (
     "source", "peer_name", "time", "title", "desc", "link", "image_url",
 )
-BLOCK_TYPES = (*PLACEHOLDER_BLOCK_TYPES, "text", "divider")
+BLOCK_TYPES = (*PLACEHOLDER_BLOCK_TYPES, "image", "text", "divider")
 
 
 def validate_block(b: dict) -> str | None:
