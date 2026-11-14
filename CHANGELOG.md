@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.13.1] - 2026-11-13
+
+### Added
+- **渲染测试语料**：`dyf_core/render_fixtures.json`——17 组积木用例（单积木 6 类 / 多积木组合 / 占位符 / 图片链接 / 媒体链降级 plain / 空 blocks）+ 标准模拟 ctx + 期望输出（后端 `render_blocks` 权威实现）；前端 `renderBlocks.js` 跑同一套语料对比，保证预览与转发一致。
+
 ## [1.13.0] - 2026-11-13
 
 ### Added
