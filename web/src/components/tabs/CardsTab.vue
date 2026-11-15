@@ -27,6 +27,17 @@ function normalizeBlock(b) {
   }
 }
 
+// 加载草稿/模板：视频积木若在中间移到末位（保持首位/末位约束）
+function normalizeBlocks(arr) {
+  const b = (arr || []).map(normalizeBlock)
+  const vi = b.findIndex((x) => x && x.type === 'video')
+  if (vi > 0 && vi < b.length - 1) {
+    const [v] = b.splice(vi, 1)
+    b.push(v)
+  }
+  return b
+}
+
 // 加载：先草稿，无草稿用模板，无模板用默认
 async function loadInitial() {
   loading.value = true
@@ -34,12 +45,12 @@ async function loadInitial() {
   try {
     const d = await apiGet('messages/draft')
     if (d && d.ok && Array.isArray(d.blocks) && d.blocks.length) {
-      blocks.value = d.blocks.map(normalizeBlock)
+      blocks.value = normalizeBlocks(d.blocks)
     } else {
       const t = await apiGet('templates/get')
       if (t && t.ok && Array.isArray(t.templates) && t.templates.length) {
         const first = t.templates[0]
-        blocks.value = (first.blocks || []).map(normalizeBlock)
+        blocks.value = normalizeBlocks(first.blocks || [])
       } else {
         blocks.value = [createBlock('text', { text: '{desc}' })]
       }
@@ -53,31 +64,35 @@ async function loadInitial() {
   }
 }
 
-// 从积木库添加积木（插在选中积木后面，无选中则追加末尾）
+// 从积木库添加积木：视频积木最多 1 个放末尾；非视频积木避开视频（保持视频首位/末位）
 function addBlock(type) {
   const b = createBlock(type)
-  if (b) {
-    // 视频积木最多 1 个：已有则提示不添加（须在首位/末位，添加自动放末尾）
-    if (type === 'video') {
-      const hasVideo = blocks.value.some((x) => x && x.type === 'video')
-      if (hasVideo) {
-        toast('视频积木最多 1 个（拆两条消息）')
-        return
-      }
-      blocks.value.push(b)
-      selectedIndex.value = blocks.value.length - 1
-      selectedBlock.value = b
+  if (!b) return
+  if (type === 'video') {
+    const hasVideo = blocks.value.some((x) => x && x.type === 'video')
+    if (hasVideo) {
+      toast('视频积木最多 1 个（拆两条消息）')
       return
     }
-    if (selectedIndex.value >= 0 && selectedIndex.value < blocks.value.length) {
-      blocks.value.splice(selectedIndex.value + 1, 0, b)
-      selectedIndex.value += 1
-    } else {
-      blocks.value.push(b)
-      selectedIndex.value = blocks.value.length - 1
-    }
+    blocks.value.push(b)
+    selectedIndex.value = blocks.value.length - 1
     selectedBlock.value = b
+    return
   }
+  const vi = blocks.value.findIndex((x) => x && x.type === 'video')
+  let insertAt
+  if (vi === 0) {
+    insertAt = 1 // 视频首位：插视频后（保持视频首位）
+  } else if (vi === blocks.value.length - 1) {
+    insertAt = vi // 视频末位：插视频前（保持视频末位）
+  } else if (selectedIndex.value >= 0 && selectedIndex.value < blocks.value.length) {
+    insertAt = selectedIndex.value + 1
+  } else {
+    insertAt = blocks.value.length
+  }
+  blocks.value.splice(insertAt, 0, b)
+  selectedIndex.value = insertAt
+  selectedBlock.value = b
 }
 
 // 中栏积木操作
@@ -92,6 +107,10 @@ function toggleBlock(i) {
 function duplicateBlock(i) {
   const src = blocks.value[i]
   if (!src) return
+  if (src.type === 'video') {
+    toast('视频积木最多 1 个，不能复制')
+    return
+  }
   const copy = JSON.parse(JSON.stringify(src))
   copy.id = 'b' + Date.now() + Math.random().toString(36).slice(2, 6)
   blocks.value.splice(i + 1, 0, copy)
