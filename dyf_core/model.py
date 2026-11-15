@@ -36,6 +36,7 @@ class InboundMessage:
     type: MessageType
     text: str
     media_urls: list[str] = field(default_factory=list)
+    video_url: str = ""  # 视频直链（去水印，详情拉取后填充）
     card: dict | None = None
     timestamp: int = 0
     is_outgoing: bool = False

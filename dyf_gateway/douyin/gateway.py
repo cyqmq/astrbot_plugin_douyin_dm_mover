@@ -606,9 +606,11 @@ class DouyinGateway(MessageGateway):
         for _img in detail.get("images") or []:
             if _img and _img not in msg.media_urls:
                 msg.media_urls = msg.media_urls + [_img]
+        msg.video_url = detail.get("play_url") or ""
         logger.info(
             f"[dyf] 视频详情已补: {item_id} desc_len={len(desc)} "
-            f"cover={'有' if cover else '无'} images={len(detail.get('images') or [])}"
+            f"cover={'有' if cover else '无'} images={len(detail.get('images') or [])} "
+            f"video_url={'有(' + str(len(msg.video_url)) + ')' if msg.video_url else '无'}"
         )
 
     def _on_status(self, kind: str, detail: str = "") -> None:

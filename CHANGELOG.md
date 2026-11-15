@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.17.0] - 2026-11-13
+
+### Added
+- **视频直链采集（第一步）**：`InboundMessage` 加 `video_url` 字段；`_enrich_video` 存 `detail.play_url` 并日志打印（含长度）。验证视频直链拿取，为后续 `Video.fromURL` 转发做准备。
+
 ## [1.16.4] - 2026-11-13
 
 ### Changed
