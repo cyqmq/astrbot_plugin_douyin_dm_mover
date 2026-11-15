@@ -32,7 +32,7 @@ https://github.com/cyqmq/astrbot_plugin_douyin_dm_mover
 
 或将本仓库 `git clone` 到 AstrBot 的插件目录（如 `data/plugins/`）后重启 AstrBot。
 
-> 需要 AstrBot 版本 `>=4.16,<5`。依赖：`websocket-client>=1.6.0`（安装时自动拉取）。
+> 需要 AstrBot 版本 `>=4.29.4,<5`（`>=4.29.4` 才提供 `Comp.ActionRow` 跨平台按钮组件，低于此版本组件不存在）。依赖：`websocket-client>=1.6.0`（安装时自动拉取）。
 
 > **登录后端（默认纯 Python 移植）**：内置 `@alemonjs/douyin` 的纯 Python 实现（`alemonjs_py`），扫码登录无需 Node.js / npm install。若需回退，可在配置中将 `login_backend` 设为 `douyin_spider` 使用内置登录层。
 
