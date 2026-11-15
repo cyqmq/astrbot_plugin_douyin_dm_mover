@@ -14,6 +14,7 @@ import asyncio
 import base64
 import io
 import json
+import os
 import re
 import time
 
@@ -28,6 +29,32 @@ def _targets_of(r: dict) -> list[str]:
     """路由配置的 targets 列表（targets 优先，target 兼容旧配置）。"""
     ts = r.get("targets") or ([r.get("target")] if r.get("target") else [])
     return [str(t) for t in ts if t]
+
+
+def _persist_templates_checked(cfg_path: str, cleaned: list) -> None:
+    """读回验证 templates 落盘，失败原子直写（save_config 乐观锁/子进程可能静默跳过）。
+
+    Raises:
+        Exception: 读回与直写均失败时向上抛（由调用方处理）。
+    """
+    try:
+        with open(cfg_path, encoding="utf-8-sig") as _f:
+            on_disk = json.load(_f)
+        if (on_disk.get("templates") or []) != cleaned:
+            raise ValueError("templates 未落盘")
+    except Exception:
+        try:
+            with open(cfg_path, encoding="utf-8-sig") as _f:
+                data = json.load(_f)
+        except Exception:
+            data = {}
+        data["templates"] = cleaned
+        data["template_version"] = 2
+        tmp = f"{cfg_path}.tmp"
+        with open(tmp, "w", encoding="utf-8-sig") as _f:
+            json.dump(data, _f, ensure_ascii=False, indent=2)
+            _f.flush()
+        os.replace(tmp, cfg_path)
 
 
 _PLACEHOLDER_RE = re.compile(r"(?<!\{)\{([^{}]+)\}(?!\})")
@@ -490,6 +517,10 @@ class DashboardApi:
                 save = getattr(self._config_obj, "save_config", None)
                 if save is not None:
                     save()
+                # 兜底：save_config 乐观锁/子进程可能静默跳过 → 读回验证，失败原子直写
+                cfg_path = getattr(self._config_obj, "config_path", "") or ""
+                if cfg_path and os.path.isfile(cfg_path):
+                    await asyncio.to_thread(_persist_templates_checked, cfg_path, cleaned)
             except Exception as e:
                 logger.warning(f"[dyf] 模板落盘失败: {e!r}")
                 return {"ok": False, "detail": f"模板保存失败: {e}"}

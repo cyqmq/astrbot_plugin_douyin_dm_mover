@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.21.2] - 2026-11-15
+
+### Fixed
+- **模板落盘静默失败**：`templates_set` 落盘依赖 `save_config()`，AstrBot `save_config` 用 revision 乐观锁——并发/子进程（`gateway_mode: subprocess` worker 写登录态）会静默跳过模板写盘（不抛异常、返回 ok:True），重启后 `config.templates` 回迁移默认。改为 save + 读回验证 + 失败原子直写（`_persist_templates_checked`，`asyncio.to_thread` 非阻塞），确保模板真正落盘。
+
 ## [1.21.1] - 2026-11-15
 
 ### Fixed
