@@ -220,6 +220,12 @@ onMounted(loadInitial)
   font-weight:600;
 }
 
+/* 隐藏左右栏标题（中栏标题不动，保存按钮还在） */
+.cards-app .col-left .col-head,
+.cards-app .col-right .col-head {
+  display: none;
+}
+
 .head-actions{
   display:flex;
   align-items:center;
