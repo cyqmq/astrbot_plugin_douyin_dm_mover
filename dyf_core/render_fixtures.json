@@ -7,7 +7,8 @@
     "title": "示例标题",
     "desc": "示例描述",
     "link": "https://example.com/video/1",
-    "image_url": "https://example.com/cover.jpg"
+    "image_url": "https://example.com/cover.jpg",
+    "video_url": "https://example.com/video.mp4"
   },
   "cases": [
     {
@@ -257,6 +258,62 @@
       ],
       "markdown": true,
       "expected": "#满穗\n\n![示例标题](https://example.com/cover.jpg)"
+    },
+    {
+      "name": "video_md",
+      "blocks": [
+        {
+          "type": "video",
+          "data": {}
+        }
+      ],
+      "markdown": true,
+      "expected": "[[video:https://example.com/video.mp4]]"
+    },
+    {
+      "name": "video_alt_md",
+      "blocks": [
+        {
+          "type": "video",
+          "data": {
+            "alt": "原视频"
+          }
+        }
+      ],
+      "markdown": true,
+      "expected": "[[video:https://example.com/video.mp4]]"
+    },
+    {
+      "name": "video_plain",
+      "blocks": [
+        {
+          "type": "video",
+          "data": {}
+        }
+      ],
+      "markdown": false,
+      "expected": "视频"
+    },
+    {
+      "name": "video_image_text",
+      "blocks": [
+        {
+          "type": "text",
+          "data": {
+            "text": "#满穗"
+          }
+        },
+        {
+          "type": "video",
+          "data": {}
+        },
+        {
+          "type": "image",
+          "data": {}
+        }
+      ],
+      "markdown": true,
+      "expected": "#满穗\n\n[[video:https://example.com/video.mp4]]\n\n![示例标题](https://example.com/cover.jpg)"
     },
     {
       "name": "empty",

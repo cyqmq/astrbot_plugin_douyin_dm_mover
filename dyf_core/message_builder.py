@@ -6,7 +6,7 @@ import re
 from datetime import datetime
 
 from astrbot.api.event import MessageChain
-from astrbot.api.message_components import Image, Plain
+from astrbot.api.message_components import Image, Plain, Video
 
 from dyf_core.model import InboundMessage, MessageType
 
@@ -21,6 +21,7 @@ _PLACEHOLDER_TOKEN = {
     "desc": "{desc}",
     "link": "{link}",
     "image_url": "{image_url}",
+    "video_url": "{video_url}",
 }
 
 
@@ -77,6 +78,7 @@ class MessageBuilder:
             "desc": str(card.get("desc") or ""),
             "link": link,
             "image_url": str((msg.media_urls or [""])[0]),
+            "video_url": msg.video_url or "",
         }
 
     def _render_text(self, content: str, ctx: dict, markdown: bool) -> str:
@@ -138,6 +140,10 @@ class MessageBuilder:
                 # 图片积木：markdown 渲染 ![alt](image_url)，位置由积木决定；plain 输出 alt
                 alt = str(d.get("alt", "")) or "{title}"
                 parts.append(f"![{alt}]({{image_url}})" if markdown else alt)
+            elif t == "video":
+                # 视频积木：markdown 渲染 [[video:{video_url}]]（_chain_from_markdown 解析成 Video 节点）；plain 输出 alt
+                alt = str(d.get("alt", "")) or "视频"
+                parts.append("[[video:{video_url}]]" if markdown else alt)
             elif t == "text":
                 parts.append(str(d.get("text", "")))
             elif t == "heading":
@@ -268,14 +274,16 @@ class MessageBuilder:
         return MessageChain(parts)
 
     def _chain_from_markdown(self, content: str) -> MessageChain | None:
-        """用户模板整条消息：markdown 图片 ![alt](url) → Image 节点，其余文本保持 Plain。"""
+        """用户模板整条消息：markdown 图片 ![alt](url) → Image 节点、[[video:url]] → Video 节点，其余文本 Plain。"""
         parts: list = []
         last = 0
-        for m in re.finditer(r"!\[[^\]]*\]\((https?://[^)]+)\)", content):
+        pattern = re.compile(r"!\[[^\]]*\]\((https?://[^)]+)\)|\[\[video:(https?://[^)\]]+)\]\]")
+        for m in pattern.finditer(content):
             if m.start() > last:
                 parts.append(Plain(content[last:m.start()]))
+            img_url, vid_url = m.group(1), m.group(2)
             try:
-                parts.append(Image.fromURL(m.group(1)))
+                parts.append(Image.fromURL(img_url) if img_url else Video.fromURL(vid_url))
             except Exception:
                 parts.append(Plain(content[m.start():m.end()]))
             last = m.end()

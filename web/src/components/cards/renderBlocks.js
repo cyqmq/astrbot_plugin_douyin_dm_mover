@@ -44,6 +44,12 @@ export function renderBlocks(blocks, ctx = {}, markdown = true) {
         s = markdown ? `![${alt}]({image_url})` : alt
         break
       }
+      case 'video': {
+        // 视频积木：markdown 渲染 [[video:{video_url}]]（_chain_from_markdown 解析成 Video 节点）；plain 输出 alt
+        const alt = d.alt || '视频'
+        s = markdown ? `[[video:{video_url}]]` : alt
+        break
+      }
       case 'divider':
         s = markdown ? '***' : '—'
         break
@@ -67,6 +73,7 @@ export function fillPlaceholders(content, ctx = {}) {
     .replace(/\{desc\}/g, ctx.desc || '示例描述')
     .replace(/\{link\}/g, ctx.link || 'https://example.com')
     .replace(/\{image_url\}/g, ctx.image_url || 'https://example.com/cover.jpg')
+    .replace(/\{video_url\}/g, ctx.video_url || 'https://example.com/video.mp4')
 }
 
 // HTML 转义

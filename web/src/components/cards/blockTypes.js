@@ -20,8 +20,8 @@ export const PLACEHOLDER_LIST = Object.entries(PLACEHOLDERS).map(([key, v]) => (
   ...v,
 }))
 
-// 结构积木：图片（内嵌封面图，位置由积木决定）+ 纯文本（可含占位符）+ 分割线
-export const STRUCTURAL_TYPES = ['image', 'text', 'divider']
+// 结构积木：图片（内嵌封面图）+ 视频（内嵌原视频直链）+ 纯文本（可含占位符）+ 分割线
+export const STRUCTURAL_TYPES = ['image', 'video', 'text', 'divider']
 
 // 积木类型：占位符 + 结构积木（旧的 heading/media/link/button 不再提供）
 export const BLOCK_TYPES = {
@@ -32,6 +32,7 @@ export const BLOCK_TYPES = {
     ])
   ),
   image: { label: '图片', data: { alt: '' } },
+  video: { label: '视频', data: { alt: '' } },
   text: { label: '纯文本', data: { text: '' } },
   divider: { label: '分割线', data: {} },
 }

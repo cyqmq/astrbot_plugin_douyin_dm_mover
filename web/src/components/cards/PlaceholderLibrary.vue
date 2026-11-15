@@ -91,6 +91,12 @@ function insertToken(token) {
           <input v-model="selectedBlock.data.alt" placeholder="可留空，默认用标题" />
         </div>
 
+        <!-- 视频：alt 描述 -->
+        <div v-else-if="selectedBlock.type === 'video'" class="field">
+          <label>视频描述（alt）</label>
+          <input v-model="selectedBlock.data.alt" placeholder="可留空，默认用视频" />
+        </div>
+
         <!-- 纯文本：文本域 + 占位符快捷插入 -->
         <div v-else-if="selectedBlock.type === 'text'" class="field">
           <label>文本内容</label>

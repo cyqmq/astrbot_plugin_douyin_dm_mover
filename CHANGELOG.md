@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.18.0] - 2026-11-13
+
+### Added
+- **视频积木（video）**：积木序列插入「视频」积木 → 转发该位置发**原视频**（去水印直链 `Video.fromURL`），与图片/文本混排、位置自由。渲染标记 `[[video:{video_url}]]`，`_chain_from_markdown` 解析成 Video 节点（图片 `![alt](url)` 仍解析 Image，其余 Plain）。`_context` 加 `video_url`、`_PLACEHOLDER_TOKEN` 加 `video_url`。前端 `BLOCK_TYPES`/`renderBlocks`/`PlaceholderLibrary`（alt 属性）/`MessageComposer`（summary）加 video。视频直链为空 → 积木渲染占位文本不报错；默认模板不自动发视频（仅主动插积木）。渲染语料加 4 组 video 用例，前后端 23/23。
+
 ## [1.17.0] - 2026-11-13
 
 ### Added
