@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.16.3] - 2026-11-13
+
+### Fixed
+- **用户模板图片积木 QQ 空白**：用户模板分支 `return MessageChain([Plain(content)])` 发的是 `![alt](url)` 纯文本，QQ 不渲染 markdown 图。新增 `_chain_from_markdown`：用正则提取 `![alt](url)` → `Image.fromURL`（真实图片节点），其余文本保持 `Plain`——结构积木图片与默认模板一样走 `Image` 组件。非 markdown 场景维持 `Plain`。`fillPlaceholders` 的 `image_url` 默认示例封面（预览无 ctx 时 `![..]()` 不再空 URL）。
+
 ## [1.16.2] - 2026-11-13
 
 ### Added

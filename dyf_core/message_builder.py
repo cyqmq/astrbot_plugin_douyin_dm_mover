@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import base64
+import re
 from datetime import datetime
 
 from astrbot.api.event import MessageChain
@@ -226,6 +227,8 @@ class MessageBuilder:
             content = self.render_blocks(tpl.get("blocks") or [], ctx, markdown=markdown)
             if not content.strip():
                 return None
+            if markdown:
+                return self._chain_from_markdown(content)
             return MessageChain([Plain(content)])
         parts = [Plain(self._header(msg, for_media=is_media_chain))] if with_text else []
         body = self._body(msg) if with_text else ""
@@ -263,3 +266,19 @@ class MessageBuilder:
         if len(parts) <= 1:
             return None
         return MessageChain(parts)
+
+    def _chain_from_markdown(self, content: str) -> MessageChain | None:
+        """用户模板整条消息：markdown 图片 ![alt](url) → Image 节点，其余文本保持 Plain。"""
+        parts: list = []
+        last = 0
+        for m in re.finditer(r"!\[[^\]]*\]\((https?://[^)]+)\)", content):
+            if m.start() > last:
+                parts.append(Plain(content[last:m.start()]))
+            try:
+                parts.append(Image.fromURL(m.group(1)))
+            except Exception:
+                parts.append(Plain(content[m.start():m.end()]))
+            last = m.end()
+        if last < len(content):
+            parts.append(Plain(content[last:]))
+        return MessageChain(parts) if parts else None

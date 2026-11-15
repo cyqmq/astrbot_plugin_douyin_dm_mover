@@ -66,7 +66,7 @@ export function fillPlaceholders(content, ctx = {}) {
     .replace(/\{title\}/g, ctx.title || '示例标题')
     .replace(/\{desc\}/g, ctx.desc || '示例描述')
     .replace(/\{link\}/g, ctx.link || 'https://example.com')
-    .replace(/\{image_url\}/g, ctx.image_url || '')
+    .replace(/\{image_url\}/g, ctx.image_url || 'https://example.com/cover.jpg')
 }
 
 // HTML 转义
