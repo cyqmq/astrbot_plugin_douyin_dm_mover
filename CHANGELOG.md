@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.19.1] - 2026-11-13
+
+### Fixed
+- **积木操作按钮失效**：`useDraggable` 容器监听 mousedown，操作按钮（删除/复制/启停）的 mousedown 冒泡被 sortable 判定为拖拽起点，轻微移动吞掉 click。3 个按钮加 `@mousedown.stop`，阻止拖拽在按钮上启动。视频积木（首位/末位约束吸附）最易触发。
+
 ## [1.19.0] - 2026-11-13
 
 ### Changed

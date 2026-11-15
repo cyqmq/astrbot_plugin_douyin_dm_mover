@@ -72,11 +72,11 @@ function summary(b) {
           <span class="seq-meta">{{ summary(b) }}</span>
         </span>
         <span class="seq-acts">
-          <button class="ico" title="启用/停用" @click.stop="emit('toggle', i)">
+          <button class="ico" title="启用/停用" @mousedown.stop @click.stop="emit('toggle', i)">
             {{ b.disabled ? '◌' : '◉' }}
           </button>
-          <button class="ico" title="复制" @click.stop="emit('duplicate', i)">⧉</button>
-          <button class="ico danger" title="删除" @click.stop="emit('remove', i)">✕</button>
+          <button class="ico" title="复制" @mousedown.stop @click.stop="emit('duplicate', i)">⧉</button>
+          <button class="ico danger" title="删除" @mousedown.stop @click.stop="emit('remove', i)">✕</button>
         </span>
       </div>
     </div>
