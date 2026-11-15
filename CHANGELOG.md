@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.21.1] - 2026-11-15
+
+### Fixed
+- **按钮 url 占位符被拦截**：按钮积木 url 填 `{link}`（或留空）被 `^https?://` 校验拦截，模板保存失败 → 转发走默认模板无按钮。校验改为允许空（默认 `{link}` 回退）/ 占位符（`{...}` 转发时替换）/ http(s)。`_render_blocks` button url 空 → `{link}`；`_markdown_chain_only` btn_pattern url 可空 + 空降级；前端 validateBlock/renderBlocks 同步。
+
 ## [1.21.0] - 2026-11-15
 
 ### Added

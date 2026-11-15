@@ -85,7 +85,10 @@ export function validateBlock(block) {
     const url = String(data.url || '').trim()
     if (!label) return { ok: false, detail: '按钮积木缺少文案' }
     if (label.length > 10) return { ok: false, detail: '按钮文案最多 10 字' }
-    if (!/^https?:\/\//.test(url)) return { ok: false, detail: '按钮链接必须是 http(s)' }
+    // url 允许空（默认 {link} 回退）/ 占位符（{...} 转发时替换）/ http(s)
+    if (url && !/^https?:\/\//.test(url) && !/^\{[^}]+\}$/.test(url)) {
+      return { ok: false, detail: '按钮链接必须是 http(s) 或 {占位符}' }
+    }
   }
   return { ok: true }
 }

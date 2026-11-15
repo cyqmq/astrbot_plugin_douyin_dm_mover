@@ -167,7 +167,8 @@ class MessageBuilder:
                 parts.append(f"[{text}]({url})" if markdown else f"{text} {url}".strip())
             elif t == "button":
                 # 按钮积木：markdown 渲染 [[button:文案|地址]]（_markdown_chain_only 提取成 ActionRow）；plain 只出文案
-                text, url = str(d.get("text", "")), str(d.get("url", ""))
+                text = str(d.get("text", ""))
+                url = str(d.get("url", "")).strip() or "{link}"
                 parts.append(f"[[button:{text}|{url}]]" if markdown else text)
             elif t == "divider":
                 parts.append("***" if markdown else "—")
@@ -328,7 +329,7 @@ class MessageBuilder:
 
     def _markdown_chain_only(self, content: str) -> MessageChain | None:
         """Markdown 链：按钮 [[button:文案|地址]] → ActionRow；图片 ![](url) 有按钮时保留文本内嵌（避免富媒体丢键盘），无按钮时转 Image 组件。"""
-        btn_pattern = r"\[\[button:([^\]|]*)\|([^)\]]+)\]\]"
+        btn_pattern = r"\[\[button:([^\]|]*)\|([^)\]]*)\]\]"
         btn_m = list(re.finditer(btn_pattern, content))
         parts: list = []
         if btn_m:

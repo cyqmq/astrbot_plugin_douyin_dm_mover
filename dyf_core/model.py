@@ -125,8 +125,7 @@ def validate_block(b: dict) -> str | None:
             return "button 积木缺少 text"
         if len(label) > 10:
             return "button 积木 text 最多 10 字（QQ 按钮 label 上限）"
-        if not url:
-            return "button 积木缺少 url"
-        if not re.match(r"^https?://", url):
-            return "button 积木 url 必须是 http(s) 链接"
+        # url 允许空（默认 {link} 回退）/ 占位符（{...} 转发时替换）/ http(s)
+        if url and not re.match(r"^https?://", url) and not re.match(r"^\{[^}]+\}$", url):
+            return "button 积木 url 必须是 http(s) 链接或 {占位符}"
     return None
