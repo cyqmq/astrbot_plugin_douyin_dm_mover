@@ -33,9 +33,10 @@ export function renderBlocks(blocks, ctx = {}, markdown = true) {
         break
       }
       case 'button': {
+        // 按钮积木：markdown 渲染 [[button:文案|地址]]（_markdown_chain_only 提取成 ActionRow）；plain 只出文案
         const text = d.text || ''
         const url = d.url || ''
-        s = markdown ? `[${text}](${url})` : text
+        s = markdown ? `[[button:${text}|${url}]]` : text
         break
       }
       case 'image': {

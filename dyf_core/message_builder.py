@@ -166,8 +166,9 @@ class MessageBuilder:
                 text, url = str(d.get("text", "")), str(d.get("url", ""))
                 parts.append(f"[{text}]({url})" if markdown else f"{text} {url}".strip())
             elif t == "button":
+                # 按钮积木：markdown 渲染 [[button:文案|地址]]（_markdown_chain_only 提取成 ActionRow）；plain 只出文案
                 text, url = str(d.get("text", "")), str(d.get("url", ""))
-                parts.append(f"[{text}]({url})" if markdown else text)
+                parts.append(f"[[button:{text}|{url}]]" if markdown else text)
             elif t == "divider":
                 parts.append("***" if markdown else "—")
         return "\n\n".join(p for p in parts if p)
@@ -191,11 +192,16 @@ class MessageBuilder:
             rendered = self._render_text(self._template_content(for_media), ctx, markdown=markdown)
         return _truncate(rendered, self.max_length)
 
-    def _body(self, msg: InboundMessage) -> str:
+    def _body(self, msg: InboundMessage, append_link: bool = True) -> str:
         text = msg.text or ""
         if self.sanitize_body:
             text = _sanitize(text)
-        if msg.type == MessageType.VIDEO_CARD and self.include_link and msg.card:
+        if (
+            msg.type == MessageType.VIDEO_CARD
+            and self.include_link
+            and append_link
+            and msg.card
+        ):
             item_id = str(
                 msg.card.get("itemId") or msg.card.get("item_id") or ""
             )
@@ -227,6 +233,18 @@ class MessageBuilder:
         # 用户模板（积木 blocks 非空且非迁移自动生成）= 整条消息：积木渲染即发送内容，
         # 不再附加正文/媒体（占位符积木取视频卡字段，媒体链用 for_media 模板）
         tpl = self._template(for_media=is_media_chain)
+        # 视频卡自动长链接 → 按钮：按钮不能与媒体同链（富媒体会 pop markdown 丢键盘），拆成第二条 Markdown 链
+        auto_btn_url = ""
+        if (
+            msg.type == MessageType.VIDEO_CARD
+            and self.include_link
+            and self.markdown_enabled
+            and msg.card
+            and not self._is_user_template(tpl)
+        ):
+            item_id = str(msg.card.get("itemId") or msg.card.get("item_id") or "")
+            if item_id:
+                auto_btn_url = f"https://www.douyin.com/video/{item_id}"
         if self._is_user_template(tpl):
             ctx = self._context(msg)
             markdown = self.markdown_enabled and not is_media_chain
@@ -238,7 +256,7 @@ class MessageBuilder:
                 return self._chains_from_markdown(content, video_first)
             return [MessageChain([Plain(content)])]
         parts = [Plain(self._header(msg, for_media=is_media_chain))] if with_text else []
-        body = self._body(msg) if with_text else ""
+        body = self._body(msg, append_link=not auto_btn_url) if with_text else ""
         if body:
             # 前置换行：AstrBot 拼接多个 Plain 无换行，正文需独立一行（否则紧贴 header）
             parts.append(Plain("\n" + body))
@@ -272,7 +290,12 @@ class MessageBuilder:
                 parts.append(Plain(f"\n[附件] {url}"))
         if len(parts) <= 1:
             return None
-        return MessageChain(parts)
+        chain = MessageChain(parts)
+        if auto_btn_url:
+            # 按钮独立 Markdown 链（富媒体链会丢弃 keyboard，按钮必须单独一条）
+            btn_chain = self._markdown_chain_only(f"[[button:打开视频|{auto_btn_url}]]")
+            return [chain, btn_chain] if btn_chain else chain
+        return chain
 
     def _chains_from_markdown(self, content: str, video_first: bool = False) -> list[MessageChain] | None:
         """用户模板整条消息：拆视频 + Markdown 两条独立链。
@@ -304,8 +327,36 @@ class MessageBuilder:
         return chains if chains else None
 
     def _markdown_chain_only(self, content: str) -> MessageChain | None:
-        """Markdown 链：图片 ![alt](url) → Image 节点，其余文本 Plain（不含视频）。"""
+        """Markdown 链：按钮 [[button:文案|地址]] → ActionRow；图片 ![](url) 有按钮时保留文本内嵌（避免富媒体丢键盘），无按钮时转 Image 组件。"""
+        btn_pattern = r"\[\[button:([^\]|]*)\|([^)\]]+)\]\]"
+        btn_m = list(re.finditer(btn_pattern, content))
         parts: list = []
+        if btn_m:
+            # 有按钮：按钮标记从文本移除，图片保留 Markdown 内嵌
+            btn_text = re.sub(btn_pattern, "", content).strip()
+            if btn_text:
+                parts.append(Plain(btn_text))
+            try:
+                from astrbot.api.message_components import ActionRow, Button
+                has_action_row = True
+            except Exception:
+                has_action_row = False
+            for i, m in enumerate(btn_m):
+                label, url = m.group(1).strip(), m.group(2).strip()
+                if has_action_row:
+                    try:
+                        parts.append(ActionRow(buttons=[Button(
+                            id=f"dyf:open:{i}",
+                            label=label,
+                            action=Button.UrlAction(url=url),
+                            style=Button.Style.PRIMARY,
+                        )], fallback_text=f"[{label}]({url})"))
+                        continue
+                    except Exception:
+                        pass
+                parts.append(Plain(f"[{label}]({url})"))
+            return MessageChain(parts) if parts else None
+        # 无按钮：现状——图片转 Image 组件
         last = 0
         for m in re.finditer(r"!\[[^\]]*\]\((https?://[^)]+)\)", content):
             if m.start() > last:

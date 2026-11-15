@@ -218,16 +218,3 @@ class DouyinForwardPlugin(Star):
             yield event.plain_result(f"测试消息已发送到 {t}").stop_event()
         else:
             yield event.plain_result(f"发送失败: {err}").stop_event()
-
-    @filter.command("testbtn")
-    async def dyf_testbtn(self, event):
-        # 临时探针：验证 qq_official ActionRow/Button（跨平台按钮组件）是否正常工作
-        from astrbot.api.message_components import ActionRow, Button, Plain
-        yield event.chain_result([
-            Plain("按钮探针"),
-            ActionRow(buttons=[Button(
-                id="dyf_probe", label="打开视频",
-                action=Button.UrlAction(url="https://www.douyin.com"),
-                style=Button.Style.PRIMARY,
-            )], fallback_text="[打开视频](https://www.douyin.com)"),
-        ]).use_markdown(True)

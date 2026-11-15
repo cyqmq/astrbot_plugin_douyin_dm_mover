@@ -4,6 +4,13 @@
 
 ## [Unreleased]
 
+## [1.21.0] - 2026-11-15
+
+### Added
+- **按钮积木（button）**：积木序列插入 → 转发时渲染 `ActionRow` 按钮（QQ keyboard，`UrlAction` 打开链接）。渲染标记 `[[button:文案|地址]]`，`_markdown_chain_only` 提取为 `ActionRow`（每个一个），`fallback_text` 降级链接文本。校验：文案 ≤10 字、URL 必须 http(s)。前端 `BLOCK_TYPES`/`renderBlocks`/`PlaceholderLibrary`（文案+链接）/`MessageComposer`（summary）加 button。
+- **视频卡自动按钮**：默认模板视频卡长链接改挂按钮——正文不再追加长 URL，拆第二条 Markdown 链挂「打开视频」按钮（富媒体链会丢 keyboard，按钮独立链）。`_body` 加 `append_link` 参数。
+- **图片+按钮可同模板**：有按钮时图片保留 Markdown 内嵌（`![](url)` 文本，消息保持 msg_type=2 按钮合法），无按钮时图片转 Image 组件（富媒体路径，现状不变）。
+
 ## [1.20.0] - 2026-11-15
 
 ### Changed

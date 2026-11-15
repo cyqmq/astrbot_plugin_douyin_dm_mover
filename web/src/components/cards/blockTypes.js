@@ -20,8 +20,8 @@ export const PLACEHOLDER_LIST = Object.entries(PLACEHOLDERS).map(([key, v]) => (
   ...v,
 }))
 
-// 结构积木：图片（内嵌封面图）+ 视频（内嵌原视频直链）+ 纯文本（可含占位符）+ 分割线
-export const STRUCTURAL_TYPES = ['image', 'video', 'text', 'divider']
+// 结构积木：图片（内嵌封面图）+ 视频（内嵌原视频直链）+ 按钮（跳转链接）+ 纯文本（可含占位符）+ 分割线
+export const STRUCTURAL_TYPES = ['image', 'video', 'button', 'text', 'divider']
 
 // 积木类型：占位符 + 结构积木（旧的 heading/media/link/button 不再提供）
 export const BLOCK_TYPES = {
@@ -33,6 +33,7 @@ export const BLOCK_TYPES = {
   ),
   image: { label: '图片', data: { alt: '' } },
   video: { label: '视频', data: { alt: '' } },
+  button: { label: '按钮', data: { text: '打开视频', url: '' } },
   text: { label: '纯文本', data: { text: '' } },
   divider: { label: '分割线', data: {} },
 }
@@ -78,6 +79,13 @@ export function validateBlock(block) {
   // 校验 data 结构（非占位符类型的必填字段不能缺失；占位符/分割线 data 为空即通过）
   for (const key of Object.keys(t.data)) {
     if (!(key in data)) return { ok: false, detail: `积木「${t.label}」缺少字段: ${key}` }
+  }
+  if (type === 'button') {
+    const label = String(data.text || '').trim()
+    const url = String(data.url || '').trim()
+    if (!label) return { ok: false, detail: '按钮积木缺少文案' }
+    if (label.length > 10) return { ok: false, detail: '按钮文案最多 10 字' }
+    if (!/^https?:\/\//.test(url)) return { ok: false, detail: '按钮链接必须是 http(s)' }
   }
   return { ok: true }
 }

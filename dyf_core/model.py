@@ -1,6 +1,7 @@
 """平台中立的数据模型。core/ 只依赖本文件与 gateway/base.py 接口。"""
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 from enum import Enum
 
@@ -102,7 +103,7 @@ class DeliveryResult:
 PLACEHOLDER_BLOCK_TYPES = (
     "source", "peer_name", "time", "title", "desc", "link", "image_url",
 )
-BLOCK_TYPES = (*PLACEHOLDER_BLOCK_TYPES, "image", "video", "text", "divider")
+BLOCK_TYPES = (*PLACEHOLDER_BLOCK_TYPES, "image", "video", "text", "divider", "button")
 
 
 def validate_block(b: dict) -> str | None:
@@ -117,4 +118,15 @@ def validate_block(b: dict) -> str | None:
         return f"积木 {t} 的 data 必须是对象"
     if t == "text" and not str(d.get("text", "")).strip():
         return "text 积木缺少 text"
+    if t == "button":
+        label = str(d.get("text", "")).strip()
+        url = str(d.get("url", "")).strip()
+        if not label:
+            return "button 积木缺少 text"
+        if len(label) > 10:
+            return "button 积木 text 最多 10 字（QQ 按钮 label 上限）"
+        if not url:
+            return "button 积木缺少 url"
+        if not re.match(r"^https?://", url):
+            return "button 积木 url 必须是 http(s) 链接"
     return None
