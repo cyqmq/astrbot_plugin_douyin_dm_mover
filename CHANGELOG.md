@@ -4,6 +4,13 @@
 
 ## [Unreleased]
 
+## [1.19.0] - 2026-11-13
+
+### Changed
+- **视频积木拆两条消息**：Markdown 消息只支持文本/图片/链接，视频须走群聊富媒体上传——有视频积木时 `build_chain` 返回 `list[MessageChain]`（视频链 + Markdown 链，顺序按积木位置：首位视频在前、末位视频在后），`forward_manager`/`retry_manager` 按顺序循环 `send`。`_chains_from_markdown` 拆出 `[[video:url]]` → `Video.fromURL` 富媒体链，Markdown 链只含文本/图片/链接（`_markdown_chain_only`）。
+- **视频积木约束**：最多 1 个且必须在第一位/最后一位（前端 `validateBlocks`/拖拽吸附/添加自动放末尾 + 后端 `templates_set` 权威校验）。
+- **手机预览两条气泡**：PhonePreview 有视频积木 → 视频气泡（▶ 视频）+ Markdown 气泡，顺序按积木。
+
 ## [1.18.0] - 2026-11-13
 
 ### Added

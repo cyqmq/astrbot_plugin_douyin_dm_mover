@@ -468,6 +468,12 @@ class DashboardApi:
                 err = validate_block(b)
                 if err:
                     return {"ok": False, "detail": f"模板「{name}」: {err}"}
+            # 视频积木最多 1 个且必须在首位/末位（拆两条消息，顺序决定先后）
+            vid_idx = [i for i, b in enumerate(blocks) if isinstance(b, dict) and b.get("type") == "video"]
+            if len(vid_idx) > 1:
+                return {"ok": False, "detail": f"模板「{name}」视频积木最多 1 个（拆两条消息）"}
+            if vid_idx and vid_idx[0] not in (0, len(blocks) - 1):
+                return {"ok": False, "detail": f"模板「{name}」视频积木只能在第一位或最后一位"}
             cleaned.append(
                 {
                     "id": tid,

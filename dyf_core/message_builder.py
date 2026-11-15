@@ -210,8 +210,8 @@ class MessageBuilder:
         card_image: bytes | None = None,
         media: list[str] | None = None,
         with_text: bool = True,
-    ) -> MessageChain | None:
-        """构建 MessageChain。
+    ) -> MessageChain | list[MessageChain] | None:
+        """构建 MessageChain（用户模板含视频积木时返回 list[MessageChain]，拆视频+Markdown 两条）。
 
         Args:
             msg: 待转发消息。
@@ -234,8 +234,9 @@ class MessageBuilder:
             if not content.strip():
                 return None
             if markdown:
-                return self._chain_from_markdown(content)
-            return MessageChain([Plain(content)])
+                video_first = bool(tpl.get("blocks") and tpl["blocks"][0].get("type") == "video")
+                return self._chains_from_markdown(content, video_first)
+            return [MessageChain([Plain(content)])]
         parts = [Plain(self._header(msg, for_media=is_media_chain))] if with_text else []
         body = self._body(msg) if with_text else ""
         if body:
@@ -273,17 +274,44 @@ class MessageBuilder:
             return None
         return MessageChain(parts)
 
-    def _chain_from_markdown(self, content: str) -> MessageChain | None:
-        """用户模板整条消息：markdown 图片 ![alt](url) → Image 节点、[[video:url]] → Video 节点，其余文本 Plain。"""
+    def _chains_from_markdown(self, content: str, video_first: bool = False) -> list[MessageChain] | None:
+        """用户模板整条消息：拆视频 + Markdown 两条独立链。
+
+        视频积木（[[video:url]]）拆出 → Video 富媒体链；Markdown 链只含文本/图片/链接。
+        顺序由 video_first 决定：True 视频在前，False 视频在后（视频积木必须在首位/末位）。
+        """
+        m = re.search(r"\[\[video:(https?://[^)\]]+)\]\]", content)
+        video_url = m.group(1) if m else ""
+        md_content = content[: m.start()] + content[m.end():] if m else content
+        md_chain = self._markdown_chain_only(md_content)
+        if not video_url:
+            return [md_chain] if md_chain else None
+        try:
+            video_chain = MessageChain([Video.fromURL(video_url)])
+        except Exception:
+            video_chain = None
+        chains = []
+        if video_first:
+            if video_chain:
+                chains.append(video_chain)
+            if md_chain:
+                chains.append(md_chain)
+        else:
+            if md_chain:
+                chains.append(md_chain)
+            if video_chain:
+                chains.append(video_chain)
+        return chains if chains else None
+
+    def _markdown_chain_only(self, content: str) -> MessageChain | None:
+        """Markdown 链：图片 ![alt](url) → Image 节点，其余文本 Plain（不含视频）。"""
         parts: list = []
         last = 0
-        pattern = re.compile(r"!\[[^\]]*\]\((https?://[^)]+)\)|\[\[video:(https?://[^)\]]+)\]\]")
-        for m in pattern.finditer(content):
+        for m in re.finditer(r"!\[[^\]]*\]\((https?://[^)]+)\)", content):
             if m.start() > last:
                 parts.append(Plain(content[last:m.start()]))
-            img_url, vid_url = m.group(1), m.group(2)
             try:
-                parts.append(Image.fromURL(img_url) if img_url else Video.fromURL(vid_url))
+                parts.append(Image.fromURL(m.group(1)))
             except Exception:
                 parts.append(Plain(content[m.start():m.end()]))
             last = m.end()

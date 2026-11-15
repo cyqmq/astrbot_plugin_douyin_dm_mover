@@ -89,5 +89,15 @@ export function validateBlocks(blocks) {
     const r = validateBlock(blocks[i])
     if (!r.ok) return { ok: false, detail: `第 ${i + 1} 个积木: ${r.detail}` }
   }
+  // 视频积木最多 1 个且必须在第一位或最后一位（拆两条消息，顺序决定先后）
+  const vidIdx = blocks
+    .map((b, i) => (b && b.type === 'video' ? i : -1))
+    .filter((i) => i >= 0)
+  if (vidIdx.length > 1) {
+    return { ok: false, detail: '视频积木最多 1 个（拆两条消息）' }
+  }
+  if (vidIdx.length === 1 && vidIdx[0] !== 0 && vidIdx[0] !== blocks.length - 1) {
+    return { ok: false, detail: '视频积木只能在第一位或最后一位（顺序决定两条消息先后）' }
+  }
   return { ok: true }
 }

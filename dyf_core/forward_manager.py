@@ -249,27 +249,30 @@ class ForwardManager:
             target_errors: list[str] = []
             try:
                 for media_slice, is_first in batches:
-                    chain = self.builder.build_chain(
+                    chains = self.builder.build_chain(
                         msg,
                         card_image if is_first else None,
                         media_slice,
                         with_text=is_first,
                     )
-                    if chain is None:
+                    if chains is None:
                         continue
-                    ok, err = await self.sender.send(target, chain)
-                    if ok:
-                        ok_count += 1
-                        target_ok += 1
-                        logger.info(
-                            f"[dyf] 转发成功 -> {target} ({msg.type.value})"
-                        )
-                    else:
-                        fail_count += 1
-                        target_fail += 1
-                        target_errors.append(err)
-                        fail_errors.append(f"{target}: {err}")
-                        self.cache.add_failed(target, msg.to_dict())
+                    for chain in (chains if isinstance(chains, list) else [chains]):
+                        if chain is None:
+                            continue
+                        ok, err = await self.sender.send(target, chain)
+                        if ok:
+                            ok_count += 1
+                            target_ok += 1
+                            logger.info(
+                                f"[dyf] 转发成功 -> {target} ({msg.type.value})"
+                            )
+                        else:
+                            fail_count += 1
+                            target_fail += 1
+                            target_errors.append(err)
+                            fail_errors.append(f"{target}: {err}")
+                            self.cache.add_failed(target, msg.to_dict())
                         logger.warning(
                             f"[dyf] 转发失败入缓存 -> {target}: {err}"
                         )

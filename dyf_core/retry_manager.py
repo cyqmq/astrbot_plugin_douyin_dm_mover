@@ -50,11 +50,18 @@ class RetryManager:
                 msg = InboundMessage.from_dict(data)
             except (TypeError, ValueError, KeyError):
                 continue
-            chain = self.builder.build_chain(msg)
-            if chain is None:
+            chains = self.builder.build_chain(msg)
+            if chains is None:
                 continue
-            ok, _ = await self.sender.send(target, chain)
-            if ok:
+            ok_all = True
+            for chain in (chains if isinstance(chains, list) else [chains]):
+                if chain is None:
+                    continue
+                ok, _ = await self.sender.send(target, chain)
+                if not ok:
+                    ok_all = False
+                    break
+            if ok_all:
                 self.cache.remove_failed(target, msg.message_id)
                 self._attempts.pop((target, msg.message_id), None)
                 logger.info(f"[dyf] 重试发送成功: {target}")

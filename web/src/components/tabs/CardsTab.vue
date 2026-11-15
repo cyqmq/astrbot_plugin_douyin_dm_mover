@@ -57,6 +57,18 @@ async function loadInitial() {
 function addBlock(type) {
   const b = createBlock(type)
   if (b) {
+    // 视频积木最多 1 个：已有则提示不添加（须在首位/末位，添加自动放末尾）
+    if (type === 'video') {
+      const hasVideo = blocks.value.some((x) => x && x.type === 'video')
+      if (hasVideo) {
+        toast('视频积木最多 1 个（拆两条消息）')
+        return
+      }
+      blocks.value.push(b)
+      selectedIndex.value = blocks.value.length - 1
+      selectedBlock.value = b
+      return
+    }
     if (selectedIndex.value >= 0 && selectedIndex.value < blocks.value.length) {
       blocks.value.splice(selectedIndex.value + 1, 0, b)
       selectedIndex.value += 1

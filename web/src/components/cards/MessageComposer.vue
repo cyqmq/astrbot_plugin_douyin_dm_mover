@@ -17,9 +17,24 @@ const emit = defineEmits(['select', 'toggle', 'duplicate', 'remove'])
 // 拖拽容器 ref + useDraggable（onMounted 后调用，el 已挂载，需 start() 启动）
 const seqEl = ref(null)
 onMounted(() => {
-  const drag = useDraggable(seqEl, blocks, { animation: 150, ghostClass: 'drag-ghost' })
+  const drag = useDraggable(seqEl, blocks, {
+    animation: 150,
+    ghostClass: 'drag-ghost',
+    onEnd: fixVideoPosition,
+  })
   drag.start()
 })
+
+// 视频积木只能在首位/末位：拖拽后若在中间，自动吸附到最近端
+function fixVideoPosition() {
+  const vi = blocks.findIndex((b) => b && b.type === 'video')
+  if (vi < 0 || blocks.length < 2) return
+  if (vi === 0 || vi === blocks.length - 1) return
+  const toEnd = vi > (blocks.length - 1) / 2
+  const [v] = blocks.splice(vi, 1)
+  if (toEnd) blocks.push(v)
+  else blocks.unshift(v)
+}
 
 function blockLabel(type) {
   return (BLOCK_TYPES[type] && BLOCK_TYPES[type].label) || type

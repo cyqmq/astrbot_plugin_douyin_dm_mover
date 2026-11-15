@@ -2,6 +2,7 @@
 // 左栏：手机实时预览
 // 用前端渲染器渲染当前消息实例，预览与转发同源（Schema 契约保证）
 // 覆盖空 / 错 / 加载 / 长内容状态
+// 视频积木 → 两条气泡（视频 + Markdown），顺序按积木位置（首位/末位）
 import { computed } from 'vue'
 import { renderPreview } from './renderBlocks.js'
 
@@ -13,7 +14,29 @@ const props = defineProps({
 
 const nowTime = '14:32'
 
-// 渲染预览 HTML（空/错/加载时不渲染）
+// 拆成消息段：视频积木 → 独立气泡，其余 → Markdown 气泡（顺序按积木）
+const segments = computed(() => {
+  const b = props.blocks || []
+  if (!b.length) return []
+  const vi = b.findIndex((x) => x && x.type === 'video')
+  if (vi < 0) return [{ type: 'md', html: renderPreview(b), text: '' }]
+  const vData = b[vi].data || {}
+  const others = b.filter((_, i) => i !== vi)
+  const mdHtml = others.length ? renderPreview(others) : ''
+  const videoText = `▶ ${vData.alt || '视频'}`
+  const first = vi === 0
+  const segs = []
+  if (first) {
+    segs.push({ type: 'video', html: '', text: videoText })
+    if (mdHtml) segs.push({ type: 'md', html: mdHtml, text: '' })
+  } else {
+    if (mdHtml) segs.push({ type: 'md', html: mdHtml, text: '' })
+    segs.push({ type: 'video', html: '', text: videoText })
+  }
+  return segs
+})
+
+// 预览 HTML（空/错/加载时不渲染，兼容旧单气泡）
 const html = computed(() => {
   if (props.status === 'loading' || props.status === 'error') return ''
   return renderPreview(props.blocks || [])
@@ -46,12 +69,13 @@ const html = computed(() => {
           </div>
           <template v-else>
             <div class="time-divider">{{ nowTime }}</div>
-            <div class="msg">
+            <div v-for="(seg, si) in segments" :key="si" class="msg">
               <div class="avatar">群</div>
               <div class="msg-main">
                 <div class="msg-name">接收群</div>
-                <div class="bubble">
-                  <div class="preview-body" v-html="html"></div>
+                <div class="bubble" :class="seg.type">
+                  <div v-if="seg.type === 'video'" class="video-chip">{{ seg.text }}</div>
+                  <div v-else class="preview-body" v-html="seg.html"></div>
                 </div>
               </div>
             </div>
@@ -150,6 +174,15 @@ const html = computed(() => {
   max-width: 268px;
 }
 .preview-body { padding: 12px; font-size: 13px; line-height: 1.6; color: #191C21; word-break: break-word; }
+.video-chip {
+  padding: 26px 20px;
+  background: #1B1F27;
+  color: #E7EAF0;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+  letter-spacing: 1px;
+}
 .preview-body :deep(img) { max-width: 100%; border-radius: 6px; display: block; margin: 6px 0; }
 .preview-body :deep(a) { color: #2E7CF6; }
 .preview-body :deep(h3) { margin: 6px 0 2px; font-size: 14px; }
