@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.27.0] - 2026-11-16
+
+### Added
+- **占位符积木进画布**：`src/components/blocks/PlaceholderBlock.vue`（新，占位符薄壳：token chip + 类型名，编辑态显示 `{title}`，转发由后端 `_context` 替换真实值）；`blocks/index.js` `componentMap` 注册 7 个占位符类型（source/peer_name/time/title/desc/link/image_url，复用 PlaceholderBlock），`CANVAS_TYPES` 自动扩到 11 → `useBlocks.canvasBlocks` 纳入、`allocateLayout` 分配。`CardAssemblyCanvas` `selectableMap` 从 `componentMap` 派生（删除 4 个硬编码导入，后续新增类型自动纳入画布）。占位符可二维排版/选中/停用/复制/删除，无唯一性限制（仅 video 有「最多 1 个」）；`renderBlocks`/`PhonePreview`/生产 CardsTab 零改动（default 分支已渲染占位符 token）。
+
 ## [1.26.0] - 2026-11-16
 
 ### Added

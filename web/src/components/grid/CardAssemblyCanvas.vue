@@ -6,11 +6,7 @@
 import { computed, ref, watch, toRaw, h } from 'vue'
 import { GridStack } from 'gridstack/dist/vue'
 import 'gridstack/dist/gridstack.css'
-import { CANVAS_TYPES } from '../blocks/index.js'
-import TextBlock from '../blocks/TextBlock.vue'
-import ImageBlock from '../blocks/ImageBlock.vue'
-import ButtonBlock from '../blocks/ButtonBlock.vue'
-import DividerBlock from '../blocks/DividerBlock.vue'
+import { CANVAS_TYPES, componentMap } from '../blocks/index.js'
 
 const props = defineProps({
   blocks: { type: Array, default: () => [] },
@@ -88,12 +84,10 @@ function withSelect(Comp) {
     },
   }
 }
-const selectableMap = {
-  text: withSelect(TextBlock),
-  image: withSelect(ImageBlock),
-  button: withSelect(ButtonBlock),
-  divider: withSelect(DividerBlock),
-}
+// selectableMap 从 componentMap 派生（后续新增类型自动纳入画布，不硬编码）
+const selectableMap = Object.fromEntries(
+  Object.entries(componentMap).map(([type, Comp]) => [type, withSelect(Comp)])
+)
 
 function onChange(e, items) {
   emit('change', items || [])
