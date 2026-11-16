@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.24.0] - 2026-11-15
+
+### Added
+- **积木 Vue 组件化（组件层）**：`renderBlocks.js` switch 抽成 `renderSingleBlock`（行为零变化，原 case 原样搬入），新增 `renderBlockToHtml`（单块 → fillPlaceholders → mdToHtml）；4 个薄壳组件 `src/components/blocks/`（TextBlock/ImageBlock/DividerBlock/ButtonBlock）+ `componentMap`/`CANVAS_TYPES`。divider/button 不走 renderBlockToHtml（mdToHtml 不认 `***`/`[[button:...]]`），由 DividerBlock（`<hr>`）/ButtonBlock（`打开视频` 按钮）独立渲染。`renderPreview` 对外输出零变化。原 CardsTab 未动，正常业务运行。
+
 ## [1.23.0] - 2026-11-15
 
 ### Added

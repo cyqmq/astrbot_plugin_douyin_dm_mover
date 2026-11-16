@@ -7,59 +7,63 @@ import { placeholderToken } from './blockTypes.js'
 // 渲染积木序列为消息内容（与后端 _render_blocks 同规则：media 用 \n\n 连接、空块跳过）
 export function renderBlocks(blocks, ctx = {}, markdown = true) {
   if (!Array.isArray(blocks)) return ''
-  const parts = []
-  for (const b of blocks) {
-    if (!b || !b.type) continue
-    const d = b.data || {}
-    let s = ''
-    switch (b.type) {
-      case 'text':
-        s = d.text || ''
-        break
-      case 'heading': {
-        const title = d.title || ''
-        const body = d.body || ''
-        const head = markdown ? `# ${title}` : title
-        s = body ? `${head}\n${body}` : head
-        break
-      }
-      case 'media': {
-        const img = d.image || ''
-        const title = d.title || ''
-        const desc = d.desc || ''
-        if (markdown && img) s += `![${title}](${img})`
-        if (title) s += (s ? '\n\n' : '') + (markdown ? `# ${title}` : title)
-        if (desc) s += (s ? '\n\n' : '') + desc
-        break
-      }
-      case 'button': {
-        // 按钮不可配置：恒渲染 [[button:打开视频|{link}]]；plain 只出文案
-        s = markdown ? '[[button:打开视频|{link}]]' : '打开视频'
-        break
-      }
-      case 'image': {
-        // 图片积木：markdown 渲染 ![alt](image_url)，位置由积木决定；plain 输出 alt
-        const alt = d.alt || '{title}'
-        s = markdown ? `![${alt}]({image_url})` : alt
-        break
-      }
-      case 'video': {
-        // 视频积木：markdown 渲染 [[video:{video_url}]]（_chain_from_markdown 解析成 Video 节点）；plain 输出 alt
-        const alt = d.alt || '视频'
-        s = markdown ? `[[video:{video_url}]]` : alt
-        break
-      }
-      case 'divider':
-        s = markdown ? '***' : '—'
-        break
-      default:
-        // 占位符积木：输出其 token（fillPlaceholders 随后替换为模拟/真实值）
-        s = placeholderToken(b.type) || ''
-        break
+  return (blocks || [])
+    .map((b) => renderSingleBlock(b, ctx, markdown))
+    .filter((s) => s)
+    .join('\n\n')
+}
+
+// 单块渲染（原 switch 原样搬入，不改变任何 case 行为）
+export function renderSingleBlock(b, ctx = {}, markdown = true) {
+  if (!b || !b.type) return ''
+  const d = b.data || {}
+  let s = ''
+  switch (b.type) {
+    case 'text':
+      s = d.text || ''
+      break
+    case 'heading': {
+      const title = d.title || ''
+      const body = d.body || ''
+      const head = markdown ? `# ${title}` : title
+      s = body ? `${head}\n${body}` : head
+      break
     }
-    if (s) parts.push(s)
+    case 'media': {
+      const img = d.image || ''
+      const title = d.title || ''
+      const desc = d.desc || ''
+      if (markdown && img) s += `![${title}](${img})`
+      if (title) s += (s ? '\n\n' : '') + (markdown ? `# ${title}` : title)
+      if (desc) s += (s ? '\n\n' : '') + desc
+      break
+    }
+    case 'button': {
+      // 按钮不可配置：恒渲染 [[button:打开视频|{link}]]；plain 只出文案
+      s = markdown ? '[[button:打开视频|{link}]]' : '打开视频'
+      break
+    }
+    case 'image': {
+      // 图片积木：markdown 渲染 ![alt](image_url)，位置由积木决定；plain 输出 alt
+      const alt = d.alt || '{title}'
+      s = markdown ? `![${alt}]({image_url})` : alt
+      break
+    }
+    case 'video': {
+      // 视频积木：markdown 渲染 [[video:{video_url}]]（_chain_from_markdown 解析成 Video 节点）；plain 输出 alt
+      const alt = d.alt || '视频'
+      s = markdown ? `[[video:{video_url}]]` : alt
+      break
+    }
+    case 'divider':
+      s = markdown ? '***' : '—'
+      break
+    default:
+      // 占位符积木：输出其 token（fillPlaceholders 随后替换为模拟/真实值）
+      s = placeholderToken(b.type) || ''
+      break
   }
-  return parts.join('\n\n')
+  return s
 }
 
 // 占位符替换（预览用模拟值；转发时后端用真实上下文）
@@ -99,4 +103,10 @@ export function renderPreview(blocks, ctx = {}) {
   const content = renderBlocks(blocks, ctx)
   const filled = fillPlaceholders(content, ctx)
   return mdToHtml(filled)
+}
+
+// 单块 → 预览 HTML，与 renderPreview 中单块走同一条 fillPlaceholders → mdToHtml
+export function renderBlockToHtml(block, ctx = {}) {
+  const md = renderSingleBlock(block, ctx, true)
+  return mdToHtml(fillPlaceholders(md, ctx))
 }
