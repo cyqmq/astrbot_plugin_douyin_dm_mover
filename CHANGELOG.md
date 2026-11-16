@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.26.0] - 2026-11-16
+
+### Added
+- **卡片测试页导出模板**：中栏「导出模板」按钮，下载当前积木序列为完整测试文件 JSON（`{type, version, name, exported_at, blocks, markdown, rendered_markdown}`）——blocks 为当前模板（深拷贝剥离响应式 Proxy），`rendered_markdown` 为占位符填充（fillPlaceholders 模拟值）后的渲染 Markdown，可直接存档/导入前后端共用语料做回归。
+
 ## [1.25.0] - 2026-11-16
 
 ### Added

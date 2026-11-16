@@ -8,6 +8,7 @@ import PhonePreview from '../cards/PhonePreview.vue'
 import PlaceholderLibrary from '../cards/PlaceholderLibrary.vue'
 import CardAssemblyCanvas from '../grid/CardAssemblyCanvas.vue'
 import { createBlock, validateBlocks } from '../cards/blockTypes.js'
+import { renderBlocks, fillPlaceholders } from '../cards/renderBlocks.js'
 import { useBlocks } from '../../composables/useBlocks.js'
 
 const {
@@ -124,6 +125,34 @@ async function saveDraft() {
   }
 }
 
+// 下载 JSON（浏览器触发下载，revokeObjectURL 及时释放）
+function downloadJSON(obj, filename) {
+  const blob = new Blob([JSON.stringify(obj, null, 2)], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+// 导出当前模板为完整测试文件（blocks + 占位符填充后的渲染 Markdown + 元信息）
+function exportTemplate() {
+  const name = '导出模板_' + new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')
+  const payload = {
+    type: 'douyin_dm_mover_template',
+    version: 1,
+    name,
+    exported_at: new Date().toISOString(),
+    // 深拷贝剥离 Vue 响应式 Proxy
+    blocks: JSON.parse(JSON.stringify(blocks.value)),
+    markdown: true,
+    rendered_markdown: fillPlaceholders(renderBlocks(blocks.value)),
+  }
+  downloadJSON(payload, name + '.json')
+  toast('已导出测试模板文件')
+}
+
 // 保存为模板
 async function saveAsTemplate() {
   const r = validateBlocks(blocks.value)
@@ -167,6 +196,7 @@ onMounted(loadInitial)
         <h2>消息拼装</h2>
         <div class="head-actions">
           <span class="save-hint">{{ saveHint }}</span>
+          <button class="btn-export" @click="exportTemplate">导出模板</button>
           <button class="btn-save" :disabled="saving" @click="saveAsTemplate">
             {{ saving ? '保存中…' : '保存为模板' }}
           </button>
@@ -259,6 +289,18 @@ onMounted(loadInitial)
   transition:.15s;
 }
 .btn-save:hover{ filter:brightness(.9); }
+.btn-export{
+  border:1px solid var(--border);
+  border-radius:8px;
+  padding:6px 12px;
+  font-size:12px;
+  font-weight:500;
+  cursor:pointer;
+  background:var(--card);
+  color:var(--text);
+  transition:.15s;
+}
+.btn-export:hover{ border-color:var(--accent); color:var(--accent); }
 .btn-save:disabled{ background:var(--border2); cursor:not-allowed; }
 
 .col-body{
