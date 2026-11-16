@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.23.0] - 2026-11-15
+
+### Added
+- **卡片测试页**：复制 `CardsTab.vue` → `CardsTestTab.vue`，侧栏加「卡片测试」入口（`cards_test`），独立于正式卡片页，用于测试推送卡片改造（组件共用 cards/ 组件）。
+
 ## [1.22.0] - 2026-11-15
 
 ### Added
