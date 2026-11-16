@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.21.3] - 2026-11-15
+
+### Changed
+- **按钮不可配置、恒跳转视频链接**：按钮积木移除 url 自由输入（失败源：非 https/非占位符值被前后端校验拒绝 → 保存失败 → 转发走旧默认模板）。`BLOCK_TYPES.button` data 置空、`validate_block`/`validateBlock` 按钮无约束、渲染恒 `[[button:打开视频|{link}]]`（转发替换为视频链接）、PlaceholderLibrary 按钮属性区改不可配置说明。
+
 ## [1.21.2] - 2026-11-15
 
 ### Fixed

@@ -33,7 +33,7 @@ export const BLOCK_TYPES = {
   ),
   image: { label: '图片', data: { alt: '' } },
   video: { label: '视频', data: { alt: '' } },
-  button: { label: '按钮', data: { text: '打开视频', url: '' } },
+  button: { label: '按钮', data: {} },
   text: { label: '纯文本', data: { text: '' } },
   divider: { label: '分割线', data: {} },
 }
@@ -79,16 +79,6 @@ export function validateBlock(block) {
   // 校验 data 结构（非占位符类型的必填字段不能缺失；占位符/分割线 data 为空即通过）
   for (const key of Object.keys(t.data)) {
     if (!(key in data)) return { ok: false, detail: `积木「${t.label}」缺少字段: ${key}` }
-  }
-  if (type === 'button') {
-    const label = String(data.text || '').trim()
-    const url = String(data.url || '').trim()
-    if (!label) return { ok: false, detail: '按钮积木缺少文案' }
-    if (label.length > 10) return { ok: false, detail: '按钮文案最多 10 字' }
-    // url 允许空（默认 {link} 回退）/ 占位符（{...} 转发时替换）/ http(s)
-    if (url && !/^https?:\/\//.test(url) && !/^\{[^}]+\}$/.test(url)) {
-      return { ok: false, detail: '按钮链接必须是 http(s) 或 {占位符}' }
-    }
   }
   return { ok: true }
 }

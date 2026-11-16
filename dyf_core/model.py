@@ -1,7 +1,6 @@
 """平台中立的数据模型。core/ 只依赖本文件与 gateway/base.py 接口。"""
 from __future__ import annotations
 
-import re
 from dataclasses import dataclass, field
 from enum import Enum
 
@@ -119,13 +118,6 @@ def validate_block(b: dict) -> str | None:
     if t == "text" and not str(d.get("text", "")).strip():
         return "text 积木缺少 text"
     if t == "button":
-        label = str(d.get("text", "")).strip()
-        url = str(d.get("url", "")).strip()
-        if not label:
-            return "button 积木缺少 text"
-        if len(label) > 10:
-            return "button 积木 text 最多 10 字（QQ 按钮 label 上限）"
-        # url 允许空（默认 {link} 回退）/ 占位符（{...} 转发时替换）/ http(s)
-        if url and not re.match(r"^https?://", url) and not re.match(r"^\{[^}]+\}$", url):
-            return "button 积木 url 必须是 http(s) 链接或 {占位符}"
+        # 按钮不可配置：无必填/格式约束，恒跳转视频链接（{link}）
+        return None
     return None

@@ -166,10 +166,8 @@ class MessageBuilder:
                 text, url = str(d.get("text", "")), str(d.get("url", ""))
                 parts.append(f"[{text}]({url})" if markdown else f"{text} {url}".strip())
             elif t == "button":
-                # 按钮积木：markdown 渲染 [[button:文案|地址]]（_markdown_chain_only 提取成 ActionRow）；plain 只出文案
-                text = str(d.get("text", ""))
-                url = str(d.get("url", "")).strip() or "{link}"
-                parts.append(f"[[button:{text}|{url}]]" if markdown else text)
+                # 按钮不可配置：恒渲染 [[button:打开视频|{link}]]（_markdown_chain_only 提取成 ActionRow）；plain 只出文案
+                parts.append("[[button:打开视频|{link}]]" if markdown else "打开视频")
             elif t == "divider":
                 parts.append("***" if markdown else "—")
         return "\n\n".join(p for p in parts if p)

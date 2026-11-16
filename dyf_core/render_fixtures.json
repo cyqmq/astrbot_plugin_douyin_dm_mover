@@ -205,7 +205,7 @@
         }
       ],
       "markdown": true,
-      "expected": "[[button:点击|https://example.com/video/1]]"
+      "expected": "[[button:打开视频|https://example.com/video/1]]"
     },
     {
       "name": "image_md",
