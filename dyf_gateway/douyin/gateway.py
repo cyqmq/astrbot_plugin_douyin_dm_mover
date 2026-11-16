@@ -592,6 +592,9 @@ class DouyinGateway(MessageGateway):
             if is_album
             else f"https://www.douyin.com/video/{item_id}"
         )
+        # 回写正确跳转链接（/note/ 或 /video/），供 _context.link / auto 按钮读取（图集分享卡 share_item_id 兜底）
+        if msg.card is not None:
+            msg.card["_jump_url"] = link
         if desc and desc not in msg.text:
             body = f"{msg.text}\n{desc}".strip() if msg.text else desc
             if link and link not in body:

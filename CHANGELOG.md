@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.22.0] - 2026-11-15
+
+### Added
+- **图集/作品分享卡跳转按钮**：`enrich_video` 算好的跳转链接（`/note/` 图集 / `/video/` 视频）回写 `card["_jump_url"]`，`_context.link` 优先读它（补 `share_item_id` 取不到缺口）；`auto_btn_url` 条件放宽至「视频卡 或 图集分享卡（IMAGE + share_item_id/_jump_url）」，url 同源 `_context.link`。图集分享卡转发也挂「打开视频」按钮。
+
 ## [1.21.3] - 2026-11-15
 
 ### Changed

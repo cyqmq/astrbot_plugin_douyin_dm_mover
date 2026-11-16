@@ -69,7 +69,10 @@ class MessageBuilder:
             t = datetime.now()
         card = msg.card or {}
         item_id = str(card.get("itemId") or card.get("item_id") or "")
-        link = f"https://www.douyin.com/video/{item_id}" if item_id else ""
+        link = (
+            str(card.get("_jump_url") or "")
+            or (f"https://www.douyin.com/video/{item_id}" if item_id else "")
+        )
         return {
             "source": source,
             "peer_name": peer,
@@ -232,18 +235,20 @@ class MessageBuilder:
         # 用户模板（积木 blocks 非空且非迁移自动生成）= 整条消息：积木渲染即发送内容，
         # 不再附加正文/媒体（占位符积木取视频卡字段，媒体链用 for_media 模板）
         tpl = self._template(for_media=is_media_chain)
-        # 视频卡自动长链接 → 按钮：按钮不能与媒体同链（富媒体会 pop markdown 丢键盘），拆成第二条 Markdown 链
+        # 视频卡/图集分享卡长链接 → 按钮：按钮不能与媒体同链（富媒体会 pop markdown 丢键盘），拆成第二条 Markdown 链
         auto_btn_url = ""
         if (
-            msg.type == MessageType.VIDEO_CARD
-            and self.include_link
+            self.include_link
             and self.markdown_enabled
             and msg.card
             and not self._is_user_template(tpl)
         ):
-            item_id = str(msg.card.get("itemId") or msg.card.get("item_id") or "")
-            if item_id:
-                auto_btn_url = f"https://www.douyin.com/video/{item_id}"
+            is_share = msg.type == MessageType.VIDEO_CARD or (
+                msg.type == MessageType.IMAGE
+                and bool(msg.card.get("share_item_id") or msg.card.get("_jump_url"))
+            )
+            if is_share:
+                auto_btn_url = self._context(msg)["link"]
         if self._is_user_template(tpl):
             ctx = self._context(msg)
             markdown = self.markdown_enabled and not is_media_chain
