@@ -1,17 +1,27 @@
 <script setup>
 // 卡片编辑器（重写版）——步骤 2：三栏框架 + 左栏手机预览
 // 三栏布局由 CardsTab 统一控制宽度/高度/间距，各栏组件内不写
+// 任务 2：中栏线性拖拽列表 → 二维装配画布（gridstack），属性面板改 data 实时更新画布
 import { ref, watch, onMounted } from 'vue'
 import { apiGet, apiPostBody, toast } from '../../composables/store.js'
 import PhonePreview from '../cards/PhonePreview.vue'
 import PlaceholderLibrary from '../cards/PlaceholderLibrary.vue'
-import MessageComposer from '../cards/MessageComposer.vue'
+import CardAssemblyCanvas from '../grid/CardAssemblyCanvas.vue'
 import { createBlock, validateBlocks } from '../cards/blockTypes.js'
+import { useBlocks } from '../../composables/useBlocks.js'
 
-// 积木序列（从草稿/模板加载）
-const blocks = ref([])
+const {
+  blocks,
+  layout,
+  videoCount,
+  applyChange,
+  addBlock,
+  removeBlock,
+  duplicateBlock,
+  resetBlocks,
+} = useBlocks()
+
 const selectedBlock = ref(null)
-const selectedIndex = ref(-1)
 const loading = ref(false)
 const saving = ref(false)
 const status = ref('idle')  // 预览状态：idle/loading/error
@@ -38,91 +48,60 @@ function normalizeBlocks(arr) {
   return b
 }
 
-// 加载：先草稿，无草稿用模板，无模板用默认
+// 加载：先草稿，无草稿用模板，无模板用默认（回填用 resetBlocks 整体重分配 layout）
 async function loadInitial() {
   loading.value = true
   status.value = 'loading'
   try {
     const d = await apiGet('messages/draft')
     if (d && d.ok && Array.isArray(d.blocks) && d.blocks.length) {
-      blocks.value = normalizeBlocks(d.blocks)
+      resetBlocks(normalizeBlocks(d.blocks))
     } else {
       const t = await apiGet('templates/get')
       if (t && t.ok && Array.isArray(t.templates) && t.templates.length) {
         const first = t.templates[0]
-        blocks.value = normalizeBlocks(first.blocks || [])
+        resetBlocks(normalizeBlocks(first.blocks || []))
       } else {
-        blocks.value = [createBlock('text', { text: '{desc}' })]
+        resetBlocks([createBlock('text', { text: '{desc}' })])
       }
     }
     status.value = 'idle'
   } catch (e) {
-    status.value = 'error'
-    errorMsg.value = '加载失败'
+    // 测试页离线容错：无后端也能展示画布（生产 CardsTab 不依赖此路径）
+    resetBlocks([createBlock('text', { text: '{desc}' })])
+    status.value = 'idle'
   } finally {
     loading.value = false
   }
 }
 
-// 从积木库添加积木：视频积木最多 1 个放末尾；非视频积木避开视频（保持视频首位/末位）
-function addBlock(type) {
-  const b = createBlock(type)
-  if (!b) return
-  if (type === 'video') {
-    const hasVideo = blocks.value.some((x) => x && x.type === 'video')
-    if (hasVideo) {
-      toast('视频积木最多 1 个（拆两条消息）')
-      return
-    }
-    blocks.value.push(b)
-    selectedIndex.value = blocks.value.length - 1
-    selectedBlock.value = b
-    return
+// 积木库添加：video 不选中（等顺序窗口）；非视频立即选中新积木
+function onAddBlock(type) {
+  const r = addBlock(type)
+  if (r.error) { toast(r.error); return }
+  if (r.block && !r.isVideo) {
+    selectedBlock.value = r.block
   }
-  const vi = blocks.value.findIndex((x) => x && x.type === 'video')
-  let insertAt
-  if (vi === 0) {
-    insertAt = 1 // 视频首位：插视频后（保持视频首位）
-  } else if (vi === blocks.value.length - 1) {
-    insertAt = vi // 视频末位：插视频前（保持视频末位）
-  } else if (selectedIndex.value >= 0 && selectedIndex.value < blocks.value.length) {
-    insertAt = selectedIndex.value + 1
-  } else {
-    insertAt = blocks.value.length
-  }
-  blocks.value.splice(insertAt, 0, b)
-  selectedIndex.value = insertAt
-  selectedBlock.value = b
 }
 
-// 中栏积木操作
-function selectBlock(i) {
-  selectedIndex.value = i
-  selectedBlock.value = blocks.value[i] || null
+// 画布点击选中 → 右栏属性面板
+function selectBlock(block) {
+  selectedBlock.value = block
 }
-function toggleBlock(i) {
-  const b = blocks.value[i]
-  if (b) b.disabled = !b.disabled
+
+// 画布积木操作（用积木对象，非索引）
+function toggleBlock(block) {
+  if (block) block.disabled = !block.disabled
 }
-function duplicateBlock(i) {
-  const src = blocks.value[i]
-  if (!src) return
-  if (src.type === 'video') {
-    toast('视频积木最多 1 个，不能复制')
-    return
-  }
-  const copy = JSON.parse(JSON.stringify(src))
-  copy.id = 'b' + Date.now() + Math.random().toString(36).slice(2, 6)
-  blocks.value.splice(i + 1, 0, copy)
+function onDuplicateBlock(block) {
+  const r = duplicateBlock(block.id)
+  if (r.error) { toast(r.error); return }
+  if (r.block) selectedBlock.value = r.block
 }
-function removeBlock(i) {
-  blocks.value.splice(i, 1)
-  if (selectedIndex.value === i) {
-    selectedIndex.value = -1
+function onRemoveBlock(block) {
+  removeBlock(block.id)
+  if (selectedBlock.value && selectedBlock.value.id === block.id) {
     selectedBlock.value = null
-  } else if (selectedIndex.value > i) {
-    selectedIndex.value--
-    selectedBlock.value = blocks.value[selectedIndex.value] || null
   }
 }
 
@@ -193,19 +172,21 @@ onMounted(loadInitial)
           </button>
         </div>
       </div>
-      <MessageComposer
-        v-model="blocks"
-        :selected-index="selectedIndex"
+      <CardAssemblyCanvas
+        :blocks="blocks"
+        :layout="layout"
+        :video-count="videoCount"
+        @change="applyChange"
         @select="selectBlock"
         @toggle="toggleBlock"
-        @duplicate="duplicateBlock"
-        @remove="removeBlock"
+        @duplicate="onDuplicateBlock"
+        @remove="onRemoveBlock"
       />
     </main>
 
     <aside class="col col-right">
       <div class="col-head"><h2>积木</h2></div>
-      <PlaceholderLibrary :selected-block="selectedBlock" @add="addBlock" />
+      <PlaceholderLibrary :selected-block="selectedBlock" @add="onAddBlock" />
     </aside>
   </div>
 </template>

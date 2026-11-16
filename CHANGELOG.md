@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.25.0] - 2026-11-16
+
+### Added
+- **卡片装配画布（gridstack 二维排版）**：测试页（CardsTestTab）中栏线性拖拽列表 → 二维排版画布（`CardAssemblyCanvas`，gridstack 官方 v14 `GridStack`）。新增 `src/composables/useBlocks.js`（blocks/layout/canvasBlocks/videoCount/applyChange/addBlock/removeBlock/duplicateBlock/fixVideoPosition/resetBlocks；`allocateLayout` 逐行扫空位、`applyChange` 强制 h:1、视频不进画布无 layout 条目）。画布属性链路：`childrenSnapshot` + `idsKey` 只随增删积木变（`toRaw` 读坐标不建响应式追踪），`props.block` 原样透传响应式对象——属性面板改 `data` 实时更新画布且不重挂载、不丢焦点；layout 暂不持久化（回填 `resetBlocks` 重分配，saveDraft 只发 `{blocks}`）。薄壳组件保持纯内容层（画布 wrapper 负责点击选中 + 停用/复制/删除）。`renderPreview`/`PhonePreview`/生产 CardsTab 零改动。
+
 ## [1.24.0] - 2026-11-15
 
 ### Added
