@@ -399,8 +399,11 @@ class MessageBuilder:
                                 action=Button.UrlAction(url=url),
                                 style=Button.Style.PRIMARY,
                             ))
+                        # 裸 URL 纯文本（非 markdown 语法）：支持 ActionRow 的平台同时渲染按钮，
+                        # fallback_text 若带 [label](url) 会被当 markdown 一起发出 → 每钮重复。
+                        # 裸 URL 在支持按钮的平台不渲染成第二个可点链接；不支持的平台另走 Plain 分支。
                         fb = " ".join(
-                            f"[{btn_m[j].group(1).strip()}]({btn_m[j].group(2).strip()})"
+                            f"{btn_m[j].group(1).strip()}: {btn_m[j].group(2).strip()}"
                             for j in group
                         )
                         parts.append(ActionRow(buttons=btns, fallback_text=fb))

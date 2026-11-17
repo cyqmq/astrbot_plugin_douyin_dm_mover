@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.33.1] - 2026-11-16
+
+### Fixed
+- **按钮双份显示**：`_markdown_chain_only` 的 `ActionRow.fallback_text` 原用 `[label](url)` markdown 语法，支持 ActionRow 的平台在渲染按钮时把它当 markdown 一起发出 → QQ 每钮出现「一行 markdown 链接 + 一行按钮」。改为裸 URL 纯文本 `{label}: {url}`（支持按钮的平台不再渲染成第二个可点链接；不支持的平台仍走 `Plain(f"[{label}]({url})")` 分支，可点链接不受影响）。
+
 ## [1.33.0] - 2026-11-16
 
 ### Changed
