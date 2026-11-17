@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.29.0] - 2026-11-16
+
+### Added
+- **模板携带画布布局（前后端）**：`templates_set` 每项可选接收 `layout`（`None` 不存/不覆盖，老模板/外部导入兼容；非 `None` 时 `validate_layout` 校验，非法 `ok:False`），合法内嵌进模板对象 `{id,name,blocks,layout,for_media}`（模板是数组、layout 必须跟随模板项，非 draft 独立键）；`templates_get` 随对象带出。前端 `saveAsTemplate` payload 带 `layout`（深拷贝剥离 Proxy）；`useBlocks.resetBlocks` 支持可选 `layoutOpt` 回填优先（保留 canvasBlocks 内 id 坐标、残留/非法 id 走 `allocateLayout` 宽容），`loadInitial` 模板分支传 `first.layout` 回填。视频积木在模板仍无 layout 条目（不进画布）。
+
 ## [1.28.0] - 2026-11-16
 
 ### Added

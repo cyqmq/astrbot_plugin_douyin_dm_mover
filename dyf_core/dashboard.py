@@ -523,12 +523,19 @@ class DashboardApi:
                 return {"ok": False, "detail": f"模板「{name}」视频积木最多 1 个（拆两条消息）"}
             if vid_idx and vid_idx[0] not in (0, len(blocks) - 1):
                 return {"ok": False, "detail": f"模板「{name}」视频积木只能在第一位或最后一位"}
+            # 画布布局可选（内嵌对象键，随模板项存；None 不存/不覆盖，旧模板/外部导入无 layout 兼容）
+            layout = t.get("layout")
+            if layout is not None:
+                err = validate_layout(layout)
+                if err:
+                    return {"ok": False, "detail": f"模板「{name}」: {err}"}
             cleaned.append(
                 {
                     "id": tid,
                     "name": name,
                     "blocks": blocks,
                     "for_media": bool(t.get("for_media", False)),
+                    **({"layout": layout} if layout is not None else {}),
                 }
             )
         self.fm.config["templates"] = cleaned
