@@ -61,7 +61,8 @@ async function loadInitial() {
       const t = await apiGet('templates/get')
       if (t && t.ok && Array.isArray(t.templates) && t.templates.length) {
         const first = t.templates[0]
-        resetBlocks(normalizeBlocks(first.blocks || []))
+        // 模板带 layout 回填优先，否则重分配（宽容：无 layout 走 allocateAllLayout）
+        resetBlocks(normalizeBlocks(first.blocks || []), first.layout)
       } else {
         resetBlocks([createBlock('text', { text: '{desc}' })])
       }
@@ -161,7 +162,13 @@ async function saveAsTemplate() {
   try {
     const d = await apiPostBody('templates/set', {
       // 深拷贝剥离 Vue 响应式 Proxy（postMessage structured clone 无法克隆 Proxy）
-      templates: [{ id: 'default', name: '默认模板', blocks: JSON.parse(JSON.stringify(blocks.value)), for_media: false }],
+      templates: [{
+        id: 'default',
+        name: '默认模板',
+        blocks: JSON.parse(JSON.stringify(blocks.value)),
+        layout: JSON.parse(JSON.stringify(layout.value)),
+        for_media: false,
+      }],
     })
     if (d && d.ok) {
       toast(d.detail || '已保存为模板')

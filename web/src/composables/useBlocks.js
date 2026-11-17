@@ -123,10 +123,29 @@ export function useBlocks() {
     else arr.unshift(v)
   }
 
-  // 重置积木（回填/默认）：新 blocks 后整体重分配 layout
-  function resetBlocks(newBlocks) {
+  // 重置积木（回填/默认）：新 blocks 后整体重分配 layout；
+  // 可选 layoutOpt（模板/草稿带布局时）回填优先——保留 canvasBlocks 内 id 的坐标，
+  // 缺布局/非法的 id 走 allocateLayout（宽容：残留/新增 id 不阻断）
+  function resetBlocks(newBlocks, layoutOpt) {
     blocks.value = newBlocks || []
-    allocateAllLayout()
+    if (layoutOpt && typeof layoutOpt === 'object' && !Array.isArray(layoutOpt)) {
+      const ln = {}
+      for (const b of canvasBlocks.value) {
+        const pos = layoutOpt[b.id]
+        if (
+          pos && typeof pos === 'object' &&
+          Number.isInteger(pos.x) && Number.isInteger(pos.y) &&
+          (pos.w === 1 || pos.w === 2) && pos.h === 1
+        ) {
+          ln[b.id] = { x: pos.x, y: pos.y, w: pos.w, h: DEFAULT_H }
+        } else {
+          ln[b.id] = allocateLayout(b)
+        }
+      }
+      layout.value = ln
+    } else {
+      allocateAllLayout()
+    }
   }
 
   return {
