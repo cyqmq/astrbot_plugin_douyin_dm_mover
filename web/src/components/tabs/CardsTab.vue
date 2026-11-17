@@ -1,17 +1,27 @@
 <script setup>
-// 卡片编辑器（重写版）——步骤 2：三栏框架 + 左栏手机预览
+// 卡片编辑器（重写版）——三栏框架：左栏手机预览 + 中栏二维装配画布（gridstack）+ 右栏积木库
 // 三栏布局由 CardsTab 统一控制宽度/高度/间距，各栏组件内不写
 import { ref, watch, onMounted } from 'vue'
 import { apiGet, apiPostBody, toast } from '../../composables/store.js'
 import PhonePreview from '../cards/PhonePreview.vue'
 import PlaceholderLibrary from '../cards/PlaceholderLibrary.vue'
-import MessageComposer from '../cards/MessageComposer.vue'
+import CardAssemblyCanvas from '../grid/CardAssemblyCanvas.vue'
 import { createBlock, validateBlocks } from '../cards/blockTypes.js'
+import { renderBlocks, fillPlaceholders } from '../cards/renderBlocks.js'
+import { useBlocks } from '../../composables/useBlocks.js'
 
-// 积木序列（从草稿/模板加载）
-const blocks = ref([])
+const {
+  blocks,
+  layout,
+  videoCount,
+  applyChange,
+  addBlock,
+  removeBlock,
+  duplicateBlock,
+  resetBlocks,
+} = useBlocks()
+
 const selectedBlock = ref(null)
-const selectedIndex = ref(-1)
 const loading = ref(false)
 const saving = ref(false)
 const status = ref('idle')  // 预览状态：idle/loading/error
@@ -38,21 +48,23 @@ function normalizeBlocks(arr) {
   return b
 }
 
-// 加载：先草稿，无草稿用模板，无模板用默认
+// 加载：先草稿，无草稿用模板，无模板用默认（回填用 resetBlocks 整体重分配 layout）
 async function loadInitial() {
   loading.value = true
   status.value = 'loading'
   try {
     const d = await apiGet('messages/draft')
     if (d && d.ok && Array.isArray(d.blocks) && d.blocks.length) {
-      blocks.value = normalizeBlocks(d.blocks)
+      // 草稿带 layout 回填优先（draft_layout 独立键），否则重分配
+      resetBlocks(normalizeBlocks(d.blocks), d.layout)
     } else {
       const t = await apiGet('templates/get')
       if (t && t.ok && Array.isArray(t.templates) && t.templates.length) {
         const first = t.templates[0]
-        blocks.value = normalizeBlocks(first.blocks || [])
+        // 模板带 layout 回填优先，否则重分配（宽容：无 layout 走 allocateAllLayout）
+        resetBlocks(normalizeBlocks(first.blocks || []), first.layout)
       } else {
-        blocks.value = [createBlock('text', { text: '{desc}' })]
+        resetBlocks([createBlock('text', { text: '{desc}' })])
       }
     }
     status.value = 'idle'
@@ -64,65 +76,33 @@ async function loadInitial() {
   }
 }
 
-// 从积木库添加积木：视频积木最多 1 个放末尾；非视频积木避开视频（保持视频首位/末位）
-function addBlock(type) {
-  const b = createBlock(type)
-  if (!b) return
-  if (type === 'video') {
-    const hasVideo = blocks.value.some((x) => x && x.type === 'video')
-    if (hasVideo) {
-      toast('视频积木最多 1 个（拆两条消息）')
-      return
-    }
-    blocks.value.push(b)
-    selectedIndex.value = blocks.value.length - 1
-    selectedBlock.value = b
-    return
+// 积木库添加：video 不选中（等顺序窗口）；非视频立即选中新积木
+function onAddBlock(type) {
+  const r = addBlock(type)
+  if (r.error) { toast(r.error); return }
+  if (r.block && !r.isVideo) {
+    selectedBlock.value = r.block
   }
-  const vi = blocks.value.findIndex((x) => x && x.type === 'video')
-  let insertAt
-  if (vi === 0) {
-    insertAt = 1 // 视频首位：插视频后（保持视频首位）
-  } else if (vi === blocks.value.length - 1) {
-    insertAt = vi // 视频末位：插视频前（保持视频末位）
-  } else if (selectedIndex.value >= 0 && selectedIndex.value < blocks.value.length) {
-    insertAt = selectedIndex.value + 1
-  } else {
-    insertAt = blocks.value.length
-  }
-  blocks.value.splice(insertAt, 0, b)
-  selectedIndex.value = insertAt
-  selectedBlock.value = b
 }
 
-// 中栏积木操作
-function selectBlock(i) {
-  selectedIndex.value = i
-  selectedBlock.value = blocks.value[i] || null
+// 画布点击选中 → 右栏属性面板
+function selectBlock(block) {
+  selectedBlock.value = block
 }
-function toggleBlock(i) {
-  const b = blocks.value[i]
-  if (b) b.disabled = !b.disabled
+
+// 画布积木操作（用积木对象，非索引）
+function toggleBlock(block) {
+  if (block) block.disabled = !block.disabled
 }
-function duplicateBlock(i) {
-  const src = blocks.value[i]
-  if (!src) return
-  if (src.type === 'video') {
-    toast('视频积木最多 1 个，不能复制')
-    return
-  }
-  const copy = JSON.parse(JSON.stringify(src))
-  copy.id = 'b' + Date.now() + Math.random().toString(36).slice(2, 6)
-  blocks.value.splice(i + 1, 0, copy)
+function onDuplicateBlock(block) {
+  const r = duplicateBlock(block.id)
+  if (r.error) { toast(r.error); return }
+  if (r.block) selectedBlock.value = r.block
 }
-function removeBlock(i) {
-  blocks.value.splice(i, 1)
-  if (selectedIndex.value === i) {
-    selectedIndex.value = -1
+function onRemoveBlock(block) {
+  removeBlock(block.id)
+  if (selectedBlock.value && selectedBlock.value.id === block.id) {
     selectedBlock.value = null
-  } else if (selectedIndex.value > i) {
-    selectedIndex.value--
-    selectedBlock.value = blocks.value[selectedIndex.value] || null
   }
 }
 
@@ -138,11 +118,44 @@ async function saveDraft() {
   try {
     // 深拷贝剥离 Vue 响应式 Proxy（postMessage structured clone 无法克隆 Proxy），
     // 与 actions.js saveConfig 的 JSON 深拷贝约定一致
-    const d = await apiPostBody('messages/draft', { blocks: JSON.parse(JSON.stringify(blocks.value)) })
+    const d = await apiPostBody('messages/draft', {
+      blocks: JSON.parse(JSON.stringify(blocks.value)),
+      // 画布布局独立键（后端 draft_layout，layout is None 不覆盖）
+      layout: JSON.parse(JSON.stringify(layout.value)),
+    })
     saveHint.value = (d && d.ok) ? '草稿已自动保存' : ('草稿保存失败: ' + ((d && d.detail) || ''))
   } catch (e) {
     saveHint.value = '草稿保存失败'
   }
+}
+
+// 下载 JSON（浏览器触发下载，revokeObjectURL 及时释放）
+function downloadJSON(obj, filename) {
+  const blob = new Blob([JSON.stringify(obj, null, 2)], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+// 导出当前模板为完整文件（blocks + layout + 占位符填充后的渲染 Markdown + 元信息）
+function exportTemplate() {
+  const name = '导出模板_' + new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')
+  const payload = {
+    type: 'douyin_dm_mover_template',
+    version: 1,
+    name,
+    exported_at: new Date().toISOString(),
+    // 深拷贝剥离 Vue 响应式 Proxy
+    blocks: JSON.parse(JSON.stringify(blocks.value)),
+    layout: JSON.parse(JSON.stringify(layout.value)),
+    markdown: true,
+    rendered_markdown: fillPlaceholders(renderBlocks(blocks.value)),
+  }
+  downloadJSON(payload, name + '.json')
+  toast('已导出模板文件')
 }
 
 // 保存为模板
@@ -153,7 +166,13 @@ async function saveAsTemplate() {
   try {
     const d = await apiPostBody('templates/set', {
       // 深拷贝剥离 Vue 响应式 Proxy（postMessage structured clone 无法克隆 Proxy）
-      templates: [{ id: 'default', name: '默认模板', blocks: JSON.parse(JSON.stringify(blocks.value)), for_media: false }],
+      templates: [{
+        id: 'default',
+        name: '默认模板',
+        blocks: JSON.parse(JSON.stringify(blocks.value)),
+        layout: JSON.parse(JSON.stringify(layout.value)),
+        for_media: false,
+      }],
     })
     if (d && d.ok) {
       toast(d.detail || '已保存为模板')
@@ -188,24 +207,27 @@ onMounted(loadInitial)
         <h2>消息拼装</h2>
         <div class="head-actions">
           <span class="save-hint">{{ saveHint }}</span>
+          <button class="btn-export" @click="exportTemplate">导出模板</button>
           <button class="btn-save" :disabled="saving" @click="saveAsTemplate">
             {{ saving ? '保存中…' : '保存为模板' }}
           </button>
         </div>
       </div>
-      <MessageComposer
-        v-model="blocks"
-        :selected-index="selectedIndex"
+      <CardAssemblyCanvas
+        :blocks="blocks"
+        :layout="layout"
+        :video-count="videoCount"
+        @change="applyChange"
         @select="selectBlock"
         @toggle="toggleBlock"
-        @duplicate="duplicateBlock"
-        @remove="removeBlock"
+        @duplicate="onDuplicateBlock"
+        @remove="onRemoveBlock"
       />
     </main>
 
     <aside class="col col-right">
       <div class="col-head"><h2>积木</h2></div>
-      <PlaceholderLibrary :selected-block="selectedBlock" @add="addBlock" />
+      <PlaceholderLibrary :selected-block="selectedBlock" @add="onAddBlock" />
     </aside>
   </div>
 </template>
@@ -278,6 +300,18 @@ onMounted(loadInitial)
   transition:.15s;
 }
 .btn-save:hover{ filter:brightness(.9); }
+.btn-export{
+  border:1px solid var(--border);
+  border-radius:8px;
+  padding:6px 12px;
+  font-size:12px;
+  font-weight:500;
+  cursor:pointer;
+  background:var(--card);
+  color:var(--text);
+  transition:.15s;
+}
+.btn-export:hover{ border-color:var(--accent); color:var(--accent); }
 .btn-save:disabled{ background:var(--border2); cursor:not-allowed; }
 
 .col-body{

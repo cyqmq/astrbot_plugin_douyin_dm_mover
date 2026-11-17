@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.33.0] - 2026-11-16
+
+### Changed
+- **生产「卡片」页照搬二维装配画布**：`CardsTab.vue` 逻辑整体替换为测试页验证过的版本——`useBlocks`（blocks/layout/videoCount/applyChange/addBlock/removeBlock/duplicateBlock/resetBlocks）+ `CardAssemblyCanvas` 取代 `MessageComposer` 线性列表；草稿/模板双路回填带 layout、草稿自动保存（`watch(blocks,deep)` 防抖）发 `{blocks, layout}`、保存为模板带 layout、导出模板下载。生产页**无离线容错 catch**（异常即 `status: error`），`cards_test` 测试标签保留并存对比（验收后再下线）。`MessageComposer`/`vue-draggable-plus` 不再被引用（产物体积下降）。
+
 ## [1.32.0] - 2026-11-16
 
 ### Added
