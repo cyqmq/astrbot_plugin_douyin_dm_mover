@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.33.5] - 2026-11-16
+
+### Fixed
+- **视频积木删不掉**：`CardAssemblyCanvas` 视频横幅（`videoCount > 0`）加删除按钮——`removeVideo()` 找到视频积木 `emit('remove', v)`，父已接 `@remove="onRemoveBlock"` → `removeBlock(block.id)`（清 blocks + layout 条目）。横幅改 flex 两端对齐（span 文字 + ✕ 按钮），复用 `act danger` 样式。修复前视频积木不进画布、横幅无删除入口，无法删除。
+
 ## [1.33.4] - 2026-11-16
 
 ### Fixed

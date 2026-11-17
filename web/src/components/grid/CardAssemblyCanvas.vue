@@ -102,12 +102,19 @@ const selectableMap = Object.fromEntries(
 function onChange(e, items) {
   emit('change', items || [])
 }
+
+// 视频横幅删除：找到视频积木 → 父 remove（父已接 @remove → removeBlock(block.id)）
+function removeVideo() {
+  const v = (props.blocks || []).find((b) => b && b.type === 'video')
+  if (v) emit('remove', v)
+}
 </script>
 
 <template>
   <div class="assembly">
     <div v-if="videoCount > 0" class="video-banner">
-      视频积木：{{ videoCount }} 个（不进画布，顺序由积木顺序决定）
+      <span>视频积木：{{ videoCount }} 个（不进画布，顺序由积木顺序决定）</span>
+      <button class="act danger" title="删除视频积木" @click="removeVideo">✕</button>
     </div>
     <div class="grid-wrap">
       <GridStack
@@ -130,12 +137,37 @@ function onChange(e, items) {
 }
 .video-banner {
   flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: space-between;
   font-size: 11px;
   color: var(--muted);
   background: var(--bg);
   border: 1px dashed var(--border2);
   border-radius: 8px;
   padding: 6px 10px;
+}
+.video-banner .act {
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 11px;
+  padding: 0;
+}
+.video-banner .act:hover {
+  background: var(--border2);
+  color: var(--text);
+}
+.video-banner .act.danger:hover {
+  background: rgba(248, 81, 73, 0.14);
+  color: var(--bad);
 }
 .grid-wrap {
   flex: 1;
