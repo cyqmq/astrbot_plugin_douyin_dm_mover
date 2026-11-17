@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.31.0] - 2026-11-16
+
+### Added
+- **按钮同行分组（layout y 贯穿渲染链）**：画布两钮并排（各 w:1 同 y）在 QQ 渲染成一行多钮。`build_chain(..., layout=None)` 加 layout 参数（None 回退模板内嵌 `layout`）；用户模板分支 `_button_ys` 提取按钮积木保序 y（layout 缺项/老模板 → None 单钮独立）；`_chains_from_markdown(content, video_first, btn_ys)` 贯穿；`_markdown_chain_only(content, btn_ys)` 用 `_button_groups` 按 y 分组**连续**同 y 按钮 → 单 ActionRow 多按钮（`dyf:open:{j}` 保索引、fallback_text 空格连接），不同 y / 非连续 / y None → 每钮独立（现状）。`render_blocks`/文本渲染不动。
+
 ## [1.30.0] - 2026-11-16
 
 ### Added

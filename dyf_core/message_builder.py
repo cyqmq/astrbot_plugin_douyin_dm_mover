@@ -218,6 +218,7 @@ class MessageBuilder:
         card_image: bytes | None = None,
         media: list[str] | None = None,
         with_text: bool = True,
+        layout: dict | None = None,
     ) -> MessageChain | list[MessageChain] | None:
         """构建 MessageChain（用户模板含视频积木时返回 list[MessageChain]，拆视频+Markdown 两条）。
 
@@ -226,6 +227,7 @@ class MessageBuilder:
             card_image: 卡片图字节（替换首个媒体）；失败退回原媒体。
             media: 指定要发的媒体子集；None 表示全部。
             with_text: 是否带 header + 正文（媒体分批时仅第一批带）。
+            layout: 画布布局 {id:{x,y,w,h}}；None 时回退模板内嵌 layout（按钮同行分组用）。
         """
         # 媒体链（视频/语音/文件，非图片卡）→ for_media 模板 + 强制纯文本
         is_media_chain = msg.type not in (
@@ -257,7 +259,8 @@ class MessageBuilder:
                 return None
             if markdown:
                 video_first = bool(tpl.get("blocks") and tpl["blocks"][0].get("type") == "video")
-                return self._chains_from_markdown(content, video_first)
+                btn_ys = self._button_ys(tpl, layout)
+                return self._chains_from_markdown(content, video_first, btn_ys)
             return [MessageChain([Plain(content)])]
         parts = [Plain(self._header(msg, for_media=is_media_chain))] if with_text else []
         body = self._body(msg, append_link=not auto_btn_url) if with_text else ""
@@ -301,7 +304,42 @@ class MessageBuilder:
             return [chain, btn_chain] if btn_chain else chain
         return chain
 
-    def _chains_from_markdown(self, content: str, video_first: bool = False) -> list[MessageChain] | None:
+    def _button_ys(self, tpl: dict | None, layout: dict | None) -> list:
+        """按钮积木保序的 y 列表（按 blocks 顺序，layout 缺项/无 layout → None 独立）。
+
+        按钮标记在 content 里与 blocks 中 button 积木保序（renderBlocks 保序），
+        用 y 分组同行连续按钮。layout 缺 id 项（老模板无布局）→ None → 单钮独立。
+        """
+        layout = layout if isinstance(layout, dict) else (tpl or {}).get("layout")
+        layout = layout if isinstance(layout, dict) else {}
+        ys = []
+        for b in (tpl or {}).get("blocks") or []:
+            if isinstance(b, dict) and b.get("type") == "button":
+                pos = layout.get(b.get("id"))
+                ys.append(pos.get("y") if isinstance(pos, dict) else None)
+        return ys
+
+    def _button_groups(self, btn_ys: list, n: int) -> list[list[int]]:
+        """按 y 分组连续同 y 按钮（一行多钮）；btn_ys 缺失/长度不足 → 每钮独立。
+
+        组内元素：同 y 合并组为 (y, [idx])，y None / 独立组为 [idx]（单钮）。
+        """
+        if not btn_ys or len(btn_ys) < n:
+            return [[i] for i in range(n)]
+        groups: list = []
+        for i in range(n):
+            y = btn_ys[i]
+            if y is None:
+                groups.append([i])
+            elif groups and isinstance(groups[-1], tuple) and groups[-1][0] == y:
+                groups[-1][1].append(i)
+            else:
+                groups.append((y, [i]))
+        return [g if isinstance(g, list) else g[1] for g in groups]
+
+    def _chains_from_markdown(
+        self, content: str, video_first: bool = False, btn_ys: list | None = None
+    ) -> list[MessageChain] | None:
         """用户模板整条消息：拆视频 + Markdown 两条独立链。
 
         视频积木（[[video:url]]）拆出 → Video 富媒体链；Markdown 链只含文本/图片/链接。
@@ -310,7 +348,7 @@ class MessageBuilder:
         m = re.search(r"\[\[video:(https?://[^)\]]+)\]\]", content)
         video_url = m.group(1) if m else ""
         md_content = content[: m.start()] + content[m.end():] if m else content
-        md_chain = self._markdown_chain_only(md_content)
+        md_chain = self._markdown_chain_only(md_content, btn_ys)
         if not video_url:
             return [md_chain] if md_chain else None
         try:
@@ -330,8 +368,9 @@ class MessageBuilder:
                 chains.append(video_chain)
         return chains if chains else None
 
-    def _markdown_chain_only(self, content: str) -> MessageChain | None:
-        """Markdown 链：按钮 [[button:文案|地址]] → ActionRow；图片 ![](url) 有按钮时保留文本内嵌（避免富媒体丢键盘），无按钮时转 Image 组件。"""
+    def _markdown_chain_only(self, content: str, btn_ys: list | None = None) -> MessageChain | None:
+        """Markdown 链：按钮 [[button:文案|地址]] → ActionRow（btn_ys 按 y 分组连续同 y 按钮成一行多钮）；
+        图片 ![](url) 有按钮时保留文本内嵌（避免富媒体丢键盘），无按钮时转 Image 组件。"""
         btn_pattern = r"\[\[button:([^\]|]*)\|([^)\]]*)\]\]"
         btn_m = list(re.finditer(btn_pattern, content))
         parts: list = []
@@ -345,20 +384,34 @@ class MessageBuilder:
                 has_action_row = True
             except Exception:
                 has_action_row = False
-            for i, m in enumerate(btn_m):
-                label, url = m.group(1).strip(), m.group(2).strip()
+            # 按 y 分组连续同 y 按钮 → 一行多钮 ActionRow；无 btn_ys / y None → 单钮独立
+            groups = self._button_groups(btn_ys or [], len(btn_m))
+            for group in groups:
                 if has_action_row:
                     try:
-                        parts.append(ActionRow(buttons=[Button(
-                            id=f"dyf:open:{i}",
-                            label=label,
-                            action=Button.UrlAction(url=url),
-                            style=Button.Style.PRIMARY,
-                        )], fallback_text=f"[{label}]({url})"))
+                        btns = []
+                        for j in group:
+                            m = btn_m[j]
+                            label, url = m.group(1).strip(), m.group(2).strip()
+                            btns.append(Button(
+                                id=f"dyf:open:{j}",
+                                label=label,
+                                action=Button.UrlAction(url=url),
+                                style=Button.Style.PRIMARY,
+                            ))
+                        fb = " ".join(
+                            f"[{btn_m[j].group(1).strip()}]({btn_m[j].group(2).strip()})"
+                            for j in group
+                        )
+                        parts.append(ActionRow(buttons=btns, fallback_text=fb))
                         continue
                     except Exception:
                         pass
-                parts.append(Plain(f"[{label}]({url})"))
+                # fallback：无 ActionRow → 每钮文本链接
+                for j in group:
+                    m = btn_m[j]
+                    label, url = m.group(1).strip(), m.group(2).strip()
+                    parts.append(Plain(f"[{label}]({url})"))
             return MessageChain(parts) if parts else None
         # 无按钮：现状——图片转 Image 组件
         last = 0
