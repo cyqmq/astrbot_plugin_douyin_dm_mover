@@ -122,6 +122,28 @@ def _qr_data_url(content: str) -> str | None:
         return None
 
 
+def validate_layout(layout) -> str | None:
+    """校验画布布局 {id: {x,y,w,h}}；非法返回错误串，合法返回 None。
+
+    约定（D3）：x/y 非负整数（gridstack 可拖出）、w 限 1 或 2（整行/半行）、h 恒 1。
+    不校验 id 归属：layout 可能残留已删积木 key，前端回填时 filter。
+    """
+    if not isinstance(layout, dict):
+        return "layout 必须是对象"
+    for bid, pos in layout.items():
+        if not isinstance(pos, dict):
+            return f"layout[{bid}] 必须是对象"
+        for k in ("x", "y", "w", "h"):
+            v = pos.get(k)
+            if not isinstance(v, int) or isinstance(v, bool) or v < 0:
+                return f"layout[{bid}].{k} 必须是非负整数"
+        if pos.get("w", 2) not in (1, 2):
+            return f"layout[{bid}].w 必须为 1 或 2（整行/半行）"
+        if pos.get("h", 1) != 1:
+            return f"layout[{bid}].h 恒为 1"
+    return None
+
+
 class DashboardApi:
     def __init__(self, context, gateway, forward_manager, logring: LogRing | None = None, config_obj=None):
         self.context = context
@@ -558,9 +580,9 @@ class DashboardApi:
         )
         return {"ok": True, "content": content}
 
-    # ---- 消息草稿（blocks JSON 字符串存储）----
+    # ---- 消息草稿（blocks JSON 字符串 + 画布 layout 独立键存储）----
     async def draft_get(self):
-        """读取消息草稿（blocks 数组）。"""
+        """读取消息草稿（blocks 数组 + 画布 layout）。"""
         raw = self.fm.config.get("draft") or ""
         blocks = []
         if raw:
@@ -568,10 +590,20 @@ class DashboardApi:
                 blocks = json.loads(raw)
             except Exception:
                 blocks = []
-        return {"ok": True, "blocks": blocks, "draft": raw}
+        # 画布布局独立键（容错解析，坏 JSON 回 {}）
+        layout_raw = self.fm.config.get("draft_layout") or "{}"
+        try:
+            layout = json.loads(layout_raw)
+        except Exception:
+            layout = {}
+        return {"ok": True, "blocks": blocks, "layout": layout, "draft": raw}
 
     async def draft_set(self):
-        """保存消息草稿（blocks 校验后 JSON 序列化存储，不重载）。"""
+        """保存消息草稿（blocks 校验 + 可选 layout 校验后 JSON 序列化存储，不重载）。
+
+        layout is None 不覆盖（保留旧值，兼容前端旧版只发 {blocks}）；
+        显式传 layout（含空 {}）才写盘。
+        """
         try:
             from astrbot.api.web import request as web_request
 
@@ -585,11 +617,21 @@ class DashboardApi:
             err = validate_block(b)
             if err:
                 return {"ok": False, "detail": err}
+        layout = data.get("layout")
+        if layout is not None:
+            err = validate_layout(layout)
+            if err:
+                return {"ok": False, "detail": err}
         raw = json.dumps(blocks, ensure_ascii=False)
         self.fm.config["draft"] = raw
+        if layout is not None:
+            self.fm.config["draft_layout"] = json.dumps(layout, ensure_ascii=False)
         if self._config_obj is not None:
             try:
-                self._config_obj.update({"draft": raw})
+                upd = {"draft": raw}
+                if layout is not None:
+                    upd["draft_layout"] = json.dumps(layout, ensure_ascii=False)
+                self._config_obj.update(upd)
                 save = getattr(self._config_obj, "save_config", None)
                 if save is not None:
                     save()

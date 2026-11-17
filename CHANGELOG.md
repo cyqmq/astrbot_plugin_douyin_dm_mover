@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.28.0] - 2026-11-16
+
+### Added
+- **后端持久化画布布局**：`draft_set` 可选接收 `layout`（`{id:{x,y,w,h}}`）——`layout is not None` 时 `validate_layout` 校验（非法返回 `ok:False`），合法写 `config["draft_layout"]`（独立键，与 `draft` 同块 `update` + 一次 `save_config`）；`layout is None` 不覆盖（兼容前端旧版只发 `{blocks}`）。`draft_get` 回传 `layout`（坏 JSON 容错回 `{}`）。`config["draft"]` 保持裸数组串零迁移，`model.py` 不动。`validate_layout` 约定：x/y 非负整数、w 限 1 或 2、h 恒 1、不校验 id 归属（前端回填时 filter）。
+
 ## [1.27.0] - 2026-11-16
 
 ### Added
