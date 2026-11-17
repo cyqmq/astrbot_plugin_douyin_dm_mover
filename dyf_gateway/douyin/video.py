@@ -183,7 +183,8 @@ def fetch_aweme_detail(http: DouyinHttpPy, aweme_id: str, timeout: int = 8) -> d
     ):
         for _im in _src:
             if isinstance(_im, dict):
-                _u = _first_url(_im.get("url_list"))
+                # _im 是图集图片 dict（带 url_list）；传 dict 而非 url_list——_first_url 内部取 url_list[0]
+                _u = _first_url(_im)
                 if _u:
                     images.append(_u)
     desc = str(

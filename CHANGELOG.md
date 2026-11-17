@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.33.4] - 2026-11-16
+
+### Fixed
+- **图集图片提取恒空**：`video.py:186` 把 `_im.get("url_list")`（list）传给 `_first_url`，而 `_first_url` 只认 dict（内部 `obj.get("url_list")`）→ 恒 `""`，导致 `_enrich_video` 不往 `msg.media_urls` 加图集图（`_context.image_url` 空 → **图集图片消失**）。改 `_first_url(_im)`（`_im` 是带 `url_list` 的图集图片 dict）；同一行覆盖 `detail.images` 与 `image_post_info.images` 两条来源，一处修复双收。封面 `video.cover` 提取正常（传 dict）不受影响。
+
 ## [1.33.3] - 2026-11-16
 
 ### Fixed
