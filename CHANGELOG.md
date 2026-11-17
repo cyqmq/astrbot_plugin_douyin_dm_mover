@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.33.2] - 2026-11-16
+
+### Fixed
+- **预览/画布/导出不再显示模拟占位符值**：`fillPlaceholders`（renderBlocks.js）原兜底 `|| '示例标题'` 等把缺值占位符替换成 mock 值，导致左栏 `PhonePreview`、画布薄壳组件（TextBlock/ImageBlock）、导出 JSON 的 `rendered_markdown` 三处同时失真（画布上文本块显示「示例标题」）。改为 ctx 无该键时**原样保留 `{token}`**（`v !== undefined` 才替换，空串为真实值保留空串），三处一次诚实化。后端 `/render` 端点为孤儿（已注册、前端零调用），不动。
+
 ## [1.33.1] - 2026-11-16
 
 ### Fixed

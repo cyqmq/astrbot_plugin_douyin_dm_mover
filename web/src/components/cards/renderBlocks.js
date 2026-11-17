@@ -66,17 +66,14 @@ export function renderSingleBlock(b, ctx = {}, markdown = true) {
   return s
 }
 
-// 占位符替换（预览用模拟值；转发时后端用真实上下文）
+// 占位符替换：ctx 有值用真实值；ctx 无该键（undefined）保留 {token} 原样。
+// 诚实化：预览/画布/导出不再显示模拟值，避免「预览 ≠ 转发」失真（转发时后端用真实上下文替换）。
 export function fillPlaceholders(content, ctx = {}) {
-  return content
-    .replace(/\{source\}/g, ctx.source || '抖音')
-    .replace(/\{peer_name\}/g, ctx.peer_name || '示例用户')
-    .replace(/\{time\}/g, ctx.time || '14:32')
-    .replace(/\{title\}/g, ctx.title || '示例标题')
-    .replace(/\{desc\}/g, ctx.desc || '示例描述')
-    .replace(/\{link\}/g, ctx.link || 'https://example.com')
-    .replace(/\{image_url\}/g, ctx.image_url || 'https://example.com/cover.jpg')
-    .replace(/\{video_url\}/g, ctx.video_url || 'https://example.com/video.mp4')
+  const TOKENS = ['source', 'peer_name', 'time', 'title', 'desc', 'link', 'image_url', 'video_url']
+  return TOKENS.reduce((acc, k) => {
+    const v = ctx[k]
+    return acc.split(`{${k}}`).join(v !== undefined ? String(v) : `{${k}}`)
+  }, content)
 }
 
 // HTML 转义
