@@ -68,7 +68,8 @@ class MessageBuilder:
         except (OSError, ValueError):
             t = datetime.now()
         card = msg.card or {}
-        item_id = str(card.get("itemId") or card.get("item_id") or "")
+        # 对齐 _classify（converter.py 取数权威）：图集 id 在 share_item_id；标题补 content_title
+        item_id = str(card.get("itemId") or card.get("item_id") or card.get("share_item_id") or "")
         link = (
             str(card.get("_jump_url") or "")
             or (f"https://www.douyin.com/video/{item_id}" if item_id else "")
@@ -77,7 +78,7 @@ class MessageBuilder:
             "source": source,
             "peer_name": peer,
             "time": t.strftime("%H:%M"),
-            "title": str(card.get("title") or card.get("desc") or ""),
+            "title": str(card.get("content_title") or card.get("title") or card.get("desc") or ""),
             "desc": str(card.get("desc") or ""),
             "link": link,
             "image_url": str((msg.media_urls or [""])[0]),

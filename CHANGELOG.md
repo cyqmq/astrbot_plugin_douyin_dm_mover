@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.33.3] - 2026-11-16
+
+### Fixed
+- **`_context` 对齐 `_classify` 取数（title/link 空）**：`_context`（message_builder.py）原只读 `itemId`/`item_id` 和 `title`/`desc`，与 `_classify`（converter.py 取数权威）不一致——图集 id 在 `card["share_item_id"]` 未读（图集 link 空）、标题未读 `content_title`（视频/图集标题常空）。补 `item_id` 读 `share_item_id`（优先级 itemId > item_id > share_item_id）、`title` 读 `content_title`（content_title > title > desc），`link` 引用 item_id 即生效；`desc`/`_jump_url` 优先逻辑不动。
+
 ## [1.33.2] - 2026-11-16
 
 ### Fixed
