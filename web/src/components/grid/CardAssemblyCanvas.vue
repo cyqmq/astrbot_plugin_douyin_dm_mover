@@ -52,6 +52,11 @@ const options = computed(() => ({
   mode: 'float',
   maxRow: 0,
   resizable: { handles: 'e,w' },
+  // 与后端 validate_layout 对齐：w∈[1,2]、h 恒 1（用户拉不出非法尺寸）
+  minW: 1,
+  maxW: 2,
+  minH: 1,
+  maxH: 1,
   children: childrenSnapshot.value,
 }))
 

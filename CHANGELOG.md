@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.30.0] - 2026-11-16
+
+### Added
+- **草稿/导出带 layout + 画布硬限制**（闭环后端校验）：`loadInitial` 草稿分支回填 `d.layout`（draft_layout 独立键，`undefined` 走 `allocateAllLayout` 容错）；`saveDraft` payload 加 `layout`（写 draft_layout）；`exportTemplate` 下载 JSON 加 `layout`（深拷贝剥离 Proxy）；`CardAssemblyCanvas` options 加 `minW:1/maxW:2/minH:1/maxH:1`（与后端 `validate_layout` 对齐，用户拉不出 w>2/h>1 非法尺寸）。
+
 ## [1.29.0] - 2026-11-16
 
 ### Added

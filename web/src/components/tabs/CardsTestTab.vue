@@ -56,7 +56,8 @@ async function loadInitial() {
   try {
     const d = await apiGet('messages/draft')
     if (d && d.ok && Array.isArray(d.blocks) && d.blocks.length) {
-      resetBlocks(normalizeBlocks(d.blocks))
+      // 草稿带 layout 回填优先（draft_layout 独立键），否则重分配
+      resetBlocks(normalizeBlocks(d.blocks), d.layout)
     } else {
       const t = await apiGet('templates/get')
       if (t && t.ok && Array.isArray(t.templates) && t.templates.length) {
@@ -119,7 +120,11 @@ async function saveDraft() {
   try {
     // 深拷贝剥离 Vue 响应式 Proxy（postMessage structured clone 无法克隆 Proxy），
     // 与 actions.js saveConfig 的 JSON 深拷贝约定一致
-    const d = await apiPostBody('messages/draft', { blocks: JSON.parse(JSON.stringify(blocks.value)) })
+    const d = await apiPostBody('messages/draft', {
+      blocks: JSON.parse(JSON.stringify(blocks.value)),
+      // 画布布局独立键（后端 draft_layout，layout is None 不覆盖）
+      layout: JSON.parse(JSON.stringify(layout.value)),
+    })
     saveHint.value = (d && d.ok) ? '草稿已自动保存' : ('草稿保存失败: ' + ((d && d.detail) || ''))
   } catch (e) {
     saveHint.value = '草稿保存失败'
@@ -147,6 +152,7 @@ function exportTemplate() {
     exported_at: new Date().toISOString(),
     // 深拷贝剥离 Vue 响应式 Proxy
     blocks: JSON.parse(JSON.stringify(blocks.value)),
+    layout: JSON.parse(JSON.stringify(layout.value)),
     markdown: true,
     rendered_markdown: fillPlaceholders(renderBlocks(blocks.value)),
   }
