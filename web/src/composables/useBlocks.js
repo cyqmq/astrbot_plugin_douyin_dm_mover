@@ -29,15 +29,16 @@ export function useBlocks() {
     return false
   }
 
-  // 从 y=0 起逐行扫首个空位落位（w 恒 2 整行；column:2）
-  function allocateLayout(block) {
-    const ln = layout.value || {}
+  // 从 y=0 起逐行扫首个空位落位（w 恒 2 整行；column:2）；
+  // ln 可传局部布局（resetBlocks 回填时感知已分配项），默认当前 layout.value
+  function allocateLayout(block, ln = null) {
+    const target = ln || layout.value || {}
     const w = DEFAULT_W
     let y = 0
     while (true) {
       let placed = null
       for (let x = 0; x + w <= COLS; x++) {
-        if (!isOccupied(ln, block.id, x, y, w, DEFAULT_H)) {
+        if (!isOccupied(target, block.id, x, y, w, DEFAULT_H)) {
           placed = { x, y, w, h: DEFAULT_H }
           break
         }
@@ -56,13 +57,15 @@ export function useBlocks() {
     }
   }
 
-  // gridstack change 回写：强制 h:1（二维画布恒一行）
+  // gridstack change 回写：强制 h:1（二维画布恒一行）；非按钮防御性回弹恒 w:2
   function applyChange(items) {
     if (!Array.isArray(items)) return
     const ln = { ...(layout.value || {}) }
     for (const it of items) {
       if (!it || !it.id) continue
-      ln[it.id] = { x: it.x, y: it.y, w: it.w, h: DEFAULT_H }
+      const b = blocks.value.find((x) => x && x.id === it.id)
+      const isButton = b && b.type === 'button'
+      ln[it.id] = { x: it.x, y: it.y, w: isButton ? it.w : DEFAULT_W, h: DEFAULT_H }
     }
     layout.value = ln
   }
@@ -132,14 +135,16 @@ export function useBlocks() {
       const ln = {}
       for (const b of canvasBlocks.value) {
         const pos = layoutOpt[b.id]
+        const isButton = b.type === 'button'
+        const wOk = isButton ? (pos && (pos.w === 1 || pos.w === 2)) : (pos && pos.w === 2)
         if (
           pos && typeof pos === 'object' &&
           Number.isInteger(pos.x) && Number.isInteger(pos.y) &&
-          (pos.w === 1 || pos.w === 2) && pos.h === 1
+          wOk && pos.h === 1
         ) {
-          ln[b.id] = { x: pos.x, y: pos.y, w: pos.w, h: DEFAULT_H }
+          ln[b.id] = { x: pos.x, y: pos.y, w: isButton ? pos.w : DEFAULT_W, h: DEFAULT_H }
         } else {
-          ln[b.id] = allocateLayout(b)
+          ln[b.id] = allocateLayout(b, ln)
         }
       }
       layout.value = ln

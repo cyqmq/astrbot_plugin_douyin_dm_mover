@@ -29,12 +29,17 @@ watch(
     const ln = toRaw(props.layout) || {}
     childrenSnapshot.value = canvasBlocks.value.map((b) => {
       const pos = ln[b.id] || { x: 0, y: 0, w: 2, h: 1 }
+      // 非按钮恒 w:2 不可缩（QQ 全宽垂直堆叠，画布预览恒一致）；按钮唯一可 w:1/w:2
+      const isButton = b.type === 'button'
       return {
         id: b.id,
         x: pos.x,
         y: pos.y,
-        w: pos.w,
+        w: isButton ? pos.w : 2,
         h: 1,
+        minW: isButton ? 1 : 2,
+        maxW: 2,
+        noResize: !isButton,
         component: b.type,
         // block 原样透传（响应式对象），属性面板改 data 触发薄壳组件 computed 重算
         props: { block: b, disabled: b.disabled !== false },
