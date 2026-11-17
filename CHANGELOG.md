@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.32.0] - 2026-11-16
+
+### Added
+- **非按钮积木强制整行（w:2）**（消除「画布所见 ≠ QQ 所见」）：图片/文本/分割线/占位符恒 w:2 不可缩（QQ 全宽垂直堆叠，画布预览恒一致）；唯一可 w:1 的是 **button**（映射 ActionRow 可同行）。前端：`CardAssemblyCanvas` childrenSnapshot 按类型加 `minW:1/maxW:2`（按钮）或 `minW:2/maxW:2 + noResize`（非按钮）；`useBlocks.applyChange` 非按钮防御回弹恒 w:2、`resetBlocks` 回填归一化（旧草稿 w:1 非按钮残留清掉 → 重分配整行，`allocateLayout` 接受局部 ln 感知已分配项）。后端：`validate_layout(layout, blocks)` 类型感知（非按钮 `w==2`、按钮 `w∈{1,2}`），`draft_set`/`templates_set` 调用处传 blocks；残留 id 按非按钮 w==2 宽容。
+
 ## [1.31.0] - 2026-11-16
 
 ### Added

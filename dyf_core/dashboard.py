@@ -122,14 +122,20 @@ def _qr_data_url(content: str) -> str | None:
         return None
 
 
-def validate_layout(layout) -> str | None:
+def validate_layout(layout, blocks=None) -> str | None:
     """校验画布布局 {id: {x,y,w,h}}；非法返回错误串，合法返回 None。
 
-    约定（D3）：x/y 非负整数（gridstack 可拖出）、w 限 1 或 2（整行/半行）、h 恒 1。
-    不校验 id 归属：layout 可能残留已删积木 key，前端回填时 filter。
+    约定（D3）：x/y 非负整数（gridstack 可拖出）、h 恒 1。
+    类型感知：button 唯一可 w∈{1,2}（映射 ActionRow 可同行）；非按钮恒 w==2
+    （QQ 全宽垂直堆叠，画布预览恒一致——非按钮不可缩是平台物理上限）。
+    不校验 id 归属：layout 可能残留已删积木 key，前端回填时 filter（残留 id 按非按钮 w==2）。
     """
     if not isinstance(layout, dict):
         return "layout 必须是对象"
+    type_of: dict = {}
+    for b in blocks or []:
+        if isinstance(b, dict) and b.get("id"):
+            type_of[str(b["id"])] = b.get("type")
     for bid, pos in layout.items():
         if not isinstance(pos, dict):
             return f"layout[{bid}] 必须是对象"
@@ -137,8 +143,11 @@ def validate_layout(layout) -> str | None:
             v = pos.get(k)
             if not isinstance(v, int) or isinstance(v, bool) or v < 0:
                 return f"layout[{bid}].{k} 必须是非负整数"
-        if pos.get("w", 2) not in (1, 2):
-            return f"layout[{bid}].w 必须为 1 或 2（整行/半行）"
+        if type_of.get(str(bid)) == "button":
+            if pos.get("w", 2) not in (1, 2):
+                return f"layout[{bid}].w 必须为 1 或 2（整行/半行）"
+        elif pos.get("w", 2) != 2:
+            return f"layout[{bid}].w 必须为 2（非按钮积木恒整行）"
         if pos.get("h", 1) != 1:
             return f"layout[{bid}].h 恒为 1"
     return None
@@ -526,7 +535,7 @@ class DashboardApi:
             # 画布布局可选（内嵌对象键，随模板项存；None 不存/不覆盖，旧模板/外部导入无 layout 兼容）
             layout = t.get("layout")
             if layout is not None:
-                err = validate_layout(layout)
+                err = validate_layout(layout, blocks)
                 if err:
                     return {"ok": False, "detail": f"模板「{name}」: {err}"}
             cleaned.append(
@@ -626,7 +635,7 @@ class DashboardApi:
                 return {"ok": False, "detail": err}
         layout = data.get("layout")
         if layout is not None:
-            err = validate_layout(layout)
+            err = validate_layout(layout, blocks)
             if err:
                 return {"ok": False, "detail": err}
         raw = json.dumps(blocks, ensure_ascii=False)
