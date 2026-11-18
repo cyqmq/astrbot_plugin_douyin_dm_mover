@@ -69,8 +69,9 @@ async function loadInitial() {
     }
     status.value = 'idle'
   } catch (e) {
-    status.value = 'error'
-    errorMsg.value = '加载失败'
+    // 离线兜底：无后端也能展示画布（迁移自测试页）
+    resetBlocks([createBlock('text', { text: '{desc}' })])
+    status.value = 'idle'
   } finally {
     loading.value = false
   }

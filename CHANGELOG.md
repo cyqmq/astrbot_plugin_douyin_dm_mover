@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.33.6] - 2026-11-16
+
+### Changed
+- **移除测试卡片页，离线兜底迁入 CardsTab**：`CardsTestTab` 是 `CardsTab` 的逐行副本（唯一差异离线兜底），生产页已完整（三栏画布 + layout 全链路）。`CardsTab` catch 改离线兜底（`resetBlocks([createBlock('text', {text:'{desc}'})])`，无后端也能展示画布，行为不丢）；删 `App.vue` `CardsTestTab` import + `v-else-if`、`Sidebar.vue` `cards_test` 菜单项、`store.js` `cards_test` 条目、`CardsTestTab.vue` 文件（测试页仅被这 4 处 + 文件本身引用）。产物体积再降（410 kB）。
+
 ## [1.33.5] - 2026-11-16
 
 ### Fixed
