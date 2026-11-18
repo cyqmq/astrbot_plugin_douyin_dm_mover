@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.33.8] - 2026-11-16
+
+### Fixed
+- **qq_official 无按钮图片不显示**：`_markdown_chain_only` 无按钮分支删掉图片转 `Image` 组件逻辑，整段 `content` 作 markdown 文本（`![..](..)` 保持 markdown，`msg_type:2` 渲染成图）；有按钮分支本就保留 markdown 内嵌，全链统一 markdown 无 `Image` 组件。docstring 同步。
+
 ## [1.33.7] - 2026-11-16
 
 ### Fixed

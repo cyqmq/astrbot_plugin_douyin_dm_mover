@@ -371,7 +371,7 @@ class MessageBuilder:
 
     def _markdown_chain_only(self, content: str, btn_ys: list | None = None) -> MessageChain | None:
         """Markdown 链：按钮 [[button:文案|地址]] → ActionRow（btn_ys 按 y 分组连续同 y 按钮成一行多钮）；
-        图片 ![](url) 有按钮时保留文本内嵌（避免富媒体丢键盘），无按钮时转 Image 组件。"""
+        图片 ![..](..) 全链保持 markdown 文本（qq_official 用 msg_type:2 渲染），不转 Image 组件。"""
         btn_pattern = r"\[\[button:([^\]|]*)\|([^)\]]*)\]\]"
         btn_m = list(re.finditer(btn_pattern, content))
         parts: list = []
@@ -417,16 +417,6 @@ class MessageBuilder:
                     label, url = m.group(1).strip(), m.group(2).strip()
                     parts.append(Plain(f"[{label}]({url})"))
             return MessageChain(parts) if parts else None
-        # 无按钮：现状——图片转 Image 组件
-        last = 0
-        for m in re.finditer(r"!\[[^\]]*\]\((https?://[^)]+)\)", content):
-            if m.start() > last:
-                parts.append(Plain(content[last:m.start()]))
-            try:
-                parts.append(Image.fromURL(m.group(1)))
-            except Exception:
-                parts.append(Plain(content[m.start():m.end()]))
-            last = m.end()
-        if last < len(content):
-            parts.append(Plain(content[last:]))
-        return MessageChain(parts) if parts else None
+        # 无按钮：整段作 markdown 文本（图片 ![..](..) 保持 markdown，不转 Image 组件）
+        content = content.strip()
+        return MessageChain([Plain(content)]) if content else None
