@@ -587,6 +587,12 @@ class DouyinGateway(MessageGateway):
         if not desc:
             # 详情 desc 为空时用视频卡自带标题兜底（content_title）
             desc = (card.get("content_title") or card.get("title") or "").strip()
+        # 回写 card 供 _context.title/desc 与图片积木 alt 使用（图集卡 card 无 title/desc，详情 desc 补上）
+        # 视频卡已有 content_title（classify 填入）→ 不覆盖，{title} 用原视频标题
+        if desc and msg.card is not None:
+            if not (msg.card.get("content_title") or msg.card.get("title")):
+                msg.card["title"] = desc
+            msg.card["desc"] = desc
         link = (
             f"https://www.douyin.com/note/{item_id}"
             if is_album

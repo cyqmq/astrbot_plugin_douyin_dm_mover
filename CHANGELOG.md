@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.33.7] - 2026-11-16
+
+### Fixed
+- **图集图片积木空 alt 不显示**：`_enrich_video` 算完 `desc` 后回写 `card`（`desc` 总有值；无 `content_title`/`title` 时回写 `card["title"] = desc`），使 `_context.title/desc` 与图片积木 `{title}` alt 非空（如 `![清库存。#森森露露卡](封面)`），QQ 渲染成图；视频卡已有 `content_title` 不覆盖，`{title}` 保持原视频标题。
+
 ## [1.33.6] - 2026-11-16
 
 ### Changed
