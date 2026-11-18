@@ -538,12 +538,17 @@ class DashboardApi:
                 err = validate_layout(layout, blocks)
                 if err:
                     return {"ok": False, "detail": f"模板「{name}」: {err}"}
+            # 画布渲染模式（markdown/media/auto，默认 auto；非法拒绝）
+            msg_type = str(t.get("msg_type") or "auto")
+            if msg_type not in ("markdown", "media", "auto"):
+                return {"ok": False, "detail": f"模板「{name}」msg_type 必须为 markdown/media/auto"}
             cleaned.append(
                 {
                     "id": tid,
                     "name": name,
                     "blocks": blocks,
                     "for_media": bool(t.get("for_media", False)),
+                    "msg_type": msg_type,
                     **({"layout": layout} if layout is not None else {}),
                 }
             )

@@ -132,7 +132,7 @@
   "templates": {
     "type": "list",
     "default": [],
-    "description": "推送模板预设：元素 {id,name,blocks,for_media}；blocks 为积木数组（text/heading/media/link/button/divider），编辑器走网页，勿在此手输"
+    "description": "推送模板预设：元素 {id,name,blocks,for_media,msg_type,layout}；blocks 为积木数组（text/heading/media/link/button/divider，各块含静态派生 msg_type：markdown/media），msg_type 为画布渲染模式（markdown=msg_type:2/media=msg_type:7/auto=自动判定），layout 为画布布局 {id:{x,y,w,h}}；编辑器走网页，勿在此手输"
   },
   "draft": {
     "type": "string",

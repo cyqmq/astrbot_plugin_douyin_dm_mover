@@ -6,7 +6,7 @@ import { apiGet, apiPostBody, toast } from '../../composables/store.js'
 import PhonePreview from '../cards/PhonePreview.vue'
 import PlaceholderLibrary from '../cards/PlaceholderLibrary.vue'
 import CardAssemblyCanvas from '../grid/CardAssemblyCanvas.vue'
-import { createBlock, validateBlocks } from '../cards/blockTypes.js'
+import { createBlock, validateBlocks, canInsert, blockMsgType } from '../cards/blockTypes.js'
 import { renderBlocks, fillPlaceholders } from '../cards/renderBlocks.js'
 import { useBlocks } from '../../composables/useBlocks.js'
 
@@ -22,17 +22,19 @@ const {
 } = useBlocks()
 
 const selectedBlock = ref(null)
+const canvasMsgType = ref('auto')  // 画布渲染模式（markdown/media/auto，随模板持久化）
 const loading = ref(false)
 const saving = ref(false)
 const status = ref('idle')  // 预览状态：idle/loading/error
 const errorMsg = ref('')
 const saveHint = ref('')
 
-// 归一化积木（补 id、disabled 字段）
+// 归一化积木（补 id、disabled、静态派生 msg_type 字段——旧模板/外部导入无该字段）
 function normalizeBlock(b) {
   return {
     id: b.id || 'b' + Date.now() + Math.random().toString(36).slice(2, 6),
     ...b,
+    msg_type: blockMsgType(b.type),
     disabled: b.disabled !== false,
   }
 }
@@ -53,19 +55,22 @@ async function loadInitial() {
   loading.value = true
   status.value = 'loading'
   try {
+    // 画布 msg_type：模板带则用（草稿编辑态也以模板为准），否则 auto
+    let firstTpl = null
+    try {
+      const t = await apiGet('templates/get')
+      firstTpl = t && t.ok && Array.isArray(t.templates) ? t.templates[0] : null
+    } catch (_) {}
+    if (firstTpl && firstTpl.msg_type) canvasMsgType.value = firstTpl.msg_type
     const d = await apiGet('messages/draft')
     if (d && d.ok && Array.isArray(d.blocks) && d.blocks.length) {
       // 草稿带 layout 回填优先（draft_layout 独立键），否则重分配
       resetBlocks(normalizeBlocks(d.blocks), d.layout)
+    } else if (firstTpl) {
+      // 模板带 layout 回填优先，否则重分配（宽容：无 layout 走 allocateAllLayout）
+      resetBlocks(normalizeBlocks(firstTpl.blocks || []), firstTpl.layout)
     } else {
-      const t = await apiGet('templates/get')
-      if (t && t.ok && Array.isArray(t.templates) && t.templates.length) {
-        const first = t.templates[0]
-        // 模板带 layout 回填优先，否则重分配（宽容：无 layout 走 allocateAllLayout）
-        resetBlocks(normalizeBlocks(first.blocks || []), first.layout)
-      } else {
-        resetBlocks([createBlock('text', { text: '{desc}' })])
-      }
+      resetBlocks([createBlock('text', { text: '{desc}' })])
     }
     status.value = 'idle'
   } catch (e) {
@@ -77,8 +82,13 @@ async function loadInitial() {
   }
 }
 
-// 积木库添加：video 不选中（等顺序窗口）；非视频立即选中新积木
+// 积木库添加：can_insert 拦截不兼容块（markdown 画布拒 media 块、media 画布拒 markdown 块）；
+// video 不选中（等顺序窗口）；非视频立即选中新积木
 function onAddBlock(type) {
+  if (!canInsert(canvasMsgType.value, type)) {
+    toast(`${blockMsgType(type)} 块不能进 ${canvasMsgType.value} 画布`)
+    return
+  }
   const r = addBlock(type)
   if (r.error) { toast(r.error); return }
   if (r.block && !r.isVideo) {
@@ -152,6 +162,7 @@ function exportTemplate() {
     // 深拷贝剥离 Vue 响应式 Proxy
     blocks: JSON.parse(JSON.stringify(blocks.value)),
     layout: JSON.parse(JSON.stringify(layout.value)),
+    msg_type: canvasMsgType.value,
     markdown: true,
     rendered_markdown: fillPlaceholders(renderBlocks(blocks.value)),
   }
@@ -173,6 +184,7 @@ async function saveAsTemplate() {
         blocks: JSON.parse(JSON.stringify(blocks.value)),
         layout: JSON.parse(JSON.stringify(layout.value)),
         for_media: false,
+        msg_type: canvasMsgType.value,
       }],
     })
     if (d && d.ok) {
@@ -207,6 +219,14 @@ onMounted(loadInitial)
       <div class="col-head">
         <h2>消息拼装</h2>
         <div class="head-actions">
+          <label class="msg-type-label">
+            画布
+            <select v-model="canvasMsgType" class="msg-type-select" title="渲染模式：markdown=msg_type:2 / media=msg_type:7 / auto=自动判定">
+              <option value="auto">auto</option>
+              <option value="markdown">markdown</option>
+              <option value="media">media</option>
+            </select>
+          </label>
           <span class="save-hint">{{ saveHint }}</span>
           <button class="btn-export" @click="exportTemplate">导出模板</button>
           <button class="btn-save" :disabled="saving" @click="saveAsTemplate">
@@ -218,6 +238,7 @@ onMounted(loadInitial)
         :blocks="blocks"
         :layout="layout"
         :video-count="videoCount"
+        :canvas-msg-type="canvasMsgType"
         @change="applyChange"
         @select="selectBlock"
         @toggle="toggleBlock"
@@ -285,6 +306,24 @@ onMounted(loadInitial)
   align-items:center;
   gap:10px;
 }
+.msg-type-label{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  font-size:12px;
+  color:var(--muted);
+}
+.msg-type-select{
+  border:1px solid var(--border);
+  border-radius:8px;
+  padding:4px 8px;
+  font-size:12px;
+  background:var(--card);
+  color:var(--text);
+  outline:none;
+  cursor:pointer;
+}
+.msg-type-select:focus{ border-color:var(--accent); }
 .save-hint{
   font-size:11px;
   color:var(--muted);

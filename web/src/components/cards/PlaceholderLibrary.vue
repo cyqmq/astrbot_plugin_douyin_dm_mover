@@ -9,6 +9,7 @@ import {
   PLACEHOLDERS,
   isPlaceholder,
   placeholderToken,
+  blockMsgType,
 } from './blockTypes.js'
 
 defineProps({
@@ -53,6 +54,7 @@ function insertToken(token) {
           :title="p.hint"
           @click="$emit('add', p.key)"
         >
+          <span class="lib-badge" :class="blockMsgType(p.key)">{{ blockMsgType(p.key) === 'media' ? 'M7' : 'M' }}</span>
           <span class="ph-label">{{ p.label }}</span>
           <code class="ph-token">{{ p.token }}</code>
         </button>
@@ -69,6 +71,7 @@ function insertToken(token) {
           class="lib-item"
           @click="$emit('add', s.key)"
         >
+          <span class="lib-badge" :class="blockMsgType(s.key)">{{ blockMsgType(s.key) === 'media' ? 'M7' : 'M' }}</span>
           <span class="lib-label">{{ s.label }}</span>
         </button>
       </div>
@@ -202,6 +205,7 @@ function insertToken(token) {
   min-height: 0;
 }
 .lib-item {
+  position: relative;
   border: 1px solid var(--border);
   border-radius: 10px;
   background: var(--card);
@@ -210,6 +214,24 @@ function insertToken(token) {
   transition: .15s;
   font-size: 12px;
   color: var(--text);
+}
+
+/* 渲染模式徽标：markdown=蓝 M、media=紫 M7 */
+.lib-badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  font-size: 9px;
+  font-weight: 600;
+  line-height: 1;
+  padding: 2px 4px;
+  border-radius: 5px;
+  background: rgba(88, 166, 255, 0.12);
+  color: var(--accent);
+}
+.lib-badge.media {
+  background: rgba(167, 139, 250, 0.14);
+  color: #a78bfa;
 }
 .lib-item:hover {
   border-color: var(--accent);

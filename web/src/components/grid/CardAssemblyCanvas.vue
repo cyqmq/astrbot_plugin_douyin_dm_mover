@@ -12,6 +12,7 @@ const props = defineProps({
   blocks: { type: Array, default: () => [] },
   layout: { type: Object, default: () => ({}) },
   videoCount: { type: Number, default: 0 },
+  canvasMsgType: { type: String, default: 'auto' },  // 画布渲染模式：markdown/media/auto
 })
 const emit = defineEmits(['change', 'select', 'toggle', 'duplicate', 'remove'])
 
@@ -76,10 +77,14 @@ function withSelect(Comp) {
         e.stopPropagation()
         emit(name, p.block)
       }
+      // 切换画布 msg_type 后不兼容块高亮警告（不自动删，用户自行处理）
+      const warn = () =>
+        props.canvasMsgType !== 'auto' &&
+        p.block && p.block.msg_type && p.block.msg_type !== props.canvasMsgType
       return () =>
         h(
           'div',
-          { class: ['assembly-item', { off: p.disabled }], onClick: () => emit('select', p.block) },
+          { class: ['assembly-item', { off: p.disabled, warn: warn() }], onClick: () => emit('select', p.block) },
           [
             h('div', { class: 'assembly-item-body' }, [
               h(Comp, { block: p.block, disabled: p.disabled }),
@@ -200,6 +205,12 @@ function removeVideo() {
 }
 .grid-wrap :deep(.assembly-item.off) {
   opacity: 0.55;
+}
+/* 切换画布 msg_type 后不兼容块：黄框警告（不自动删） */
+.grid-wrap :deep(.assembly-item.warn) {
+  outline: 2px solid #f59e0b;
+  outline-offset: -2px;
+  border-radius: 12px;
 }
 .grid-wrap :deep(.assembly-item-body) {
   flex: 1;

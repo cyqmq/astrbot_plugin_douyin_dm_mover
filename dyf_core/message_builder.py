@@ -24,6 +24,37 @@ _PLACEHOLDER_TOKEN = {
     "video_url": "{video_url}",
 }
 
+# 积木类型 → 所需渲染模式（静态派生，编辑器只读徽标；类型决定渲染模式，不可用户覆盖）
+# markdown（msg_type:2）：文本/按钮/分割线/占位符文本类；media（msg_type:7）：图片/视频/媒体引用
+BLOCK_MSG_TYPE = {
+    "text": "markdown",
+    "heading": "markdown",
+    "link": "markdown",
+    "divider": "markdown",
+    "button": "markdown",
+    "source": "markdown",
+    "peer_name": "markdown",
+    "time": "markdown",
+    "title": "markdown",
+    "desc": "markdown",
+    "image": "media",
+    "video": "media",
+    "media": "media",
+    "image_url": "media",
+    "video_url": "media",
+}
+
+
+def can_insert(canvas_msg_type: str, block_msg_type: str) -> bool:
+    """积木能否插入画布：auto 画布放行全部；否则需同模式（markdown/media 互斥）。
+
+    依据：markdown 画布只放行 markdown 块（拦截 media 块——图集出 [alt] 链接根因）；
+    media 画布只放行 media 块（拦截 markdown 块——markdown 被 pop 成纯文本/按钮被丢）。
+    """
+    if canvas_msg_type == "auto":
+        return True
+    return canvas_msg_type == block_msg_type
+
 
 def _sanitize(text: str) -> str:
     if not text:
@@ -254,7 +285,14 @@ class MessageBuilder:
                 auto_btn_url = self._context(msg)["link"]
         if self._is_user_template(tpl):
             ctx = self._context(msg)
-            markdown = self.markdown_enabled and not is_media_chain
+            msg_type = str(tpl.get("msg_type") or "auto")
+            # media 画布：全 Image/Video 组件链（msg_type:7 富媒体），不经 markdown 文本
+            if msg_type == "media":
+                return self._media_chain_from_blocks(tpl.get("blocks") or [], ctx)
+            # markdown 画布强制 msg_type:2（覆盖全局 markdown 开关）；auto 沿用现有自动判定
+            markdown = True if msg_type == "markdown" else (
+                self.markdown_enabled and not is_media_chain
+            )
             content = self.render_blocks(tpl.get("blocks") or [], ctx, markdown=markdown)
             if not content.strip():
                 return None
@@ -337,6 +375,33 @@ class MessageBuilder:
             else:
                 groups.append((y, [i]))
         return [g if isinstance(g, list) else g[1] for g in groups]
+
+    def _media_chain_from_blocks(self, blocks: list[dict], ctx: dict) -> MessageChain | None:
+        """media 画布：积木序列 → Image/Video 组件链（msg_type:7 富媒体）。
+
+        编辑器已按 can_insert 拦截（media 画布只放行 image/video），此处宽容：
+        非 image/video 块跳过；url 取 _context 的 image_url/video_url（占位符契约）。
+        """
+        parts = []
+        for b in blocks or []:
+            t = b.get("type") if isinstance(b, dict) else ""
+            if t == "image":
+                url = ctx.get("image_url") or ""
+                if not url:
+                    continue
+                try:
+                    parts.append(Image.fromURL(url))
+                except Exception:
+                    parts.append(Plain(f"[图片] {url}"))
+            elif t == "video":
+                url = ctx.get("video_url") or ""
+                if not url:
+                    continue
+                try:
+                    parts.append(Video.fromURL(url))
+                except Exception:
+                    parts.append(Plain(f"[视频] {url}"))
+        return MessageChain(parts) if parts else None
 
     def _chains_from_markdown(
         self, content: str, video_first: bool = False, btn_ys: list | None = None

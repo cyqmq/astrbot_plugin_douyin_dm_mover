@@ -4,6 +4,14 @@
 
 ## [Unreleased]
 
+## [1.34.0] - 2026-11-16
+
+### Added
+- **积木画布 msg_type 渲染模式**：template 加 `msg_type`（`markdown`=强制 msg_type:2 / `media`=强制 msg_type:7 富媒体 / `auto`=自动判定，默认 auto）；block 加静态派生 `msg_type`（markdown 组：text/heading/link/divider/button/source/peer_name/time/title/desc；media 组：image/video/media/image_url/video_url），类型决定渲染模式不可用户改。`can_insert(canvas, block)`：auto 放行全部，否则需同模式（markdown 画布拦 media 块——图集 `[alt]` 链接根因；media 画布拦 markdown 块——markdown 被 pop 纯文本/按钮被丢）。
+- **编辑器**：中栏画布属性面板加 msg_type 下拉；积木库每块加渲染模式徽标（M=markdown / M7=media）；点击插入 `can_insert` 拦截 + 提示；切换画布 msg_type 后已有不兼容块黄框高亮（不自动删）。
+- **运行时**：`build_chain` 按 `tpl.msg_type` 分派——markdown → 现有 msg_type:2 路径（覆盖全局 markdown 开关）；media → `_media_chain_from_blocks` 全 Image/Video 组件链；auto → 现有自动判定。`templates_set` 校验 `msg_type` 合法并透传。
+- **决策**：media 画布不放行 text 块（严格，画布用途清晰；text 配图用 auto）；块 msg_type 静态派生（用户覆盖会运行时矛盾）。
+
 ## [1.33.8] - 2026-11-16
 
 ### Fixed

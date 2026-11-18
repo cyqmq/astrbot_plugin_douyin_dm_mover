@@ -46,6 +46,28 @@ export const BLOCK_TYPE_LIST = Object.entries(BLOCK_TYPES).map(([key, v]) => ({
   data: v.data,
 }))
 
+// 积木类型 → 所需渲染模式（静态派生，编辑器只读徽标；与后端 BLOCK_MSG_TYPE 一致）
+// markdown（msg_type:2）：文本/按钮/分割线/占位符文本类；media（msg_type:7）：图片/视频/媒体引用
+export const BLOCK_MSG_TYPE = {
+  text: 'markdown', heading: 'markdown', link: 'markdown',
+  divider: 'markdown', button: 'markdown',
+  source: 'markdown', peer_name: 'markdown', time: 'markdown',
+  title: 'markdown', desc: 'markdown',
+  image: 'media', video: 'media', media: 'media',
+  image_url: 'media', video_url: 'media',
+}
+
+// 块所需渲染模式（未知类型保守归 markdown 文本类）
+export function blockMsgType(type) {
+  return BLOCK_MSG_TYPE[type] || 'markdown'
+}
+
+// 积木能否插入画布：auto 画布放行全部；否则需同模式（markdown/media 互斥）
+export function canInsert(canvasMsgType, blockType) {
+  if (canvasMsgType === 'auto') return true
+  return canvasMsgType === blockMsgType(blockType)
+}
+
 // 类型 → 占位符 token（非占位符积木返回 null）
 export function placeholderToken(type) {
   return (PLACEHOLDERS[type] && PLACEHOLDERS[type].token) || null
@@ -56,13 +78,14 @@ export function isPlaceholder(type) {
   return Boolean(PLACEHOLDERS[type])
 }
 
-// 创建积木实例（用类型默认 data 初始化，默认启用，带唯一 id）
+// 创建积木实例（用类型默认 data 初始化，默认启用，带唯一 id + 静态派生 msg_type）
 export function createBlock(type, data = {}) {
   const t = BLOCK_TYPES[type]
   if (!t) return null
   return {
     id: 'b' + Date.now() + Math.random().toString(36).slice(2, 6),
     type,
+    msg_type: blockMsgType(type),
     data: { ...t.data, ...data },
     disabled: false,
   }
