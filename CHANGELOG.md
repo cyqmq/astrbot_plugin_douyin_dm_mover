@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.36.1] - 2026-11-16
+
+### Fixed
+- **validate_block 接受测试页扁平卡**：加 `FLAT_KIND_INFO` kind 白名单（text/title/desc/image/image_url/video/video_url/gif/button/link/divider/gap，含 type 粗分类 + 必填字段）+ `_validate_flat_block`；`validate_block` 扁平判定用 `data is None and kind is not None`（主线 data 积木不误伤）。测试页模板可存进后端，主线 `data` 结构积木路径原样保留。`templates/set` 对含扁平卡模板返回 `ok:True`。
+
 ## [1.36.0] - 2026-11-16
 
 ### Added

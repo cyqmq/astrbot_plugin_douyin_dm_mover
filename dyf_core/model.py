@@ -104,14 +104,53 @@ PLACEHOLDER_BLOCK_TYPES = (
 )
 BLOCK_TYPES = (*PLACEHOLDER_BLOCK_TYPES, "image", "video", "text", "divider", "button")
 
+# 扁平卡 kind 白名单（测试页几何装配模型：type=粗分类，kind=细类型内容语义）
+# type 与前端 B 区 KIND_INFO 的 type 字段一致；required 为必填字段（label/url/value）
+FLAT_KIND_INFO = {
+    "text":      {"type": "text",    "required": ["label"]},
+    "title":     {"type": "text",    "required": ["label"]},
+    "desc":      {"type": "text",    "required": ["label"]},
+    "image":     {"type": "image",   "required": []},        # 转发图片：说明可选
+    "image_url": {"type": "image",   "required": ["url"]},   # 自定义地址图片
+    "video":     {"type": "image",   "required": []},        # 转发视频：说明可选
+    "video_url": {"type": "image",   "required": ["url"]},   # 自定义地址视频
+    "gif":       {"type": "image",   "required": ["url"]},
+    "button":    {"type": "button",  "required": ["label"]}, # 跳转链接可选
+    "link":      {"type": "button",  "required": ["label"]},
+    "divider":   {"type": "divider", "required": []},
+    "gap":       {"type": "divider", "required": []},        # value(px) 可选，有默认
+}
+
+
+def _validate_flat_block(b: dict) -> str | None:
+    """校验扁平卡（测试页）：kind 白名单 + type/kind 一致性 + 必填字段。"""
+    kind = str(b.get("kind") or "")
+    info = FLAT_KIND_INFO.get(kind)
+    if not info:
+        return f"非法积木 kind: {kind!r}（允许: {', '.join(FLAT_KIND_INFO)}）"
+    if b.get("type") != info["type"]:
+        return f"积木 kind {kind!r} 的 type 必须为 {info['type']!r}"
+    for k in info["required"]:
+        v = b.get(k)
+        if v is None or not str(v).strip():
+            return f"{kind} 积木缺少 {k}"
+    return None
+
 
 def validate_block(b: dict) -> str | None:
-    """校验单个积木：type 白名单 + 按类型必填字段。返回错误信息或 None。"""
+    """校验单个积木：type 白名单 + 按类型必填字段。返回错误信息或 None。
+
+    扁平卡（测试页几何装配，无 data 且有 kind）走 _validate_flat_block；
+    主线 data 结构积木（必有 data dict）原样保留。
+    """
     if not isinstance(b, dict):
         return "积木必须是对象"
     t = b.get("type")
     if t not in BLOCK_TYPES:
         return f"非法积木类型: {t!r}（允许: {', '.join(BLOCK_TYPES)}）"
+    # 扁平卡（测试页几何装配）：无 data 且有 kind → 按 kind 校验（主线块必有 data dict，不误伤）
+    if b.get("data") is None and b.get("kind") is not None:
+        return _validate_flat_block(b)
     d = b.get("data") or {}
     if not isinstance(d, dict):
         return f"积木 {t} 的 data 必须是对象"
