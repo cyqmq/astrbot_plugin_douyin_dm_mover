@@ -162,6 +162,17 @@ def _is_video_block(b: dict) -> bool:
     return b.get("data") is None and b.get("kind") in ("video", "video_url")
 
 
+def _is_flat_block(b: dict) -> bool:
+    """扁平卡：无 data 且有 kind。"""
+    return isinstance(b, dict) and b.get("data") is None and b.get("kind") is not None
+
+
+def _is_flat_template(tpl: dict) -> bool:
+    """扁平模板：blocks 全为扁平卡或空（无主线 data 块）。"""
+    blocks = (tpl or {}).get("blocks") or []
+    return all(_is_flat_block(b) for b in blocks)
+
+
 def _block_order_key(b: dict, idx: int):
     """排序键：扁平卡按行序（y, x）对齐测试页视觉顺序；主线 data 积木按数组序。"""
     if b.get("data") is None and b.get("kind") is not None:
@@ -502,8 +513,34 @@ class DashboardApi:
         return {"ok": True, "detail": "已保存并自动重载插件，稍候生效" if not bool((data or {}).get("no_reload")) else "已保存"}
 
     # ---- 推送模板（编辑器走独立端点，不走 AstrBot 配置页）----
+    async def _purge_legacy_templates(self) -> None:
+        """一次性清理旧主线 data 块模板：只留扁平模板（blocks 全扁平卡或空）。
+
+        测试页体系下旧主线 data 块模板会在测试页 A 区错乱显示（syncCards 无迁移逻辑），
+        且转发走 data 渲染（_render_blocks data 分支）；用户已授权抛弃旧版模板。
+        幂等：仅当存在被移除模板时写回 config（save_config + _persist_templates_checked 兜底）。
+        """
+        tpls = self.fm.config.get("templates") or []
+        kept = [t for t in tpls if _is_flat_template(t)]
+        if len(kept) == len(tpls):
+            return
+        self.fm.config["templates"] = kept
+        if self._config_obj is not None:
+            try:
+                self._config_obj.update({"templates": kept})
+                save = getattr(self._config_obj, "save_config", None)
+                if save is not None:
+                    save()
+                cfg_path = getattr(self._config_obj, "config_path", "") or ""
+                if cfg_path and os.path.isfile(cfg_path):
+                    await asyncio.to_thread(_persist_templates_checked, cfg_path, kept)
+            except Exception as e:
+                logger.warning(f"[dyf] 旧模板清理落盘失败: {e!r}")
+        logger.info(f"[dyf] 已清理旧主线 data 块模板: {len(tpls) - len(kept)} 个")
+
     async def templates_get(self):
         """读取推送模板列表 + 相关配置（编辑器加载用）。"""
+        await self._purge_legacy_templates()
         return {
             "ok": True,
             "templates": self.fm.config.get("templates") or [],

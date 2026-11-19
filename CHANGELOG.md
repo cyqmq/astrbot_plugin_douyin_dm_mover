@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+## [1.39.0] - 2026-11-16
+
+### Changed
+- **移除主线「卡片」入口，统一测试页为「卡片」**：`Sidebar.vue` 删 `cards` 菜单项、`cards_test` 改名「卡片」；`App.vue` 删 `CardsTab` import + `v-else-if`（`cards_test` 直接接续）；`store.js` 删 `cards` 条目、`cards_test` 标题「卡片 / 几何装配模板（A/B/C/D 四区）」。`CardsTab.vue` 不再被引用（死代码文件保留，build 不再打包，产物体积 438→317 kB）。
+- **清理旧主线 data 块模板**：`_purge_legacy_templates`（`templates_get` 调用，幂等）只留扁平模板（blocks 全扁平卡或空），移除含主线 `data` 块模板（会在测试页 A 区错乱显示且转发走 data 渲染）；save_config + `_persist_templates_checked` 落盘兜底。转发全走扁平卡渲染。
+
 ## [1.38.0] - 2026-11-16
 
 ### Added
