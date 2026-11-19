@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+## [1.36.5] - 2026-11-16
+
+### Added
+- **按钮每行 ≤5 后端兜底**：`templates_set` 校验扁平卡同行按钮（按 `y` 分组，>5 拒「按钮每行最多 5 个」），与前端 `rowViolation`（`CARD_META` button `maxSameTypePerRow:5`）双保险，防外部导入/手改 config 突破 QQ 官方上限；主线按钮同行由前端 layout 分组，不重复校验。
+- **宽度持久化结论**：无需后端改动——宽度 `cellN` 由 DOM 测量派生（TestRegionB），`pushCard` 不写入保存块、导出时才算 `width_cells`；后端渲染不消费宽度（Markdown 消息无格宽概念，任务四已按 `(y,x)` 行序）。手动加宽卡刷新后保持原宽属前端改动（`pushCard` 写 `width_cells`、`syncCards` 读回 `cellN`），与后端无关。
+
 ## [1.36.4] - 2026-11-16
 
 ### Fixed

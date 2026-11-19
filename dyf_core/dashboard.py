@@ -551,6 +551,18 @@ class DashboardApi:
                 order = sorted(range(len(blocks)), key=lambda i: _block_order_key(blocks[i], i))
                 if order[0] != vids[0][0] and order[-1] != vids[0][0]:
                     return {"ok": False, "detail": f"模板「{name}」视频块只能在第一位或最后一位"}
+            # 按钮每行 ≤5（QQ 官方上限；扁平卡按 y 同行，前端 rowViolation 已强制，后端双保险）
+            # 防外部导入/手改 config 突破上限；主线按钮同行由前端 layout 分组，此处不重复校验。
+            btn_rows: dict = {}
+            for b in blocks:
+                if (
+                    isinstance(b, dict) and b.get("type") == "button"
+                    and b.get("data") is None and b.get("kind") is not None
+                ):
+                    row = int(b.get("y") or 0)
+                    btn_rows[row] = btn_rows.get(row, 0) + 1
+                    if btn_rows[row] > 5:
+                        return {"ok": False, "detail": f"模板「{name}」按钮每行最多 5 个"}
             # 画布布局可选（内嵌对象键，随模板项存；None 不存/不覆盖，旧模板/外部导入无 layout 兼容）
             layout = t.get("layout")
             if layout is not None:
