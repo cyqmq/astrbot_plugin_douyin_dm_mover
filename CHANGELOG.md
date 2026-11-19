@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+## [1.36.6] - 2026-11-16
+
+### Fixed
+- **_media_chain_from_blocks 扁平感知 + 行序**：媒体链重写——扁平卡 url 取块自身（`video_url`/`image_url`/`gif` 优先块内 `url`，`video`/`image` 转发类回退 `ctx.video_url`/`ctx.image_url`），按 `(y,x)` 行序（复用 `_sort_flat_blocks`）；主线 data 块 url 取 ctx 占位符（原契约）；非 image/video 块跳过。修复 `msg_type:'media'` 测试页模板：自定义地址错取、视频变图片、顺序非行序。
+- **for_media 模板选择无需改动**（原任务六目标取消）：测试页模板 `for_media:false` + 内嵌 `[[video:url]]` 已在 markdown 路径拆分，`_template(for_media)` 选择工作正常。
+
 ## [1.36.5] - 2026-11-16
 
 ### Added

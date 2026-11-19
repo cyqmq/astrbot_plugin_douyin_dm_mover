@@ -450,12 +450,20 @@ class MessageBuilder:
     def _media_chain_from_blocks(self, blocks: list[dict], ctx: dict) -> MessageChain | None:
         """media 画布：积木序列 → Image/Video 组件链（msg_type:7 富媒体）。
 
-        编辑器已按 can_insert 拦截（media 画布只放行 image/video），此处宽容：
-        非 image/video 块跳过；url 取 _context 的 image_url/video_url（占位符契约）。
+        扁平卡（测试页）：url 取块自身（kind video/video_url/gif/image_url），
+        转发类（kind video/image，无 url）回退 ctx video_url/image_url；按 (y,x) 行序。
+        主线 data 块：url 取 ctx 占位符（原契约）。非 image/video 块跳过。
         """
         parts = []
-        for b in self._sort_flat_blocks(blocks):
-            t = b.get("type") if isinstance(b, dict) else ""
+        for b in self._sort_flat_blocks(blocks or []):
+            if not isinstance(b, dict):
+                continue
+            if b.get("data") is None and b.get("kind") is not None:
+                part = self._media_flat_part(b, ctx)
+                if part:
+                    parts.append(part)
+                continue
+            t = b.get("type")
             if t == "image":
                 url = ctx.get("image_url") or ""
                 if not url:
@@ -473,6 +481,28 @@ class MessageBuilder:
                 except Exception:
                     parts.append(Plain(f"[视频] {url}"))
         return MessageChain(parts) if parts else None
+
+    def _media_flat_part(self, b: dict, ctx: dict):
+        """扁平卡 → Image/Video 组件；转发类（无 url）回退 ctx 占位符；返回 None 表示跳过。"""
+        kind = str(b.get("kind") or "")
+        url = str(b.get("url") or "").strip()
+        if kind in ("video", "video_url"):
+            u = url or (ctx.get("video_url") or "")
+            if not u:
+                return None
+            try:
+                return Video.fromURL(u)
+            except Exception:
+                return Plain(f"[视频] {u}")
+        if kind in ("image", "image_url", "gif"):
+            u = url or (ctx.get("image_url") or "")
+            if not u:
+                return None
+            try:
+                return Image.fromURL(u)
+            except Exception:
+                return Plain(f"[图片] {u}")
+        return None
 
     def _chains_from_markdown(
         self, content: str, video_first: bool = False, btn_ys: list | None = None
