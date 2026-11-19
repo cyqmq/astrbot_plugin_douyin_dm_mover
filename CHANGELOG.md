@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.35.1] - 2026-11-16
+
+### Added
+- **卡片测试页组件目录文档**：`web/public/cards-test-components.html`（自包含、无 UI 框架依赖，纯说明文档）——主线入口（Sidebar/App.vue/store.js）、组件清单（TestPanel/TestRegionA-D/CardsTestTab 各路径 + 用途 + Props/Emits）、CSS Grid 四区组装 + 完整数据流、关键实现要点（kind 细类型/行约束/边缘滚动/右键菜单/按住导出）。vite 构建复制到产物，可通过 `/cards-test-components.html` 访问/下载。
+
 ## [1.35.0] - 2026-11-16
 
 ### Added

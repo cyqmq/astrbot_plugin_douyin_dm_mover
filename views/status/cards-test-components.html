@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>卡片测试页 · 组件目录</title>
+<style>
+  body{font-family:system-ui,-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+       line-height:1.6;color:#1f2937;max-width:960px;margin:0 auto;padding:28px 20px;background:#fff}
+  h1{font-size:22px;border-bottom:2px solid #111;padding-bottom:8px}
+  h2{font-size:17px;margin-top:32px;border-left:4px solid #111;padding-left:10px}
+  h3{font-size:14px;margin:18px 0 6px;color:#374151}
+  p{font-size:13px;margin:6px 0}
+  code{background:#f3f4f6;padding:1px 5px;border-radius:4px;font-size:12px}
+  table{border-collapse:collapse;width:100%;margin:12px 0;font-size:12.5px}
+  th,td{border:1px solid #d1d5db;padding:6px 9px;text-align:left;vertical-align:top}
+  th{background:#f9fafb;font-weight:600}
+  td code{white-space:nowrap}
+  ul,ol{margin:8px 0;padding-left:22px;font-size:13px}
+  li{margin:3px 0}
+  .dl{display:inline-block;background:#111;color:#fff;padding:8px 14px;border-radius:6px;
+      text-decoration:none;font-size:13px;margin:4px 0 18px}
+  .muted{color:#6b7280;font-size:12px}
+  .flow{background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:12px 14px;
+        font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;line-height:1.9;
+        overflow-x:auto;white-space:pre}
+</style>
+</head>
+<body>
+<h1>卡片测试页 · 相关 Vue 组件目录</h1>
+<p class="muted">纯说明文档：组件清单 + 各自用途 + 组装方式。可下载保存。</p>
+<a class="dl" href="cards-test-components.html" download="卡片测试页-组件目录.html">下载此目录页</a>
+
+<h2>一、主线入口（怎么进入）</h2>
+<table>
+  <tr><th>文件</th><th>作用</th></tr>
+  <tr><td><code>src/components/Sidebar.vue</code></td><td>侧边栏导航：新增 <code>['cards_test','卡片测试',…]</code> 菜单项，点击 <code>store.tab='cards_test'</code></td></tr>
+  <tr><td><code>src/App.vue</code></td><td>渲染分支：<code>&lt;CardsTestTab v-else-if="store.tab==='cards_test'"/&gt;</code></td></tr>
+  <tr><td><code>src/composables/store.js</code></td><td>标题表 <code>TITLES.cards_test</code>（页面标题 + 副标题）</td></tr>
+</table>
+<p>进入方式：打开 Web 管理台 → 左侧边栏点「卡片测试」。</p>
+
+<h2>二、组件清单（各自用途）</h2>
+<table>
+  <tr><th>组件</th><th>路径</th><th>用途</th><th>Props</th><th>Emits</th></tr>
+  <tr>
+    <td>TestPanel</td><td><code>cards/test/TestPanel.vue</code></td>
+    <td>区域通用外壳：标题栏 + 内容槽，统一各区域外观</td>
+    <td><code>title</code>, <code>hint</code></td><td>—（用插槽 <code>&lt;slot/&gt;</code>）</td>
+  </tr>
+  <tr>
+    <td>TestRegionA</td><td><code>cards/test/TestRegionA.vue</code></td>
+    <td>已保存模板卡片列表（含「添加空白模板」卡）。展示型，状态由父层持有</td>
+    <td><code>templates[]</code>, <code>selectedId</code></td>
+    <td><code>select(t)</code>, <code>create()</code></td>
+  </tr>
+  <tr>
+    <td>TestRegionB</td><td><code>cards/test/TestRegionB.vue</code></td>
+    <td>核心：网格装配画布。缩放/右下滑移、单元格吸附、整数格宽、物理碰撞、行约束（含按钮固定底部 ≤5 行 ×5 卡）、卡片右键菜单（类型/属性/复制/删除）、拖卡边缘滚动、失败反馈（原因卡震动）</td>
+    <td><code>cards(blocks|null)</code>, <code>templateId</code>, <code>addRequest</code>, <code>exportSignal</code></td>
+    <td><code>preview(cards)</code>, <code>change(list)</code>, <code>export(payload)</code></td>
+  </tr>
+  <tr>
+    <td>TestRegionC</td><td><code>cards/test/TestRegionC.vue</code></td>
+    <td>积木库：分类（全部/文本/媒体/按钮/装饰）+ 积木卡，点击上抛 <code>add</code>。按钮与链接按钮已合并为一个「按钮」积木</td>
+    <td>—</td>
+    <td><code>add({type,kind,label})</code></td>
+  </tr>
+  <tr>
+    <td>TestRegionD</td><td><code>cards/test/TestRegionD.vue</code></td>
+    <td>模板属性面板：名字/类型/已插入卡片数 + 保存 + 删除（二次确认）+ 按住保存导出</td>
+    <td><code>selected</code>, <code>formError</code></td>
+    <td><code>save({name,msg_type})</code>, <code>delete()</code>, <code>export()</code></td>
+  </tr>
+  <tr>
+    <td>CardsTestTab</td><td><code>tabs/CardsTestTab.vue</code></td>
+    <td>测试页父层：A/B/C/D 网格定位 + 共享状态（templates/selectedId/addRequest/exportSignal/formError）+ 持久化（templates/get/set）+ 导出 JSON</td>
+    <td>—（自身从 store 取数据）</td>
+    <td>—</td>
+  </tr>
+</table>
+
+<h2>三、组装方式（CardsTestTab 如何拼）</h2>
+<p>父层用 CSS Grid 固定四区位置（列 <code>minmax(96px,1fr) / minmax(0,3.5fr) / minmax(88px,1.3fr)</code>，行 <code>minmax(0,3fr) / minmax(96px,1fr)</code>）：</p>
+<ul>
+  <li><code>TestRegionA</code> → <code>grid-column:1; grid-row:1/3</code>（左全高长条）</li>
+  <li><code>TestRegionB</code> → <code>grid-column:2; grid-row:1</code>（中上最大）</li>
+  <li><code>TestRegionD</code> → <code>grid-column:3; grid-row:1</code>（右上长条）</li>
+  <li><code>TestRegionC</code> → <code>grid-column:2/4; grid-row:2</code>（下排横跨 B+D 宽）</li>
+</ul>
+
+<h3>数据流</h3>
+<div class="flow">CardsTestTab（父层持有状态）
+ │
+ ├─&gt; A: 模板列表（:templates / :selectedId）
+ │    &lt;-- select(t)  → selectedId=t.id
+ │    &lt;-- create()   → 新建空白模板 + persist()
+ │
+ ├─&gt; B: 画布（:cards=selectedTemplate.blocks || null，:template-id / :add-request / :export-signal）
+ │    &lt;-- change(list)  → t.blocks=list + persist()
+ │    &lt;-- export(p)     → 组装完整 JSON 并触发下载
+ │    &lt;-- preview(cards)→ 预览回调
+ │
+ ├─&gt; C: 积木库（@add=addBlock）
+ │    &lt;-- add({type,kind,label}) → 确保有选中模板 → addRequest={seq,type,kind,label} → B 插入
+ │
+ └─&gt; D: 属性面板（:selected=selectedTemplate，:form-error）
+      &lt;-- save({name,msg_type}) → 更新模板 + persist()
+      &lt;-- delete() → 移除模板 + persist()
+      &lt;-- export() → exportSignal++ → B 导出</div>
+
+<h2>四、关键实现要点</h2>
+<ul>
+  <li><b>kind 细类型</b>：<code>type</code> 是粗分类（约束/配色），<code>kind</code> 是细类型（内容语义）。B 区 <code>KIND_INFO</code> 定义每种 kind 的属性字段；<code>KIND_FAMILIES</code> 定义可互切家族（按钮/链接按钮、转发/自定义图片、转发/自定义视频）。</li>
+  <li><b>行约束</b>：B 区 <code>rowViolation</code> 按吸附行强制排版——①按钮固定底部 ②独占规则 ③同类型上限 ④整页按钮行 ≤5。</li>
+  <li><b>边缘滚动</b>：仅拖动卡片时触发（<code>mode==='card'</code>）、仅实际移动 &gt;3px 后生效、以画布真实窗口边缘为界（<code>getBoundingClientRect()</code>）、向拖动方向滚。</li>
+  <li><b>右键菜单</b>：画布级 <code>@contextmenu.prevent</code> 拦截 + Teleport 到 body + fixed 视口坐标；项 = 类型（家族子菜单）/属性（按 kind 动态字段）/复制/删除。</li>
+  <li><b>导出</b>：按住 D 区保存按钮 ≥600ms → <code>exportSignal</code> → B 区按行分组输出 <code>{rows:[{row_index,text,cards:[{type,kind,label,url,value,x_cell,width_cells}]}]}</code>。</li>
+</ul>
+
+<p class="muted">生成时间：2026-11-19 · 目录页仅供说明，不影响应用功能。</p>
+</body>
+</html>
