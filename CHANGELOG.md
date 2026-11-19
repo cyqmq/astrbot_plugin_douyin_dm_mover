@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.39.1] - 2026-11-16
+
+### Fixed
+- **测试页 B/C 区样式主题化**：主体硬编码十六进制替换为 AstrBot 主题变量——`.card`/`.card-menu`/`.block` 背景 `#fff`→`var(--card)`；`.ruler-*` 背景 `#eef2f7`/`#dde4ee`→`var(--bg)`；行号/菜单 hover 背景→`var(--bg)`；行号边框 6 处 `#cbd5e1`→`var(--border)`；行号/`.ct.off` 文字 `#64748b`→`var(--muted)`。语义辨识色保留（分类左边框 `.t-image #a78bfa`/`.t-button #f59e0b`/`.t-divider #94a3b8`、`.ct.on` 绿、fail-badge/删除按钮红）。主题切换（浅/深）B 区卡片+行号列、C 区积木卡跟随主线变量。后续测试页样式一律 `var(--card/--bg/--border/--muted/--accent/--text)`，不硬编码 hex。
+
 ## [1.39.0] - 2026-11-16
 
 ### Changed

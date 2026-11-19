@@ -186,7 +186,7 @@ onBeforeUnmount(() => {
   height: 44px;
   padding: 0 10px;
   box-sizing: border-box;
-  background: #fff;
+  background: var(--card);
   border: 1px solid var(--border);
   border-left: 3px solid var(--accent);
   border-radius: 8px;

@@ -699,7 +699,7 @@ onBeforeUnmount(() => {
   gap: 6px;
   padding: 0 10px;
   box-sizing: border-box;
-  background: #fff;
+  background: var(--card);
   border: 1px solid var(--border);
   border-left: 3px solid var(--accent);
   border-radius: 8px;
@@ -754,32 +754,32 @@ onBeforeUnmount(() => {
   font-style: normal;
 }
 .ct.on { background: rgba(52, 211, 153, 0.14); color: #059669; }
-.ct.off { background: rgba(148, 163, 184, 0.16); color: #64748b; }
+.ct.off { background: rgba(148, 163, 184, 0.16); color: var(--muted); }
 
 /* 行号列标：画布内冻结，强对比保证可见 */
 .ruler-top, .ruler-left, .ruler-corner {
   position: absolute;
   z-index: 3;
-  background: #eef2f7;
+  background: var(--bg);
   box-sizing: border-box;
 }
 .ruler-top {
   top: 0; left: 24px; right: 0; height: 24px;
-  border-bottom: 1px solid #cbd5e1;
+  border-bottom: 1px solid var(--border);
   overflow: hidden;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 .ruler-left {
   top: 24px; left: 0; bottom: 0; width: 24px;
-  border-right: 1px solid #cbd5e1;
+  border-right: 1px solid var(--border);
   overflow: hidden;
   box-shadow: 1px 0 3px rgba(0, 0, 0, 0.08);
 }
 .ruler-corner {
   top: 0; left: 0; width: 24px; height: 24px;
-  background: #dde4ee;
-  border-right: 1px solid #cbd5e1;
-  border-bottom: 1px solid #cbd5e1;
+  background: var(--bg);
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
 }
 .ruler-cell {
   position: absolute;
@@ -788,10 +788,10 @@ onBeforeUnmount(() => {
   justify-content: center;
   font-size: 10px;
   font-weight: 500;
-  color: #64748b;
+  color: var(--muted);
   box-sizing: border-box;
-  border-right: 1px solid #cbd5e1;
-  border-bottom: 1px solid #cbd5e1;
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
 }
 .ruler-top .ruler-cell { top: 0; height: 24px; }
 .ruler-left .ruler-cell { left: 0; width: 24px; }
@@ -821,7 +821,7 @@ onBeforeUnmount(() => {
   z-index: 1000;
   min-width: 150px;
   padding: 4px;
-  background: #fff;
+  background: var(--card);
   border: 1px solid var(--border);
   border-radius: 8px;
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.16);
@@ -839,7 +839,7 @@ onBeforeUnmount(() => {
   text-align: left;
   cursor: pointer;
 }
-.menu-item:hover { background: #eef2f7; }
+.menu-item:hover { background: var(--bg); }
 .menu-item.danger { color: #dc2626; }
 .menu-item.danger:hover { background: #fde8e8; }
 .menu-form { display: flex; flex-direction: column; gap: 5px; padding: 6px 4px; }
