@@ -153,6 +153,22 @@ def validate_layout(layout, blocks=None) -> str | None:
     return None
 
 
+def _is_video_block(b: dict) -> bool:
+    """视频块：主线 type=='video'；扁平卡 kind in (video, video_url)（无 data 且有 kind）。"""
+    if not isinstance(b, dict):
+        return False
+    if b.get("type") == "video":
+        return True
+    return b.get("data") is None and b.get("kind") in ("video", "video_url")
+
+
+def _block_order_key(b: dict, idx: int):
+    """排序键：扁平卡按行序（y, x）对齐测试页视觉顺序；主线 data 积木按数组序。"""
+    if b.get("data") is None and b.get("kind") is not None:
+        return (int(b.get("y") or 0), int(b.get("x") or 0))
+    return (idx, 0)
+
+
 class DashboardApi:
     def __init__(self, context, gateway, forward_manager, logring: LogRing | None = None, config_obj=None):
         self.context = context
@@ -526,12 +542,15 @@ class DashboardApi:
                 err = validate_block(b)
                 if err:
                     return {"ok": False, "detail": f"模板「{name}」: {err}"}
-            # 视频积木最多 1 个且必须在首位/末位（拆两条消息，顺序决定先后）
-            vid_idx = [i for i, b in enumerate(blocks) if isinstance(b, dict) and b.get("type") == "video"]
-            if len(vid_idx) > 1:
-                return {"ok": False, "detail": f"模板「{name}」视频积木最多 1 个（拆两条消息）"}
-            if vid_idx and vid_idx[0] not in (0, len(blocks) - 1):
-                return {"ok": False, "detail": f"模板「{name}」视频积木只能在第一位或最后一位"}
+            # 视频块最多 1 个且必须在首位/末位（拆两条消息，顺序决定先后）
+            # 扁平卡（kind video/video_url）也受此约束：_chains_from_markdown 只拆一个视频。
+            vids = [(i, b) for i, b in enumerate(blocks) if _is_video_block(b)]
+            if len(vids) > 1:
+                return {"ok": False, "detail": f"模板「{name}」视频块最多 1 个（拆两条消息）"}
+            if vids:
+                order = sorted(range(len(blocks)), key=lambda i: _block_order_key(blocks[i], i))
+                if order[0] != vids[0][0] and order[-1] != vids[0][0]:
+                    return {"ok": False, "detail": f"模板「{name}」视频块只能在第一位或最后一位"}
             # 画布布局可选（内嵌对象键，随模板项存；None 不存/不覆盖，旧模板/外部导入无 layout 兼容）
             layout = t.get("layout")
             if layout is not None:

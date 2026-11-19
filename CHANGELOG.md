@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.36.3] - 2026-11-16
+
+### Fixed
+- **视频规则覆盖扁平卡**：`templates_set` 视频约束改由 `_is_video_block`（主线 `type=='video'`；扁平卡 `kind in (video, video_url)`）识别，扁平模板同样受「≤1 个、首位/末位」约束（`_chains_from_markdown` 只拆一个 `[[video:url]]`，2 个会漏字面量、中间位重排内容）。首位/末位按 `_block_order_key` 判定：扁平卡按行序 `(y,x)`（与测试页视觉顺序一致），主线 data 积木按数组序（行为不变）。
+
 ## [1.36.2] - 2026-11-16
 
 ### Fixed
