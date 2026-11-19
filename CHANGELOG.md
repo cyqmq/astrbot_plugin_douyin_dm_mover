@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.37.0] - 2026-11-16
+
+### Added
+- **前端持久化完整性（TestRegionB）**：`dupCard` 携带 `url/value`（复制自定义地址/间距卡不丢内容）；`pushCard` 支持附加字段；宽度落块——`syncWidths()` 任一变更（pushCard/拖放落位/confirmEdit/setKind/delCard）前把当前格宽写回卡 `width_cells` 随 `change` 持久化；`syncCards` 加载回填 `width_cells`（清残留 + 回填）、`setCardEl` 持久化宽度优先（DOM 测量不超则保持，超出才更新），改宽后刷新保持原宽。`width_cells` 仅前端字段（后端 `validate_block`/渲染不读，无副作用）。
+
 ## [1.36.6] - 2026-11-16
 
 ### Fixed

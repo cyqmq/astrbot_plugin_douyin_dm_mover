@@ -94,6 +94,9 @@ function syncCards() {
   // 归一化 kind：兼容无 kind 的旧数据（按 type+label 推断）。
   const src = Array.isArray(props.cards) ? JSON.parse(JSON.stringify(props.cards)) : []
   for (const c of src) c.kind = deriveKind(c)
+  // 清残留宽度 + 回填持久化宽度（width_cells）：切换模板/刷新后保持原宽
+  for (const k of Object.keys(cellN)) delete cellN[k]
+  for (const c of src) if (c.width_cells) cellN[c.id] = c.width_cells
   list.value = src
 }
 
@@ -285,10 +288,12 @@ function onWinUp() {
     if (!ghostInvalid.value && placeOk(d.card, gx, gy)) {
       // 合法落点：吸附到虚影所在单元格
       d.card.x = gx; d.card.y = gy
+      syncWidths()
       emit('change', JSON.parse(JSON.stringify(list.value)))
     } else if (d.card.x !== d.ox0 || d.card.y !== d.oy0) {
       // 违规落点：回退到拖动前位置（保证结果始终符合行约束）
       d.card.x = d.ox0; d.card.y = d.oy0
+      syncWidths()
       emit('change', JSON.parse(JSON.stringify(list.value)))
     }
   }
@@ -358,6 +363,9 @@ function setCardEl(el) {
   const nat = Math.max(el.offsetWidth, el.scrollWidth)
   const floor = estN(c ? c.type : '', c ? c.label : '')
   const n = Math.max(floor, Math.max(1, Math.ceil(nat / CELL_W)))
+  // 持久化宽度优先：syncCards 已回填 cellN[id]（width_cells），DOM 测量不超则保持；DOM 超出才更新
+  const saved = cellN[el.dataset.id]
+  if (saved && saved >= n) return
   if (cellN[el.dataset.id] !== n) cellN[el.dataset.id] = n
 }
 
@@ -398,11 +406,16 @@ function findBlockers(type) {
     ? list.value.filter((c) => c.type === 'button').map((c) => c.id)
     : list.value.map((c) => c.id)
 }
-function pushCard(type, kind, label, n, x, y) {
+function pushCard(type, kind, label, n, x, y, extra = {}) {
   const cid = 'c_' + Date.now() + Math.random().toString(36).slice(2, 6)
   cellN[cid] = n
-  list.value.push({ id: cid, type, kind, label, x, y })
+  list.value.push({ id: cid, type, kind, label, x, y, ...extra })
+  syncWidths()
   emit('change', JSON.parse(JSON.stringify(list.value)))
+}
+// 任一变更后：把当前格宽写回卡，随 change 持久化（宽度落块，刷新后保持原宽）
+function syncWidths() {
+  for (const c of list.value) c.width_cells = cellN[c.id] || 1
 }
 function addBlock({ type, kind, label }) {
   const p = nextFreeCell(type, label)
@@ -450,6 +463,7 @@ function confirmEdit() {
     if (p.type === 'number') c[p.key] = Number(v) || 0
     else c[p.key] = String(v ?? '').trim()
   }
+  syncWidths()
   emit('change', JSON.parse(JSON.stringify(list.value)))
   closeMenu()
 }
@@ -459,6 +473,7 @@ function setKind(k) {
   const c = menuCard()
   if (!c) return closeMenu()
   c.kind = k
+  syncWidths()
   emit('change', JSON.parse(JSON.stringify(list.value)))
   closeMenu()
 }
@@ -467,7 +482,8 @@ function dupCard() {
   if (!c) return closeMenu()
   const p = nextFreeCell(c.type, c.label)
   if (!p) { flashFail(findBlockers(c.type)); closeMenu(); return }
-  pushCard(c.type, c.kind, c.label, p.n, p.x, p.y)
+  // 复制保留内容（url/value）：自定义地址/间距卡复制后不丢内容
+  pushCard(c.type, c.kind, c.label, p.n, p.x, p.y, { url: c.url || '', value: c.value || 0 })
   closeMenu()
 }
 function delCard() {
@@ -475,6 +491,7 @@ function delCard() {
   if (!c) return closeMenu()
   list.value = list.value.filter((x) => x.id !== c.id)
   delete cellN[c.id]
+  syncWidths()
   emit('change', JSON.parse(JSON.stringify(list.value)))
   closeMenu()
 }
