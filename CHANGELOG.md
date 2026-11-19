@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.36.4] - 2026-11-16
+
+### Fixed
+- **渲染按行序 + 按钮按行分组（扁平卡）**：`render_blocks` 入口先 `_sort_flat_blocks`（扁平卡按 `(y,x)` 行序稳定重排，主线 data 块数组序不变），忠实还原视觉顺序；`_video_first` 按行序首块判视频链前后（扁平卡 `kind in (video,video_url)`，主线 `blocks[0].type=='video'`）；`_button_ys` 扁平卡按钮 y 直接取自块自身（同 y 同行合并 ActionRow，与任务 3 校验对齐）、主线从 layout 取不变；`_media_chain_from_blocks` 套排序保持媒体链行序一致。
+
 ## [1.36.3] - 2026-11-16
 
 ### Fixed

@@ -249,11 +249,24 @@ class MessageBuilder:
             return ""
         return label
 
+    def _flat_order_key(self, b: dict, idx: int):
+        """排序键：扁平卡按行序(y,x)；主线 data 积木保持数组序。"""
+        if b.get("data") is None and b.get("kind") is not None:
+            return (int(b.get("y") or 0), int(b.get("x") or 0))
+        return (idx, 0)
+
+    def _sort_flat_blocks(self, blocks: list[dict]) -> list[dict]:
+        """扁平卡按 (y,x) 行序稳定重排；含主线 data 块时保持数组序。"""
+        return [b for _, b in sorted(
+            enumerate(blocks or []), key=lambda ib: self._flat_order_key(ib[1], ib[0])
+        )]
+
     def render_blocks(self, blocks: list[dict], ctx: dict, markdown: bool = True) -> str:
         """公开渲染入口：积木序列 → 文本（占位符统一替换）。
         预览（模拟上下文）与转发（真实上下文）共用，保证同源。
+        扁平卡先按 (y,x) 行序重排，忠实还原视觉顺序；主线 data 块保持数组序。
         """
-        rendered = self._render_blocks(blocks, ctx, markdown=markdown)
+        rendered = self._render_blocks(self._sort_flat_blocks(blocks), ctx, markdown=markdown)
         return self._render_text(rendered, ctx, markdown=markdown)
 
     def _header(self, msg: InboundMessage, for_media: bool = False) -> str:
@@ -339,7 +352,8 @@ class MessageBuilder:
             if not content.strip():
                 return None
             if markdown:
-                video_first = bool(tpl.get("blocks") and tpl["blocks"][0].get("type") == "video")
+                # 扁平卡按行序首块判 video_first；主线仍按 blocks[0].type=='video'
+                video_first = self._video_first(tpl.get("blocks") or [])
                 btn_ys = self._button_ys(tpl, layout)
                 return self._chains_from_markdown(content, video_first, btn_ys)
             return [MessageChain([Plain(content)])]
@@ -385,17 +399,32 @@ class MessageBuilder:
             return [chain, btn_chain] if btn_chain else chain
         return chain
 
+    def _video_first(self, blocks: list[dict]) -> bool:
+        """视频是否在首行（video_first=True→视频链在前）。扁平卡按行序；主线按数组序。"""
+        bl = self._sort_flat_blocks(blocks)
+        if not bl:
+            return False
+        b = bl[0]
+        if b.get("data") is None and b.get("kind") is not None:
+            return b.get("kind") in ("video", "video_url")
+        return b.get("type") == "video"
+
     def _button_ys(self, tpl: dict | None, layout: dict | None) -> list:
-        """按钮积木保序的 y 列表（按 blocks 顺序，layout 缺项/无 layout → None 独立）。
+        """按钮积木保序的 y 列表（按渲染行序，layout 缺项/无 layout → None 独立）。
 
         按钮标记在 content 里与 blocks 中 button 积木保序（renderBlocks 保序），
         用 y 分组同行连续按钮。layout 缺 id 项（老模板无布局）→ None → 单钮独立。
+        扁平卡按钮 y 直接取自块自身（同 y 同行合并）；主线从 layout 取。
         """
         layout = layout if isinstance(layout, dict) else (tpl or {}).get("layout")
         layout = layout if isinstance(layout, dict) else {}
         ys = []
-        for b in (tpl or {}).get("blocks") or []:
+        for b in self._sort_flat_blocks((tpl or {}).get("blocks") or []):
             if isinstance(b, dict) and b.get("type") == "button":
+                if b.get("data") is None and b.get("kind") is not None:
+                    y = b.get("y")
+                    ys.append(int(y) if y is not None else None)
+                    continue
                 pos = layout.get(b.get("id"))
                 ys.append(pos.get("y") if isinstance(pos, dict) else None)
         return ys
@@ -425,7 +454,7 @@ class MessageBuilder:
         非 image/video 块跳过；url 取 _context 的 image_url/video_url（占位符契约）。
         """
         parts = []
-        for b in blocks or []:
+        for b in self._sort_flat_blocks(blocks):
             t = b.get("type") if isinstance(b, dict) else ""
             if t == "image":
                 url = ctx.get("image_url") or ""
