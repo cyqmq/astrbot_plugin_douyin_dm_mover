@@ -376,20 +376,19 @@ function edgeTick() {
 // 并以确定性下限 estN(type,label)（由文字长度推算，恒≥2格）兜底，绝不让宽卡回落到 1 格。
 function setCardEl(el) {
   if (!el || !el.dataset || !el.dataset.id) return
-  const c = list.value.find((x) => x.id === el.dataset.id)
-  const nat = Math.max(el.offsetWidth, el.scrollWidth)
-  const floor = estN(c ? c.type : '', c ? c.label : '')
-  const n = Math.max(floor, Math.max(1, Math.ceil(nat / CELL_W)))
-  // 持久化宽度优先：syncCards 已回填 cellN[id]（width_cells），DOM 测量不超则保持；DOM 超出才更新
-  const saved = cellN[el.dataset.id]
-  if (saved && saved >= n) return
+  // 子元素实测（与 recalcWidth 同一法）：label+type 内容自然宽 + gap+padding+左边条，
+  // 不用 el.offsetWidth（含内联宽自证，会保持 estN 定宽不缩）。去 saved>=n 回缩限制：新卡/重载卡贴合内容。
+  const le = el.querySelector('.card-label')
+  const te = el.querySelector('.card-type')
+  const nat = (le ? le.offsetWidth : 0) + (te ? te.offsetWidth : 0) + 6 + 20 + 3
+  const n = Math.max(1, Math.ceil(nat / CELL_W))
   if (cellN[el.dataset.id] !== n) cellN[el.dataset.id] = n
 }
 
 // ---- 点击积木区添加：自动寻下一个合法空格（按行约束 + 碰撞） ----
-// 预留格数估计：文字宽度 + 内边距（徽标已去，余量下调；实际宽度以 DOM 内容实测为主，floor 仅兜底）
+// 预留格数估计：文字宽 + padding/边框小余量（floor 仅作添加估宽/碰撞占位，实际宽度以 DOM 内容实测为准）
 function estN(type, label) {
-  const w = String(label || '').length * 14 + 100
+  const w = String(label || '').length * 13 + 24
   return Math.max(1, Math.ceil(w / CELL_W))
 }
 function nextFreeCell(type, label) {
