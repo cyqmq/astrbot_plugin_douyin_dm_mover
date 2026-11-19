@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.36.0] - 2026-11-16
+
+### Added
+- **卡片测试页几何装配（A/B/C/D 四区）**：合并自独立网页（8090）提供的 9 源文件——新增 `cards/test/TestPanel.vue`（区域外壳）/`TestRegionA.vue`（模板列表）/`TestRegionB.vue`（核心网格画布：缩放、单元格吸附、物理碰撞、行约束、右键菜单、边缘滚动、按住导出）/`TestRegionC.vue`（积木库）/`TestRegionD.vue`（属性面板）；`CardsTestTab.vue` 空白占位重写为完整父层（CSS Grid 四区定位 A 左全高 / B 中上 / D 右上 / C 下排横跨 + 共享状态 templates/selectedId/addRequest/exportSignal/formError + templates/get/set 持久化 + 导出 JSON）；`store.js` 描述行改「几何装配测试页（A/B/C/D 四区）」。Sidebar/App.vue 接入点此前 1.35.0 已就绪（zip 版本与主线一致）。
+
 ## [1.35.1] - 2026-11-16
 
 ### Added
