@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.36.2] - 2026-11-16
+
+### Fixed
+- **_render_blocks 渲染测试页扁平卡**：`_render_blocks` 循环顶部识别扁平卡（`data is None and kind is not None`，与 `validate_block` 一致，主线 data 积木不误伤）委托 `_render_flat_block`——text/desc 出 label、title 出 `# label`（markdown）、image/image_url 出 `![alt](url)`（转发图 `{image_url}`、alt 缺省 title/图片）、video/video_url 出 `[[video:...]]`、gif 出 `![alt](url)`、button/link 出 `[[button:label|url]]`（url 空回退 `{link}`）、divider 出 `***`、gap 输出空。plain（非 markdown）只出 label/文案无语法残留。`render`/发布/`_header`/`_body` 共用一改全通。
+
 ## [1.36.1] - 2026-11-16
 
 ### Fixed

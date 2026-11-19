@@ -167,6 +167,13 @@ class MessageBuilder:
         parts = []
         for b in blocks or []:
             t = b.get("type")
+            # 扁平卡（测试页几何装配）：无 data 且有 kind → 按 kind 渲染；主线 data 积木不受影响。
+            # 放在循环顶部避免被 t=="image"/t=="button" 分支抢先（扁平卡 type 是粗分类 image/button）。
+            if b.get("data") is None and b.get("kind") is not None:
+                part = self._render_flat_block(b, markdown)
+                if part:
+                    parts.append(part)
+                continue
             d = b.get("data") or {}
             if t in _PLACEHOLDER_TOKEN:
                 # 占位符积木：输出其 token（随后由 _render_text 替换为 _context 真实值）
@@ -206,6 +213,41 @@ class MessageBuilder:
             elif t == "divider":
                 parts.append("***" if markdown else "—")
         return "\n\n".join(p for p in parts if p)
+
+    def _render_flat_block(self, b: dict, markdown: bool) -> str:
+        """渲染扁平卡（测试页几何装配）：type=粗分类、kind=细类型，字段 label/url/value。
+        与 _render_blocks 的 data 积木同语义：占位符交给 _render_text 统一替换。"""
+        kind = str(b.get("kind") or "")
+        label = str(b.get("label") or "").strip()
+        url = str(b.get("url") or "").strip()
+        if kind in ("text", "desc"):
+            return label
+        if kind == "title":
+            return f"# {label}" if markdown else label
+        if kind == "image":        # 转发图片：说明(label) 可选，图源 {image_url}
+            alt = label or "{title}"
+            return f"![{alt}]({{image_url}})" if markdown else alt
+        if kind == "image_url":    # 自定义地址图片
+            alt = label or "图片"
+            return f"![{alt}]({url})" if markdown else alt
+        if kind == "video":        # 转发视频：视频源 {video_url}
+            alt = label or "视频"
+            return "[[video:{video_url}]]" if markdown else alt
+        if kind == "video_url":    # 自定义地址视频
+            alt = label or "视频"
+            return f"[[video:{url}]]" if markdown else alt
+        if kind == "gif":
+            alt = label or "动图"
+            return f"![{alt}]({url})" if markdown else alt
+        if kind in ("button", "link"):   # 自定义文字+跳转链接（url 空回退 {link}）
+            btn = label or "按钮"
+            btn_url = url or "{link}"
+            return f"[[button:{btn}|{btn_url}]]" if markdown else btn
+        if kind == "divider":
+            return "***" if markdown else "—"
+        if kind == "gap":          # 间距：纵向占位，无文本输出
+            return ""
+        return label
 
     def render_blocks(self, blocks: list[dict], ctx: dict, markdown: bool = True) -> str:
         """公开渲染入口：积木序列 → 文本（占位符统一替换）。
