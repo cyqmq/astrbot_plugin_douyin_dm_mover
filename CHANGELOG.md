@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.38.0] - 2026-11-16
+
+### Added
+- **测试页聊天气泡预览**：`renderSingleBlock` 加扁平分支（`renderFlatSingle`，与后端 `_render_flat_block` 逐 kind 对齐）；`mdToHtml` 加 `[[video:…]]`→video-chip、`[[button:label|url]]`→btn 链接块；`CardsTestTab` `onPreview` 真实渲染 + 预览弹层（头像「群」+名称「接收群」+气泡 `renderPreview`，模拟上下文，空数组「暂无积木」）。测试页「预览」→ 聊天气泡实时渲染，与转发同源；主线预览行为不变（renderBlocks 主线分支未动）。
+
 ## [1.37.0] - 2026-11-16
 
 ### Added

@@ -16,6 +16,8 @@ export function renderBlocks(blocks, ctx = {}, markdown = true) {
 // 单块渲染（原 switch 原样搬入，不改变任何 case 行为）
 export function renderSingleBlock(b, ctx = {}, markdown = true) {
   if (!b || !b.type) return ''
+  // 扁平卡（测试页几何装配）：无 data 且有 kind → 按 kind 渲染（与后端 _render_flat_block 对齐）
+  if (!b.data && b.kind) return renderFlatSingle(b, markdown)
   const d = b.data || {}
   let s = ''
   switch (b.type) {
@@ -66,6 +68,43 @@ export function renderSingleBlock(b, ctx = {}, markdown = true) {
   return s
 }
 
+// 扁平卡单块渲染（与后端 _render_flat_block 逐 kind 对齐）
+function renderFlatSingle(b, markdown = true) {
+  const kind = b.kind || ''
+  const label = String(b.label || '').trim()
+  const url = String(b.url || '').trim()
+  if (kind === 'text' || kind === 'desc') return label
+  if (kind === 'title') return markdown ? `# ${label}` : label
+  if (kind === 'image') {           // 转发图片：说明(label) 可选，图源 {image_url}
+    const alt = label || '{title}'
+    return markdown ? `![${alt}]({image_url})` : alt
+  }
+  if (kind === 'image_url') {       // 自定义地址图片
+    const alt = label || '图片'
+    return markdown ? `![${alt}](${url})` : alt
+  }
+  if (kind === 'video') {           // 转发视频：视频源 {video_url}
+    const alt = label || '视频'
+    return markdown ? '[[video:{video_url}]]' : alt
+  }
+  if (kind === 'video_url') {       // 自定义地址视频
+    const alt = label || '视频'
+    return markdown ? `[[video:${url}]]` : alt
+  }
+  if (kind === 'gif') {
+    const alt = label || '动图'
+    return markdown ? `![${alt}](${url})` : alt
+  }
+  if (kind === 'button' || kind === 'link') {   // 自定义文字+跳转链接（url 空回退 {link}）
+    const btn = label || '按钮'
+    const btnUrl = url || '{link}'
+    return markdown ? `[[button:${btn}|${btnUrl}]]` : btn
+  }
+  if (kind === 'divider') return markdown ? '***' : '—'
+  if (kind === 'gap') return ''    // 间距：纵向占位，无文本输出
+  return label
+}
+
 // 占位符替换：ctx 有值用真实值；ctx 无该键（undefined）保留 {token} 原样。
 // 诚实化：预览/画布/导出不再显示模拟值，避免「预览 ≠ 转发」失真（转发时后端用真实上下文替换）。
 export function fillPlaceholders(content, ctx = {}) {
@@ -86,6 +125,9 @@ function esc(s) {
 // 最小 Markdown → HTML（预览用，规则与后端渲染一致）
 export function mdToHtml(s) {
   let h = esc(s)
+  // 视频/按钮标记 → 组件 HTML（esc 后替换，标记内 url 已转义 &amp; 正确进 href）
+  h = h.replace(/\[\[video:[^\])]*\]\]/g, '<div class="video-chip"><span class="vc-play">▶</span> 视频</div>')
+  h = h.replace(/\[\[button:([^\]|]*)\|([^)\]]*)\]\]/g, '<a class="btn" href="$2">$1</a>')
   h = h.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" style="max-width:100%;border-radius:6px;display:block">')
   h = h.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
   h = h.replace(/^# (.+)$/gm, '<h3 style="margin:4px 0">$1</h3>')

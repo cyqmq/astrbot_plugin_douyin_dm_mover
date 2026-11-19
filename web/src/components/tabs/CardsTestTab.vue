@@ -6,6 +6,7 @@
 // 共享状态：templates（模板列表）+ selectedId（当前选中，驱动 B 区预览）。
 import { ref, computed, onMounted } from 'vue'
 import { apiGet, apiPostBody, toast } from '../../composables/store.js'
+import { renderPreview } from '../cards/renderBlocks.js'
 import TestRegionA from '../cards/test/TestRegionA.vue'
 import TestRegionB from '../cards/test/TestRegionB.vue'
 import TestRegionC from '../cards/test/TestRegionC.vue'
@@ -91,10 +92,26 @@ async function deleteTemplate() {
   if (!ok) formError.value = '删除失败，请重试'
 }
 
-// 预览：右下角按钮回调（当前仅提示；后续可接真实渲染预览）
+// 预览：右下角按钮回调（聊天气泡真实渲染，与转发同源 renderBlocks）
+const previewBlocks = ref(null)
 function onPreview(cards) {
-  toast('预览（待实现）：' + (Array.isArray(cards) ? cards.length + ' 张卡' : ''))
+  previewBlocks.value = JSON.parse(JSON.stringify(cards))
 }
+function closePreview() { previewBlocks.value = null }
+// 气泡内容：模拟上下文（与主线 PhonePreview 一致）；空数组显示「暂无积木」
+const previewCtx = {
+  source: '抖音', peer_name: '阿明', time: '14:32',
+  title: '示例标题', desc: '示例描述',
+  link: 'https://example.com', image_url: 'https://example.com/cover.jpg',
+  video_url: 'https://example.com/video.mp4',
+}
+const previewHtml = computed(() => {
+  if (!previewBlocks.value) return ''
+  if (!Array.isArray(previewBlocks.value) || !previewBlocks.value.length) {
+    return '<span class="pv-empty">暂无积木</span>'
+  }
+  return renderPreview(previewBlocks.value, previewCtx)
+})
 
 // 按住保存导出：转发触发给 B 区（B 区持有卡片布局与格宽，计算导出）
 function requestExport() { exportSignal.value++ }
@@ -184,6 +201,26 @@ onMounted(loadTemplates)
       />
       <TestRegionC class="region-c" @add="addBlock" />
     </div>
+
+    <!-- 预览弹层：聊天气泡（与转发同源 renderPreview） -->
+    <div v-if="previewBlocks" class="preview-mask" @click.self="closePreview">
+      <div class="preview-panel">
+        <div class="pv-head">
+          <span>预览</span>
+          <button class="pv-close" @click="closePreview">关闭</button>
+        </div>
+        <div class="pv-chat">
+          <div class="pv-time">14:32</div>
+          <div class="pv-msg">
+            <div class="pv-avatar">群</div>
+            <div class="pv-main">
+              <div class="pv-name">接收群</div>
+              <div class="pv-bubble" v-html="previewHtml"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -211,4 +248,110 @@ onMounted(loadTemplates)
 .region-b { grid-column: 2; grid-row: 1; }
 .region-d { grid-column: 3; grid-row: 1; }
 .region-c { grid-column: 2 / 4; grid-row: 2; }
+
+/* 预览弹层：聊天气泡（与转发同源） */
+.preview-mask {
+  position: fixed;
+  inset: 0;
+  background: rgba(16, 24, 40, 0.45);
+  display: grid;
+  place-items: center;
+  z-index: 50;
+}
+.preview-panel {
+  width: 380px;
+  max-width: 92vw;
+  max-height: 80vh;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: 0 12px 40px rgba(16, 24, 40, 0.25);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.pv-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+  font-weight: 600;
+}
+.pv-close {
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--text);
+  border-radius: 7px;
+  padding: 4px 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.pv-close:hover { border-color: var(--accent); color: var(--accent); }
+.pv-chat {
+  flex: 1;
+  overflow: auto;
+  padding: 14px;
+  background: var(--bg);
+}
+.pv-time {
+  text-align: center;
+  font-size: 11px;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+.pv-msg { display: flex; gap: 8px; }
+.pv-avatar {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  font-weight: 600;
+}
+.pv-main { min-width: 0; }
+.pv-name { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+.pv-bubble {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  border-top-left-radius: 4px;
+  padding: 10px 12px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text);
+  word-break: break-word;
+}
+.pv-bubble img { max-width: 100%; border-radius: 6px; display: block; margin: 4px 0; }
+.pv-bubble h3 { margin: 4px 0; }
+.pv-bubble a.btn {
+  display: block;
+  margin: 6px 0;
+  padding: 8px 10px;
+  text-align: center;
+  background: var(--accent);
+  color: #fff;
+  border-radius: 8px;
+  text-decoration: none;
+  font-size: 13px;
+}
+.pv-bubble .video-chip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: #1f2937;
+  color: #fff;
+  border-radius: 8px;
+  padding: 14px;
+  font-size: 13px;
+  margin: 4px 0;
+}
+.pv-bubble .vc-play { font-size: 11px; }
+.pv-bubble .pv-empty { color: var(--muted); }
 </style>
