@@ -27,9 +27,10 @@ const exportSignal = ref(0)
 async function persist() {
   try {
     const res = await apiPostBody('templates/set', { templates: JSON.parse(JSON.stringify(templates.value)) })
-    return !!(res && res.ok !== false)
+    // 返回后端 detail：失败时透传具体原因（如视频块只能在首位/末位），避免泛化提示
+    return { ok: !!(res && res.ok !== false), detail: (res && res.detail) || '' }
   } catch (_) {
-    return false
+    return { ok: false, detail: '' }
   }
 }
 
@@ -77,8 +78,8 @@ async function saveTemplate({ name, msg_type }) {
   formError.value = ''
   t.name = String(name || '').trim()
   t.msg_type = msg_type
-  const ok = await persist()
-  if (!ok) formError.value = '保存失败，请重试'
+  const r = await persist()
+  if (!r.ok) formError.value = r.detail || '保存失败，请重试'
 }
 
 // 删除当前模板：父层维护列表（二次确认由 D 区按钮状态完成）；失败内联提示
@@ -88,8 +89,8 @@ async function deleteTemplate() {
   formError.value = ''
   templates.value.splice(idx, 1)
   selectedId.value = (templates.value[0] && templates.value[0].id) || ''
-  const ok = await persist()
-  if (!ok) formError.value = '删除失败，请重试'
+  const r = await persist()
+  if (!r.ok) formError.value = r.detail || '删除失败，请重试'
 }
 
 // 预览：右下角按钮回调（聊天气泡真实渲染，与转发同源 renderBlocks）

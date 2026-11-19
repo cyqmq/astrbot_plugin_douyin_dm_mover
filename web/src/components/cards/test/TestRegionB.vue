@@ -72,6 +72,17 @@ function deriveKind(c) {
   return m[c.label] || c.type
 }
 const kindOf = (c) => deriveKind(c)
+// 视频卡只能在首/末行（拆两条消息：视频气泡 + 正文，_chains_from_markdown 只拆一个）：
+// 拖放落中间行 → 违规（保存前即阻止，配合后端 templates_set 视频规则双保险）
+function videoRowViolation(card, y) {
+  const k = kindOf(card)
+  if (k !== 'video' && k !== 'video_url') return false
+  const ys = list.value.filter((x) => x.id !== card.id).map((x) => x.y)
+  if (!ys.length) return false
+  const minY = Math.min(...ys)
+  const maxY = Math.max(...ys)
+  return y > minY && y < maxY
+}
 // 类型「家族」：同一家族内的 kind 可经右键菜单互切（如 转发/自定义地址、按钮/链接按钮）
 const KIND_FAMILIES = [
   { kinds: ['button', 'link'], labels: { button: '按钮', link: '链接按钮' } },
@@ -286,10 +297,15 @@ function onWinUp() {
     const gx = Math.max(0, Math.min(BOARD_W - cw(d.card), ghostX.value))
     const gy = Math.max(0, Math.min(BOARD_H - ROW_H, ghostY.value))
     if (!ghostInvalid.value && placeOk(d.card, gx, gy)) {
-      // 合法落点：吸附到虚影所在单元格
-      d.card.x = gx; d.card.y = gy
-      syncWidths()
-      emit('change', JSON.parse(JSON.stringify(list.value)))
+      if (videoRowViolation(d.card, gy)) {
+        // 视频卡落中间行：提示（震动）+ 回退原位（保存前即阻止，配合后端双保险）
+        flashFail([d.card.id])
+      } else {
+        // 合法落点：吸附到虚影所在单元格
+        d.card.x = gx; d.card.y = gy
+        syncWidths()
+        emit('change', JSON.parse(JSON.stringify(list.value)))
+      }
     } else if (d.card.x !== d.ox0 || d.card.y !== d.oy0) {
       // 违规落点：回退到拖动前位置（保证结果始终符合行约束）
       d.card.x = d.ox0; d.card.y = d.oy0

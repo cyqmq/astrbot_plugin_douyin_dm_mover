@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+## [1.39.2] - 2026-11-16
+
+### Fixed
+- **前端透传后端 detail（核心）**：`persist` 返回 `{ok, detail}`（`templates/set` 失败时透传 `res.detail`），`saveTemplate`/`deleteTemplate` 显示具体原因（如「模板「空白模板 1」视频块只能在第一位或最后一位」），不再泛化「保存失败，请重试」。`createTemplate`/`onCardsChange` 保持静默容错（本地已生效，自动保存不打扰）。
+- **B 区视频中间行提前提示**：`videoRowViolation`——拖放视频卡（kind video/video_url）落中间行时 flashFail 震动提示 + 回退原位（保存前即阻止），配合后端 `templates_set` 视频规则双保险。
+
 ## [1.39.1] - 2026-11-16
 
 ### Fixed
