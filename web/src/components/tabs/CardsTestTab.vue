@@ -22,6 +22,11 @@ const formError = ref('')
 const addRequest = ref(null)
 // 按住保存导出请求（自增，驱动 B 区导出当前布局；内部调试，无用户提示）
 const exportSignal = ref(0)
+// 选中卡（点击卡选中 → D 区同步行约束区）：{id, info:{label,share,self,max,rowCount,isVideo,videoWarn}}
+const selInfo = ref(null)
+function onSelectCard(payload) {
+  selInfo.value = payload
+}
 
 // 尽力持久化（templates/set 全量替换）；返回是否成功（失败不抛，调用方内联提示）
 async function persist() {
@@ -188,14 +193,17 @@ onMounted(loadTemplates)
         :template-id="selectedId"
         :add-request="addRequest"
         :export-signal="exportSignal"
+        :sel-id="selInfo ? selInfo.id : ''"
         @preview="onPreview"
         @change="onCardsChange"
         @export="handleExport"
+        @select-card="onSelectCard"
       />
       <TestRegionD
         class="region-d"
         :selected="selectedTemplate"
         :form-error="formError"
+        :card-info="selInfo ? selInfo.info : null"
         @save="saveTemplate"
         @delete="deleteTemplate"
         @export="requestExport"

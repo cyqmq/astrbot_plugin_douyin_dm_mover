@@ -12,8 +12,9 @@ const props = defineProps({
   templateId: { type: String, default: '' },
   addRequest: { type: Object, default: null },   // 点击积木区添加：{seq, type, label}
   exportSignal: { type: Number, default: 0 },   // 按住保存导出触发（自增）
+  selId: { type: String, default: '' },   // 选中卡 id（点击卡选中，D 区同步行约束区）
 })
-const emit = defineEmits(['preview', 'change', 'export'])
+const emit = defineEmits(['preview', 'change', 'export', 'select-card'])
 
 // 画布常量
 const RULER = 24          // 行号列标条宽/高
@@ -416,6 +417,54 @@ function flashFail(ids) {
   if (failTimer) clearTimeout(failTimer)
   failTimer = setTimeout(() => { failCards.value = [] }, 1500)
 }
+// ---- hover 详情浮层：卡片只留 label+type，行约束/占用/视频规则信息移入浮层 ----
+const hoverId = ref(null)
+const hoverPos = ref({ left: 0, top: 0 })
+let hoverTimer = null
+const hovered = computed(() => list.value.find((c) => c.id === hoverId.value) || null)
+const isVideoKind = (k) => k === 'video' || k === 'video_url'
+function hoverRows(c) {
+  const k = kindOf(c)
+  const same = list.value.filter((x) => x.y === c.y && kindOf(x) === k)
+  return `${same.length} / ${cardMeta(c).maxSameTypePerRow}`
+}
+function onHover(c, e) {
+  clearTimeout(hoverTimer)
+  hoverId.value = c.id
+  const r = e.currentTarget.getBoundingClientRect()
+  // 浮层卡上方（translateY(-100%)），左缘对齐卡左缘；画布边缘防溢出
+  hoverPos.value = { left: Math.max(8, Math.min(r.left, window.innerWidth - 248)), top: r.top - 8 }
+}
+function clearHoverTimer() { clearTimeout(hoverTimer) }
+function offHover() {
+  clearTimeout(hoverTimer)
+  // 延迟关闭：鼠标卡→浮层过渡不闪烁（浮层 mouseenter 取消）
+  hoverTimer = setTimeout(() => { hoverId.value = null }, 150)
+}
+// 点击选中卡：D 区同步行约束区（选中即看，不依赖 hover）
+function onCardClick(c) {
+  const k = kindOf(c)
+  const same = list.value.filter((x) => x.y === c.y && kindOf(x) === k)
+  const meta = cardMeta(c)
+  const isVideo = isVideoKind(k)
+  let videoWarn = false
+  if (isVideo) {
+    const ys = list.value.filter((x) => x.id !== c.id).map((x) => x.y)
+    if (ys.length) {
+      const mi = Math.min(...ys), ma = Math.max(...ys)
+      videoWarn = c.y > mi && c.y < ma
+    }
+  }
+  emit('select-card', {
+    id: c.id,
+    info: {
+      label: KIND_INFO[k].label, share: meta.canShareRow ? '可同行' : '独占',
+      self: meta.canSelfRow ? '可自排' : '独排', max: meta.maxSameTypePerRow,
+      rowCount: same.length, isVideo, videoWarn,
+    },
+  })
+}
+
 // 阻塞添加的原因卡 id：非按钮且存在按钮 → 按钮卡（固定底部挤占）；否则画布已满 → 全部卡
 function findBlockers(type) {
   return type !== 'button' && list.value.some((c) => c.type === 'button')
@@ -603,19 +652,29 @@ onBeforeUnmount(() => {
         <!-- 虚影：自动吸附单元格，跟随卡片（低透明度，不抢眼），拖动时显示 -->
         <div v-if="drag && drag.mode === 'card'" class="ghost" :class="{ invalid: ghostInvalid }"
           :style="{ left: ghostX + 'px', top: ghostY + 'px', width: cw(drag.card) + 'px', height: ROW_H + 'px' }"></div>
-        <div v-for="c in list" :key="c.id" class="card" :class="['t-' + c.type, { fail: failCards.includes(c.id) }]"
+        <div v-for="c in list" :key="c.id" class="card" :class="['t-' + c.type, { fail: failCards.includes(c.id), selected: c.id === selId }]"
           :style="{ left: c.x + 'px', top: c.y + 'px', height: ROW_H + 'px', ...(cellN[c.id] ? { width: (cellN[c.id] * CELL_W) + 'px' } : {}) }"
-          :data-id="c.id" :ref="setCardEl" @pointerdown.stop="onCardDown(c, $event)">
+          :data-id="c.id" :ref="setCardEl" @pointerdown.stop="onCardDown(c, $event)"
+          @mouseenter="onHover(c, $event)" @mouseleave="offHover" @click.stop="onCardClick(c)">
           <span v-if="failCards.includes(c.id)" class="fail-badge">!</span>
           <span class="card-label">{{ cardDisplay(c) }}</span>
           <span class="card-type">{{ KIND_INFO[kindOf(c)].label }}</span>
-          <span class="card-tags">
-            <i class="ct" :class="cardMeta(c).canShareRow ? 'on' : 'off'">{{ cardMeta(c).canShareRow ? '同行' : '独占' }}</i>
-            <i class="ct" :class="cardMeta(c).canSelfRow ? 'on' : 'off'">{{ cardMeta(c).canSelfRow ? '自排' : '独排' }}</i>
-            <i class="ct">≤{{ cardMeta(c).maxSameTypePerRow }}</i>
-          </span>
         </div>
       </div>
+
+      <!-- hover 详情浮层：Teleport 到 body，fixed 视口定位，卡片上方弹出（行约束/占用/视频规则） -->
+      <Teleport to="body">
+        <div v-if="hovered" class="card-hover" :style="{ left: hoverPos.left + 'px', top: hoverPos.top + 'px' }"
+          @pointerdown.stop @contextmenu.prevent @mouseenter="clearHoverTimer" @mouseleave="offHover">
+          <div class="h-title">{{ KIND_INFO[kindOf(hovered)].label }}</div>
+          <div class="h-row"><span class="h-k">行约束</span><span class="h-v">{{ cardMeta(hovered).canShareRow ? '可同行' : '独占' }} · {{ cardMeta(hovered).canSelfRow ? '可自排' : '独排' }} · 每行≤{{ cardMeta(hovered).maxSameTypePerRow }}</span></div>
+          <div class="h-row"><span class="h-k">本行占用</span><span class="h-v">{{ hoverRows(hovered) }}</span></div>
+          <div v-if="isVideoKind(kindOf(hovered))" class="h-row">
+            <span class="h-k">视频规则</span>
+            <span class="h-v" :class="{ warn: videoRowViolation(hovered, hovered.y) }">视频只能在首/末行{{ videoRowViolation(hovered, hovered.y) ? '（当前中间行）' : '' }}</span>
+          </div>
+        </div>
+      </Teleport>
 
       <!-- 卡片右键悬停菜单：Teleport 到 body，fixed 视口定位，不被画布 transform/overflow 干扰或裁剪 -->
       <Teleport to="body">
@@ -732,6 +791,8 @@ onBeforeUnmount(() => {
 .card.t-divider { border-left-color: #94a3b8; }
 .card-label { font-size: 12px; color: var(--text); white-space: nowrap; }
 .card-type { font-size: 10px; color: var(--muted); }
+/* 选中卡：accent 描边 + 外发光（点击选中，D 区同步） */
+.card.selected { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent), 0 2px 6px rgba(0, 0, 0, 0.1); }
 /* 添加失败原因卡：纯震动 + 左上角「！」（无边缘发光） */
 .card.fail { animation: card-shake 0.5s ease; }
 .fail-badge {
@@ -758,19 +819,27 @@ onBeforeUnmount(() => {
   80% { transform: translateX(3px); }
 }
 
-/* 新标签：同行 / 自排 / 一行内最多同类型数量 */
-.card-tags { display: flex; align-items: center; gap: 3px; }
-.ct {
-  font-size: 9px;
-  font-weight: 600;
-  line-height: 1;
-  padding: 2px 4px;
-  border-radius: 4px;
-  white-space: nowrap;
-  font-style: normal;
+/* hover 详情浮层（卡片上方，视口坐标） */
+.card-hover {
+  position: fixed;
+  z-index: 999;
+  min-width: 210px;
+  max-width: 280px;
+  padding: 8px 10px;
+  box-sizing: border-box;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.16);
+  user-select: none;
+  pointer-events: auto;
+  transform: translateY(-100%);
 }
-.ct.on { background: rgba(52, 211, 153, 0.14); color: #059669; }
-.ct.off { background: rgba(148, 163, 184, 0.16); color: var(--muted); }
+.h-title { font-size: 12px; font-weight: 600; color: var(--text); margin-bottom: 5px; }
+.h-row { display: flex; justify-content: space-between; gap: 10px; font-size: 11px; padding: 1px 0; }
+.h-k { color: var(--muted); flex: none; }
+.h-v { color: var(--text); text-align: right; }
+.h-v.warn { color: #dc2626; font-weight: 600; }
 
 /* 行号列标：画布内冻结，强对比保证可见 */
 .ruler-top, .ruler-left, .ruler-corner {

@@ -7,6 +7,8 @@ import TestPanel from './TestPanel.vue'
 const props = defineProps({
   selected: { type: Object, default: null },
   formError: { type: String, default: '' },
+  // 选中卡行约束信息（B 区点击选中卡同步）：{label,share,self,max,rowCount,isVideo,videoWarn}
+  cardInfo: { type: Object, default: null },
 })
 const emit = defineEmits(['save', 'delete', 'export'])
 
@@ -101,6 +103,19 @@ function onSaveClick() {
         <div class="count-box">{{ cardCount() }} 张</div>
       </div>
 
+      <!-- 选中卡行约束（点击画布卡选中即看，不依赖 hover；未选中不显示） -->
+      <div v-if="cardInfo" class="field">
+        <span class="field-label">卡片信息</span>
+        <div class="count-box ci-box">
+          <div class="ci-line"><span class="ci-k">类型</span><span>{{ cardInfo.label }}</span></div>
+          <div class="ci-line"><span class="ci-k">行约束</span><span>{{ cardInfo.share }} · {{ cardInfo.self }} · 每行≤{{ cardInfo.max }}</span></div>
+          <div class="ci-line"><span class="ci-k">本行占用</span><span>{{ cardInfo.rowCount }} / {{ cardInfo.max }}</span></div>
+          <div v-if="cardInfo.isVideo" class="ci-line"><span class="ci-k">视频规则</span>
+            <span :class="{ warn: cardInfo.videoWarn }">{{ cardInfo.videoWarn ? '视频只能在首/末行（当前中间行）' : '视频只能在首/末行' }}</span>
+          </div>
+        </div>
+      </div>
+
       <!-- 保存 / 删除 -->
       <div class="actions">
         <button class="btn btn-save" :class="{ dim: !!nameError }"
@@ -189,6 +204,13 @@ function onSaveClick() {
   border-radius: 6px;
   padding: 7px 10px;
 }
+
+/* 选中卡信息（行约束区）：只读行 */
+.ci-box { display: flex; flex-direction: column; gap: 4px; }
+.ci-line { display: flex; justify-content: space-between; gap: 10px; font-size: 12px; }
+.ci-k { color: var(--muted); flex: none; }
+.ci-line > span:last-child { text-align: right; }
+.ci-line .warn { color: #dc2626; font-weight: 600; }
 
 /* 操作按钮 */
 .actions { display: flex; gap: 8px; margin-top: 4px; }
