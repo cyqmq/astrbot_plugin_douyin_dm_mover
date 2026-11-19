@@ -5,7 +5,7 @@
 //   卡片可拖动、物理碰撞不可重叠、卡片固定高度、宽度由内容决定、右下角「预览」。
 // 冻结安全：不用 ResizeObserver（避免观察者写入响应式导致渲染环），
 //   仅在 onMounted + window resize 测量，且尺寸不变时不写值。
-import { ref, reactive, computed, watch, onMounted, onBeforeUnmount } from 'vue'
+import { ref, reactive, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 
 const props = defineProps({
   cards: { type: Array, default: null },   // 选中模板的 blocks（null=无模板→演示）
@@ -387,9 +387,9 @@ function setCardEl(el) {
 }
 
 // ---- 点击积木区添加：自动寻下一个合法空格（按行约束 + 碰撞） ----
-// 预留格数估计：文字宽度 + 类型徽标 + 新标签 + 内边距（保守偏大，防放后重叠）
+// 预留格数估计：文字宽度 + 内边距（徽标已去，余量下调；实际宽度以 DOM 内容实测为主，floor 仅兜底）
 function estN(type, label) {
-  const w = String(label || '').length * 14 + 150
+  const w = String(label || '').length * 14 + 100
   return Math.max(1, Math.ceil(w / CELL_W))
 }
 function nextFreeCell(type, label) {
@@ -482,6 +482,36 @@ function pushCard(type, kind, label, n, x, y, extra = {}) {
 function syncWidths() {
   for (const c of list.value) c.width_cells = cellN[c.id] || 1
 }
+// 编辑后宽度自动重测 + 行内推挤（任务一+二）：
+//   Δ 宽时同行（同 y）右侧卡链式同步右移（保持间距），逐卡传递到最右；
+//   伸长超边界（最右 x+width > BOARD_W）则阻止（宽度回退原值 + flashFail 提示）；
+//   收缩对称回填（右侧卡左移回收空隙，画布保持紧凑）。
+// 推挤只改 x（同 y 行）：不触发行约束（按行 y 判定）与垂直碰撞，安全。
+function recalcWidth(c) {
+  const oldN = cellN[c.id] || 1
+  // 编辑后 DOM 已渲染新 label：测卡内容自然宽（label+type+gap+padding+左边条），floor 兜底 estN
+  const el = canvasRef.value && canvasRef.value.querySelector(`[data-id="${c.id}"]`)
+  let nat = 0
+  if (el) {
+    const le = el.querySelector('.card-label')
+    const te = el.querySelector('.card-type')
+    nat = (le ? le.offsetWidth : 0) + (te ? te.offsetWidth : 0) + 6 + 20 + 3
+  }
+  const newN = Math.max(estN(c.type, c.label), nat ? Math.ceil(nat / CELL_W) : 1)
+  if (newN === oldN) return
+  const delta = (newN - oldN) * CELL_W
+  // 同行右侧卡（原 x >= c 右缘，含紧邻）
+  const right = list.value.filter((o) => o.id !== c.id && o.y === c.y && o.x >= c.x + oldN * CELL_W)
+  const maxEnd = Math.max(c.x + oldN * CELL_W, ...right.map((o) => o.x + cardW(o)))
+  if (delta > 0 && maxEnd + delta > BOARD_W) {
+    flashFail([c.id])   // 伸长超边界：阻止（宽度回退原值）+ 失败提示
+    return
+  }
+  cellN[c.id] = newN
+  for (const o of right) o.x += delta   // 链式右移（伸长）/左移回收（收缩）
+  syncWidths()
+  emit('change', JSON.parse(JSON.stringify(list.value)))
+}
 function addBlock({ type, kind, label, url }) {
   const p = nextFreeCell(type, label)
   if (!p) { flashFail(findBlockers(type)); return }
@@ -531,6 +561,8 @@ function confirmEdit() {
   syncWidths()
   emit('change', JSON.parse(JSON.stringify(list.value)))
   closeMenu()
+  // 任务一：编辑后自动重测宽度（DOM 已渲染新 label 后再测，长改长/短改短都生效）
+  nextTick(() => recalcWidth(c))
 }
 // 右键「类型」子菜单：同一家族内 kind 互切（button|link、image|image_url、video|video_url）。
 // 同家族内 type 不变 → 约束不变；label 为内容（如按钮文字），切换类型时保留。
