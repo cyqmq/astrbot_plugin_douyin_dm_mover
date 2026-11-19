@@ -147,7 +147,7 @@ function downloadJson(obj, filename) {
 }
 
 // 点击积木区添加：确保有选中模板（无则建空白并选中），通知 B 区插入
-function addBlock({ type, kind, label }) {
+function addBlock({ type, kind, label, url }) {
   if (!selectedTemplate.value) {
     if (!templates.value.length) {
       // 无任何模板：本地新建空白模板并选中（createTemplate 同步设置 selectedId）
@@ -158,7 +158,7 @@ function addBlock({ type, kind, label }) {
     }
   }
   if (!selectedTemplate.value) return
-  addRequest.value = { seq: Date.now() + Math.random(), type, kind, label }
+  addRequest.value = { seq: Date.now() + Math.random(), type, kind, label, ...(url ? { url } : {}) }
 }
 
 // B 区卡片布局变化（拖放落位/添加）：同步到选中模板 blocks 并持久化

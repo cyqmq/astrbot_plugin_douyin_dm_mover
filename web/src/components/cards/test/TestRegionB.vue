@@ -433,10 +433,10 @@ function pushCard(type, kind, label, n, x, y, extra = {}) {
 function syncWidths() {
   for (const c of list.value) c.width_cells = cellN[c.id] || 1
 }
-function addBlock({ type, kind, label }) {
+function addBlock({ type, kind, label, url }) {
   const p = nextFreeCell(type, label)
   if (!p) { flashFail(findBlockers(type)); return }
-  pushCard(type, kind, label, p.n, p.x, p.y)
+  pushCard(type, kind, label, p.n, p.x, p.y, url ? { url } : {})
 }
 
 // ---- 卡片右键悬停菜单（类型/属性/复制/删除） ----

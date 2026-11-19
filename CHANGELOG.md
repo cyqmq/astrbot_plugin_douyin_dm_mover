@@ -4,6 +4,18 @@
 
 ## [Unreleased]
 
+## [1.40.0] - 2026-11-16
+
+### Added
+- **C 区「占位符」分类**（积木库）：7 张卡 label/url 预填转发 token（来源平台 `{source}`、对方昵称 `{peer_name}`、消息时间 `{time}`、卡片标题 `{title}`、卡片描述 `{desc}`、视频链接 `{link}`/`{link}`、封面图 `{image_url}`），转发时 `_render_text` 用真实上下文替换，恢复「转发的视频标题」等动态字段的可发现性。
+- **占位符卡 token 可发现性**：占位符卡显示人类可读名 + token 徽标（类型徽标位）；点击添加后 label/url 预填 token，可直接保存。
+
+### Fixed
+- **占位符 url 透传链路**：C 区 `emit('add')` 带 url → `CardsTestTab.addBlock` → B 区 `addBlock` → `pushCard` extra（link/image_url 卡 url 预填，非占位符卡不带 url 字段）。
+
+### Notes
+- 预览诚实化：`fillPlaceholders` ctx 无值保留 `{token}` 原样（预览显示 token 字面量，转发才替换真实值，与主线「预览≠转发」一致）。
+
 ## [1.39.2] - 2026-11-16
 
 ### Fixed

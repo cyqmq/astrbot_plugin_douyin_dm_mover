@@ -11,6 +11,7 @@ const emit = defineEmits(['add'])
 // 分类（第一个固定「全部」，其余顺序由模型决定）
 const CATS = [
   { id: 'all', label: '全部' },
+  { id: 'placeholder', label: '占位符' },
   { id: 'text', label: '文本' },
   { id: 'media', label: '媒体' },
   { id: 'button', label: '按钮' },
@@ -30,6 +31,15 @@ const BLOCKS = [
   { id: 'b_btn', type: 'button', kind: 'button', cat: 'button', label: '按钮' },
   { id: 'b_div', type: 'divider', kind: 'divider', cat: 'decor', label: '分割线' },
   { id: 'b_gap', type: 'divider', kind: 'gap', cat: 'decor', label: '间距' },
+  // 占位符卡：label/url 预填转发 token（_render_text 转发时替换真实值）。
+  // label_disp=人类可读名，token 显示在类型徽标位置。
+  { id: 'p_source', type: 'text',   kind: 'text',      cat: 'placeholder', label: '{source}',     label_disp: '来源平台' },
+  { id: 'p_peer',   type: 'text',   kind: 'text',      cat: 'placeholder', label: '{peer_name}', label_disp: '对方昵称' },
+  { id: 'p_time',   type: 'text',   kind: 'text',      cat: 'placeholder', label: '{time}',      label_disp: '消息时间' },
+  { id: 'p_title',  type: 'text',   kind: 'title',     cat: 'placeholder', label: '{title}',     label_disp: '卡片标题' },
+  { id: 'p_desc',   type: 'text',   kind: 'desc',      cat: 'placeholder', label: '{desc}',      label_disp: '卡片描述' },
+  { id: 'p_link',   type: 'button', kind: 'link',      cat: 'placeholder', label: '{link}',      url: '{link}',      label_disp: '视频链接' },
+  { id: 'p_img',    type: 'image',  kind: 'image_url', cat: 'placeholder', label: '',            url: '{image_url}', label_disp: '封面图' },
 ]
 
 const activeCat = ref('all')
@@ -105,9 +115,9 @@ onBeforeUnmount(() => {
       <div ref="contentRef" class="c-content" :style="{ transform: `translateY(${ty}px)` }">
         <div v-for="b in filtered" :key="b.id" class="block" :class="'t-' + b.type"
           title="点击添加到画布"
-          @pointerdown.stop @click.stop="emit('add', { type: b.type, kind: b.kind, label: b.label })">
-          <span class="block-label">{{ b.label }}</span>
-          <span class="block-type">{{ b.type }}</span>
+          @pointerdown.stop @click.stop="emit('add', { type: b.type, kind: b.kind, label: b.label, ...(b.url ? { url: b.url } : {}) })">
+          <span class="block-label">{{ b.label_disp || b.label }}</span>
+          <span class="block-type">{{ b.cat === 'placeholder' ? b.label : b.type }}</span>
         </div>
       </div>
     </div>
