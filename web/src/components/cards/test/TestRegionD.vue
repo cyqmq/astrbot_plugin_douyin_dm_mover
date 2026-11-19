@@ -7,8 +7,6 @@ import TestPanel from './TestPanel.vue'
 const props = defineProps({
   selected: { type: Object, default: null },
   formError: { type: String, default: '' },
-  // 选中卡行约束信息（B 区点击选中卡同步）：{label,share,self,max,rowCount,isVideo,videoWarn}
-  cardInfo: { type: Object, default: null },
 })
 const emit = defineEmits(['save', 'delete', 'export'])
 
@@ -85,35 +83,18 @@ function onSaveClick() {
         <span v-if="nameError" class="err-text">{{ nameError }}</span>
       </label>
 
-      <!-- 模板类型 -->
+      <!-- 模板类型（下拉框：紧凑占位，后续加类型只加一个 option） -->
       <div class="field">
         <span class="field-label">类型</span>
-        <div class="type-row">
-          <button v-for="t in TYPES" :key="t.id" class="type-btn" :class="{ active: t.id === msgType }"
-            :style="t.id === msgType ? { background: t.color, borderColor: t.color } : {}"
-            @click="msgType = t.id; cancelConfirm()">
-            <span class="type-dot" :style="{ background: t.color }"></span>{{ t.label }}
-          </button>
-        </div>
+        <select v-model="msgType" class="field-select" @change="cancelConfirm">
+          <option v-for="t in TYPES" :key="t.id" :value="t.id">{{ t.label }}</option>
+        </select>
       </div>
 
       <!-- 已插入卡片数量 -->
       <div class="field">
         <span class="field-label">已插入卡片</span>
         <div class="count-box">{{ cardCount() }} 张</div>
-      </div>
-
-      <!-- 选中卡行约束（点击画布卡选中即看，不依赖 hover；未选中不显示） -->
-      <div v-if="cardInfo" class="field">
-        <span class="field-label">卡片信息</span>
-        <div class="count-box ci-box">
-          <div class="ci-line"><span class="ci-k">类型</span><span>{{ cardInfo.label }}</span></div>
-          <div class="ci-line"><span class="ci-k">行约束</span><span>{{ cardInfo.share }} · {{ cardInfo.self }} · 每行≤{{ cardInfo.max }}</span></div>
-          <div class="ci-line"><span class="ci-k">本行占用</span><span>{{ cardInfo.rowCount }} / {{ cardInfo.max }}</span></div>
-          <div v-if="cardInfo.isVideo" class="ci-line"><span class="ci-k">视频规则</span>
-            <span :class="{ warn: cardInfo.videoWarn }">{{ cardInfo.videoWarn ? '视频只能在首/末行（当前中间行）' : '视频只能在首/末行' }}</span>
-          </div>
-        </div>
       </div>
 
       <!-- 保存 / 删除 -->
@@ -175,25 +156,21 @@ function onSaveClick() {
   line-height: 1.4;
 }
 
-/* 类型按钮 */
-.type-row { display: flex; gap: 6px; }
-.type-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
+/* 类型下拉框：复用 .field-input 外观（border/padding/bg 一致） */
+.field-select {
+  width: 100%;
+  box-sizing: border-box;
   border: 1px solid var(--border);
-  background: var(--bg);
-  color: var(--text);
   border-radius: 6px;
-  padding: 5px 10px;
-  font-size: 12px;
+  padding: 7px 10px;
+  font-size: 13px;
+  color: var(--text);
+  background: var(--bg);
+  outline: none;
   cursor: pointer;
   transition: 0.15s;
 }
-/* 选中态：隐藏圆点、文字居中；切到其它类型恢复（圆点+左对齐） */
-.type-btn.active { color: #fff; font-weight: 600; justify-content: center; }
-.type-btn.active .type-dot { display: none; }
-.type-dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+.field-select:focus { border-color: var(--accent); }
 
 /* 卡片数量 */
 .count-box {
@@ -204,13 +181,6 @@ function onSaveClick() {
   border-radius: 6px;
   padding: 7px 10px;
 }
-
-/* 选中卡信息（行约束区）：只读行 */
-.ci-box { display: flex; flex-direction: column; gap: 4px; }
-.ci-line { display: flex; justify-content: space-between; gap: 10px; font-size: 12px; }
-.ci-k { color: var(--muted); flex: none; }
-.ci-line > span:last-child { text-align: right; }
-.ci-line .warn { color: #dc2626; font-weight: 600; }
 
 /* 操作按钮 */
 .actions { display: flex; gap: 8px; margin-top: 4px; }

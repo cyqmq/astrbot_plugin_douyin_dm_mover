@@ -203,7 +203,6 @@ onMounted(loadTemplates)
         class="region-d"
         :selected="selectedTemplate"
         :form-error="formError"
-        :card-info="selInfo ? selInfo.info : null"
         @save="saveTemplate"
         @delete="deleteTemplate"
         @export="requestExport"

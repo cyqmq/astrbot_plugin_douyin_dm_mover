@@ -4,6 +4,14 @@
 
 ## [Unreleased]
 
+## [1.42.2] - 2026-11-16
+
+### Removed
+- **D 区卡片信息区**（`cardInfo` 块 + prop + `.ci-*` 样式）：B 区 hover 浮层已展示选中卡类型/行约束/视频规则，D 区冗余块删除简化属性面板；`selInfo` 保留（B 区选中卡高亮仍用）。
+
+### Changed
+- **模板类型选择改下拉框**：3 个彩色按钮（`.type-row/.type-btn/.type-dot` 删）→ 单 `<select class="field-select">`（复用 `.field-input` 外观），占位减半，后续加类型只加一个 `<option>`；`TYPES` 保留（option 用 label），`msgType` 逻辑不变（watch 同步 + onSaveClick emit）。
+
 ## [1.42.1] - 2026-11-16
 
 ### Fixed
