@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.44.1] - 2026-11-16
+
+### Fixed
+- **`_template_chains` 按模板 msg_type 分派（需求 4 媒体发送）**：原仅 `render_blocks(markdown=True)`→Plain，视频/图片积木被当 Plain 字面量（`[[video:…]]`/`![alt](url)` 不解析）。改为复用 `build_chain` 模板分支：`media`→`_media_chain_from_blocks`（Image/Video 组件链，msg_type:7 富媒体）；`markdown`→`_chains_from_markdown`（解析 `[[video:…]]`→Video、按钮→ActionRow，`_video_first`+`_button_ys(tpl,None)`）；`auto`→沿用 `markdown_enabled`；plain→Plain。模板缺失/空跳过+告警保持。
+
 ## [1.44.0] - 2026-11-16
 
 ### Added

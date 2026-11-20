@@ -191,7 +191,9 @@ class ForwardManager:
 
     def _template_chains(self, route: Route | None, msg: InboundMessage) -> list[MessageChain]:
         """模板卡替换（需求 5.1）：route.template_card 启用 → 逐模板按 name 查 config.templates，
-        render_blocks(真实上下文) → MessageChain；模板缺失/空 → 跳过+告警（不中断其他模板）。"""
+        按模板 msg_type 分派（复用 build_chain :341-359 模板分支）：
+        media→媒体组件链（Image/Video，msg_type:7 富媒体）；markdown→_chains_from_markdown
+        （解析 [[video:…]]→Video、按钮→ActionRow）；plain→Plain；模板缺失/空→跳过+告警。"""
         tc = route.template_card if route else None
         if not tc or not tc.get("enabled") or not (tc.get("templates") or []):
             return []
@@ -206,9 +208,25 @@ class ForwardManager:
             if not tpl or not isinstance(blocks, list) or not blocks:
                 logger.warning(f"[dyf] 模板卡「{name}」缺失或空，跳过")
                 continue
-            rendered = self.builder.render_blocks(blocks, ctx, markdown=True)
-            if rendered.strip():
-                chains.append(MessageChain([Plain(rendered)]))
+            mt = str(tpl.get("msg_type") or "auto")
+            if mt == "media":
+                # 全 Image/Video 组件链（富媒体，不经 markdown 文本）
+                mc = self.builder._media_chain_from_blocks(blocks, ctx)
+                if mc:
+                    chains.append(mc)
+                continue
+            markdown = mt == "markdown" or (mt == "auto" and self.builder.markdown_enabled)
+            content = self.builder.render_blocks(blocks, ctx, markdown=markdown)
+            if not content.strip():
+                continue
+            if markdown:
+                video_first = self.builder._video_first(blocks)
+                btn_ys = self.builder._button_ys(tpl, None)
+                sub = self.builder._chains_from_markdown(content, video_first, btn_ys)
+                if sub:
+                    chains.extend(sub)
+            else:
+                chains.append(MessageChain([Plain(content)]))
         return chains
 
     async def handle(self, msg: InboundMessage) -> None:
