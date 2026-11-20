@@ -17,6 +17,8 @@ class Route:
     types: set[MessageType] = field(default_factory=set)  # 空=全部
     senders_include: set[str] = field(default_factory=set)  # 好友来源 uid（仅单聊；空=全部单聊）
     groups_include: set[str] = field(default_factory=set)  # 群来源 group_id（仅群聊；空=全部群）
+    # 命中时替换模板卡（{enabled, templates}）；None=不替换。templates=测试页模板配置（布局/积木/msg_type）。
+    template_card: dict | None = None
 
     def all_targets(self) -> list[str]:
         return [t for t in (self.targets or []) if t] or ([self.target] if self.target else [])
@@ -65,6 +67,16 @@ class RouteResolver:
             if not targets:
                 continue
             match = item.get("match") or {}
+            tc = item.get("template_card")
+            # 防御式解析：非 dict 或未含有效模板列表 → None（不替换）
+            template_card = None
+            if isinstance(tc, dict):
+                templates = tc.get("templates")
+                if isinstance(templates, list) and templates:
+                    template_card = {
+                        "enabled": bool(tc.get("enabled", True)),
+                        "templates": templates,
+                    }
             self.routes.append(
                 Route(
                     name=item.get("name", "route"),
@@ -73,19 +85,21 @@ class RouteResolver:
                     types=_type_set(match.get("types")),
                     senders_include=_str_set(match.get("senders_include")),
                     groups_include=_str_set(match.get("groups_include")),
+                    template_card=template_card,
                 )
             )
         logger.info(
             f"[dyf] 路由表构建: {[(r.name, sorted(map(str, r.types)), sorted(r.senders_include), sorted(r.groups_include), r.all_targets()) for r in self.routes]}"
         )
 
-    def resolve(self, msg: InboundMessage) -> list[tuple[str, str]]:
-        """按序命中路由，返回 [(路由名, target)]；每命中路由产出全部 targets；未命中返回空。"""
-        hits: list[tuple[str, str]] = []
+    def resolve(self, msg: InboundMessage) -> list[tuple[Route, str]]:
+        """按序命中路由，返回 [(Route, target)]；每命中路由产出全部 targets；未命中返回空。
+        Route 携带 template_card（命中时替换模板卡），供转发链路取用。"""
+        hits: list[tuple[Route, str]] = []
         for r in self.routes:
             if r.matches(msg):
                 for t in r.all_targets():
-                    hits.append((r.name, t))
+                    hits.append((r, t))
         return hits
 
     def __bool__(self) -> bool:

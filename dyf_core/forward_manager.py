@@ -15,7 +15,7 @@ from dyf_core.message_sender import MessageSender, is_qq_official_group_target
 from dyf_core.model import InboundMessage, MessageType
 from dyf_core.ratelimit import RateLimiter
 from dyf_core.retry_manager import RetryManager
-from dyf_core.router import RouteResolver
+from dyf_core.router import Route, RouteResolver
 from dyf_core.rules import ComposeRule, KeywordFilterRule
 from dyf_core.tracker import RecentStore
 
@@ -176,7 +176,7 @@ class ForwardManager:
             f"{msg.source_platform}:{conv}:{msg.type}:{msg.text}".encode()
         ).hexdigest()
 
-    def _resolve_targets(self, msg: InboundMessage) -> list[tuple[str, str]]:
+    def _resolve_targets(self, msg: InboundMessage) -> list[tuple[Route | None, str]]:
         hits = self.router.resolve(msg)
         if hits:
             return hits
@@ -184,7 +184,7 @@ class ForwardManager:
             # 兼容 UMO（含冒号，如 aiocqhttp:GroupMessage:123456）/纯群号/qq:group
             origin, _ = self.sender.normalize_target(self.default_target_group)
             if origin:
-                return [("default", origin)]
+                return [(None, origin)]   # 默认组：无路由（无 template_card 替换）
         return []
 
     async def handle(self, msg: InboundMessage) -> None:
@@ -235,7 +235,9 @@ class ForwardManager:
                 batches.append((msg.media_urls[i : i + batch], i == 0))
         else:
             batches.append((list(msg.media_urls), True))
-        for name, target in targets:
+        for route, target in targets:
+            # 命中路由名（默认组无路由 → 'default'）；route 携带 template_card 供替换模板卡
+            name = route.name if route else "default"
             # qq_official 仅群聊：发送前跳过私聊目标（官方机器人私聊主动消息受限）
             if not is_qq_official_group_target(target):
                 logger.warning(f"[dyf] 跳过 qq_official 私聊目标: {target}")

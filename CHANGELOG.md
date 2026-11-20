@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+## [1.43.0] - 2026-11-16
+
+### Added
+- **路由携带模板卡配置**（数据模型）：`Route` 加 `template_card: dict|None`（`{enabled, templates}`，None=不替换）；`RouteResolver.__init__` 防御式解析（非 dict 或 templates 非非空列表 → None）。
+- **`resolve` 返回 `[(Route, target)]`**：每命中路由产出全部 targets，携带路由引用（含 `template_card`），供转发链路取用；`forward_manager._resolve_targets` 同步返回 `[(Route|None, target)]`（默认组无路由 → `(None, origin)`，`handle` 用 `route.name if route else 'default'`）。保持按序命中/多命中语义不变。
+
 ## [1.42.2] - 2026-11-16
 
 ### Removed
