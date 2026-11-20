@@ -4,6 +4,15 @@
 
 ## [Unreleased]
 
+## [1.45.0] - 2026-11-16
+
+### Added
+- **模板卡节点（`flow/TemplateCardNode.vue` 新建，需求 5.1 UI）**：路由卡新增「模板卡」按钮（`addTC`）→ 路由右侧渲染模板卡节点（`route.templateCard = {enabled, templates:[模板名]}`）；左 `Handle target` 接路由（启用）、右 `Handle source` 接目标（模板卡替换发送）；顶部 `enabled` 开关（关闭=直连）；模板序列列表——从已保存模板（`templates/get`，`templateOptions` 拉取）下拉添加 + 上移/下移/移除，写回 `route.templateCard`；空序列且 `enabled=false` → 未配置（直连，与后端防御解析一致）。
+- **拓扑接入**：`TopologyFlow` 节点类型 `template-card` + 模板插槽；`onConnect` 加 `route|→tcard|`（启用）+ `tcard|→tgt|`（写 `route.targets`）；`onEdgesChange` 加 `tcard`（清 targets）/`r2tc`（禁用）；`buildEdges` 模板卡启用时画 `e|r2tc|` + 目标边起点从模板卡 source 连（`e|tcard|`），否则原 `route|→tgt|`；`onDragStop` `tcard` 位置持久化（`r.tcardPos`）。
+
+### Notes
+- `route.templateCard` 新字段：现有路由无该字段 → 模板卡节点不渲染、后端解析 `template_card` None → 直连（兼容既有配置）。
+
 ## [1.44.1] - 2026-11-16
 
 ### Fixed

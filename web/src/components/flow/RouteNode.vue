@@ -22,6 +22,7 @@ function toggleType(v) {
     <div class="rc-head">
       <input :value="r.name" placeholder="路由名称" class="nodrag" @input="r.name = $event.target.value || ('route' + (i+1))">
       <span class="rc-btns">
+        <button v-if="d.addTC && !r.templateCard" class="nodrag" title="添加模板卡（模板卡替换发送）" @click="d.addTC(r)">模板卡</button>
         <button title="上移" class="nodrag" @click="d.move(r, -1)">↑</button>
         <button title="下移" class="nodrag" @click="d.move(r, 1)">↓</button>
         <button class="danger nodrag" title="删除" @click="d.del(r)">×</button>

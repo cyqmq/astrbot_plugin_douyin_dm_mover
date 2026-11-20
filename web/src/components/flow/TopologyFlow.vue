@@ -5,7 +5,8 @@ import { Background } from '@vue-flow/background'
 import SourceNode from './SourceNode.vue'
 import RouteNode from './RouteNode.vue'
 import TargetNode from './TargetNode.vue'
-import { store } from '../../composables/store.js'
+import TemplateCardNode from './TemplateCardNode.vue'
+import { store, apiGet } from '../../composables/store.js'
 import { scheduleLiveSave } from '../../composables/actions.js'
 import { toast } from '../../composables/store.js'
 
@@ -13,6 +14,8 @@ const { getNodes, getEdges } = useVueFlow()
 const X = [0, 440, 880]
 const nodes = ref([])
 const edges = ref([])
+// 模板卡下拉选项：已保存模板（templates/get），供 TemplateCardNode 选择
+const templateOptions = ref([])
 
 // 来源 = 自定义来源卡（卡内下拉选来源）；目标 = 高级卡片(custom_targets) 或 简单 qq群/私聊(simple_targets)
 const sources = computed(() => store.customSources)
@@ -88,6 +91,16 @@ function delRoute(route) {
   if (i >= 0) store.routes.splice(i, 1)
   scheduleLiveSave(); build()
 }
+// 模板卡节点（需求 5.1）：路由启用模板卡替换（{enabled, templates: [模板名]}）；空且 enabled=false → 未配置（直连）
+function addTemplateCard(route) {
+  if (route.templateCard) return
+  route.templateCard = { enabled: true, templates: [] }
+  scheduleLiveSave(); build()
+}
+function delTemplateCard(route) {
+  route.templateCard = null
+  scheduleLiveSave(); build()
+}
 
 // ---- 手动连接：来源→路由（uid 进 senders_include）/ 路由→目标（target=UMO） ----
 function onConnect(c) {
@@ -111,6 +124,27 @@ function onConnect(c) {
   } else if (s.startsWith('route|') && t.startsWith('tgt|')) {
     const tid = t.split('|')[1]
     const r = store.routes[+s.split('|')[1]]  // 索引直取当前 store.routes（避免渲染快照旧对象）
+    const tgt = targetList.value.find(x => x.id === tid)
+    if (r && tgt) {
+      const umo = umoOf(tgt)
+      const sess = String(umo).split(':')[2] || ''
+      if (!sess) { toast('目标未填写群号/OpenID，请先填写目标再连接'); return }
+      if (!r.targets) r.targets = []
+      if (!r.targets.includes(umo)) r.targets.push(umo)
+      scheduleLiveSave(); buildEdges()
+    }
+  } else if (s.startsWith('route|') && t.startsWith('tcard|')) {
+    // 路由→模板卡：启用模板卡（templateCard 存在 + enabled）
+    const r = store.routes[+s.split('|')[1]]
+    if (r) {
+      if (!r.templateCard) r.templateCard = { enabled: true, templates: [] }
+      r.templateCard.enabled = true
+      scheduleLiveSave(); buildEdges()
+    }
+  } else if (s.startsWith('tcard|') && t.startsWith('tgt|')) {
+    // 模板卡→目标：写 route.targets（同 路由→目标，目标边起点随模板卡启用切换）
+    const tid = t.split('|')[1]
+    const r = store.routes[+s.split('|')[1]]
     const tgt = targetList.value.find(x => x.id === tid)
     if (r && tgt) {
       const umo = umoOf(tgt)
@@ -153,6 +187,21 @@ function onEdgesChange(changes) {
       const i = ts.indexOf(umo)
       if (i >= 0) ts.splice(i, 1)
       if (r.target === umo) r.target = ''  // 兼容旧单 target
+    } else if (p[1] === 'tcard') {
+      // e|tcard|{ri}|{k}|{ti}：模板卡→目标，清 targets（同 route→目标）
+      const r = store.routes[+p[2]]
+      if (!r) return
+      const t = targetList.value[+p[4]]
+      if (!t) return
+      const umo = umoOf(t)
+      const ts = r.targets || []
+      const i = ts.indexOf(umo)
+      if (i >= 0) ts.splice(i, 1)
+      if (r.target === umo) r.target = ''
+    } else if (p[1] === 'r2tc') {
+      // e|r2tc|{ri}：路由→模板卡，禁用模板卡（清 templateCard）
+      const r = store.routes[+p[2]]
+      if (r && r.templateCard) r.templateCard.enabled = false
     }
   })
   scheduleLiveSave()
@@ -170,6 +219,10 @@ function onDragStop({ node }) {
     const rn = getNodes.value.find(n => n.id === id)
     const r = rn && rn.data && rn.data.route
     if (r) r.pos = p
+  } else if (id.startsWith('tcard|')) {
+    const rn = getNodes.value.find(n => n.id === id)
+    const r = rn && rn.data && rn.data.route
+    if (r) r.tcardPos = p
   } else if (id.startsWith('tgt|')) {
     const t = targetList.value.find(x => x.id === id.split('|')[1])
     if (t) t.pos = p
@@ -185,7 +238,8 @@ function sourceNode(s, i) {
   return n
 }
 function routeNode(r, i) {
-  const n = { id: 'route|' + i, type: 'route', data: { route: r, index: i, move: moveRoute, del: delRoute } }
+  const n = { id: 'route|' + i, type: 'route',
+    data: { route: r, index: i, move: moveRoute, del: delRoute, addTC: addTemplateCard } }
   n.position = r.pos || posOf(n.id) || { x: X[1], y: i * 230 }
   return n
 }
@@ -199,10 +253,19 @@ function edgeTo(id, s, t, cls, data) {
     markerEnd: { type: MarkerType.ArrowClosed, width: 14, height: 14 },
     style: { stroke: '#0969da', strokeWidth: 2.2 } }
 }
+function tcardNode(r, i) {
+  const n = { id: 'tcard|' + i, type: 'template-card',
+    data: { route: r, index: i, templates: templateOptions.value, del: delTemplateCard } }
+  n.position = r.tcardPos || posOf(n.id) || { x: X[1] + 240, y: i * 230 }
+  return n
+}
 function buildNodes() {
   const ns = []
   sources.value.forEach((s, i) => ns.push(sourceNode(s, i)))
-  store.routes.forEach((r, i) => ns.push(routeNode(r, i)))
+  store.routes.forEach((r, i) => {
+    ns.push(routeNode(r, i))
+    if (r.templateCard) ns.push(tcardNode(r, i))   // 模板卡节点：route.templateCard 存在才渲染
+  })
   targetList.value.forEach((t, i) => ns.push(targetNode(t, i)))
   nodes.value = ns
 }
@@ -222,11 +285,21 @@ function buildEdges() {
     })
   })
   store.routes.forEach((r, ri) => {
+    // 模板卡启用（templateCard 且 enabled）→ 路由→模板卡边 + 目标边从模板卡 source 连
+    const tc = r.templateCard
+    const tcActive = tc && tc.enabled
+    if (tcActive) {
+      es.push(edgeTo(`e|r2tc|${ri}`, 'route|' + ri, 'tcard|' + ri, 'hit', { kind: 'route-tcard', route: r }))
+    }
     const ts = r.targets && r.targets.length ? r.targets : (r.target ? [r.target] : [])
     ts.forEach((umo, k) => {
       const ti = targetList.value.findIndex(t => umoOf(t) === umo)
-      if (ti >= 0) es.push(edgeTo(`e|route|${ri}|${k}|${ti}`, 'route|' + ri, 'tgt|' + targetList.value[ti].id, 'hit',
-        { kind: 'route-tgt', umo, route: r }))
+      if (ti >= 0) {
+        const src = tcActive ? 'tcard|' + ri : 'route|' + ri
+        const pre = tcActive ? 'e|tcard|' : 'e|route|'
+        es.push(edgeTo(pre + ri + '|' + k + '|' + ti, src, 'tgt|' + targetList.value[ti].id, 'hit',
+          { kind: 'route-tgt', umo, route: r }))
+      }
     })
   })
   edges.value = es
@@ -242,7 +315,19 @@ watch(() => JSON.stringify(store.routes.map(r => ((r.match && r.match.types) || 
 let liveReady = false
 watch(() => JSON.stringify({ r: store.routes, c: store.customSources, t: targetList.value, a: store.advancedTargets }),
   () => { if (liveReady) scheduleLiveSave() })
-onMounted(() => { build(); setTimeout(() => { liveReady = true }, 600) })
+async function loadTemplateOptions() {
+  try {
+    const d = await apiGet('templates/get')
+    templateOptions.value = d && d.ok && Array.isArray(d.templates) ? d.templates : []
+  } catch (_) {
+    templateOptions.value = []
+  }
+}
+onMounted(() => {
+  build()
+  loadTemplateOptions()
+  setTimeout(() => { liveReady = true }, 600)
+})
 </script>
 
 <template>
@@ -266,6 +351,7 @@ onMounted(() => { build(); setTimeout(() => { liveReady = true }, 600) })
          @connect="onConnect" @edges-change="onEdgesChange" @node-drag-stop="onDragStop">
         <template #node-source="p"><SourceNode :data="p.data" /></template>
         <template #node-route="p"><RouteNode :data="p.data" /></template>
+        <template #node-template-card="p"><TemplateCardNode :data="p.data" /></template>
         <template #node-target="p"><TargetNode :data="p.data" /></template>
         <Background pattern-color="#e2e2e2" :gap="18" :size="1.2" />
       </VueFlow>
