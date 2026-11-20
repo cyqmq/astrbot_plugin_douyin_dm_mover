@@ -4,6 +4,15 @@
 
 ## [Unreleased]
 
+## [1.47.0] - 2026-11-16
+
+### Changed
+- **转发切换连接级模板卡（需求 5.1 步骤 B）**：`forward_manager.handle` 对每个 `(route, target)` 经 `_route_tcard(route, target)` 取连接级模板卡——`route.tgt_cards[target]` → `router.template_cards[id]` 实体（`enabled` 且 `templates` 非空）→ `_template_chains(tc, msg)`；无映射/未启用/空模板 → 该目标直连（现有 `build_chain`）。
+- **`_template_chains` 签名改实体**：入参为模板卡实体 `{enabled, templates}`（非 `Route`），语义内聚（与路由表解析/迁移同源）。
+
+### Removed
+- **废弃 `Route.template_card`**：字段与 `RouteResolver.__init__` 解析段删除（路由级配置仅作迁移源，`_migrate_tgt_cards` 幂等生成 `tgt_cards` 后不再读取）；转发链路统一走 `tgt_cards`。
+
 ## [1.46.1] - 2026-11-16
 
 ### Fixed

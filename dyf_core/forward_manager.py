@@ -187,15 +187,27 @@ class ForwardManager:
             # 兼容 UMO（含冒号，如 aiocqhttp:GroupMessage:123456）/纯群号/qq:group
             origin, _ = self.sender.normalize_target(self.default_target_group)
             if origin:
-                return [(None, origin)]   # 默认组：无路由（无 template_card 替换）
+                return [(None, origin)]   # 默认组：无路由（无模板卡替换）
         return []
 
-    def _template_chains(self, route: Route | None, msg: InboundMessage) -> list[MessageChain]:
-        """模板卡替换（需求 5.1）：route.template_card 启用 → 逐模板按 name 查 config.templates，
-        按模板 msg_type 分派（复用 build_chain :341-359 模板分支）：
+    def _route_tcard(self, route: Route | None, target: str) -> dict | None:
+        """连接级模板卡：route.tgt_cards[target] → router.template_cards 实体（enabled && templates 非空）。
+        无映射/未启用/空模板 → None（该目标直连，走 build_chain）。"""
+        if not route:
+            return None
+        tcard_id = (route.tgt_cards or {}).get(target)
+        if not tcard_id:
+            return None
+        tc = self.router.template_cards.get(str(tcard_id))
+        if not tc or not tc.get("enabled") or not (tc.get("templates") or []):
+            return None
+        return tc
+
+    def _template_chains(self, tc: dict | None, msg: InboundMessage) -> list[MessageChain]:
+        """模板卡替换（需求 5.1）：入参为模板卡实体 {enabled, templates}，
+        逐模板按 name 查 config.templates，按模板 msg_type 分派（复用 build_chain 模板分支）：
         media→媒体组件链（Image/Video，msg_type:7 富媒体）；markdown→_chains_from_markdown
         （解析 [[video:…]]→Video、按钮→ActionRow）；plain→Plain；模板缺失/空→跳过+告警。"""
-        tc = route.template_card if route else None
         if not tc or not tc.get("enabled") or not (tc.get("templates") or []):
             return []
         ctx = self.builder._context(msg)
@@ -279,7 +291,7 @@ class ForwardManager:
         else:
             batches.append((list(msg.media_urls), True))
         for route, target in targets:
-            # 命中路由名（默认组无路由 → 'default'）；route 携带 template_card 供替换模板卡
+            # 命中路由名（默认组无路由 → 'default'）；连接级模板卡按 route.tgt_cards[target] 查实体
             name = route.name if route else "default"
             # qq_official 仅群聊：发送前跳过私聊目标（官方机器人私聊主动消息受限）
             if not is_qq_official_group_target(target):
@@ -311,10 +323,10 @@ class ForwardManager:
                         logger.warning(f"[dyf] 转发失败入缓存 -> {_t}: {err}")
                     return ok
 
-                # 模板卡替换（需求 5.1）：路由启用 template_card → 逐模板渲染发送（替代 build_chain 批次）
-                tc = route.template_card if route else None
-                if tc and tc.get("enabled") and (tc.get("templates") or []):
-                    for chain in self._template_chains(route, msg):
+                # 模板卡替换（需求 5.1，连接级）：该目标命中模板卡实体 → 逐模板渲染发送（替代 build_chain 批次）
+                tc = self._route_tcard(route, target)
+                if tc:
+                    for chain in self._template_chains(tc, msg):
                         await _send_one(chain)
                 else:
                     for media_slice, is_first in batches:

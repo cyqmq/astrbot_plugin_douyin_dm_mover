@@ -17,8 +17,6 @@ class Route:
     types: set[MessageType] = field(default_factory=set)  # 空=全部
     senders_include: set[str] = field(default_factory=set)  # 好友来源 uid（仅单聊；空=全部单聊）
     groups_include: set[str] = field(default_factory=set)  # 群来源 group_id（仅群聊；空=全部群）
-    # 命中时替换模板卡（{enabled, templates}）；None=不替换。templates=测试页模板配置（布局/积木/msg_type）。
-    template_card: dict | None = None
     # 连接级模板卡映射（需求 5.1 重构）：目标 UMO → template_cards 实体 id；缺项=该目标直连。
     tgt_cards: dict = field(default_factory=dict)
 
@@ -59,7 +57,7 @@ def _migrate_tgt_cards(config: dict) -> None:
     """路由级 template_card → 连接级 tgt_cards + template_cards 实体（幂等，写回 config）。
     迁移条件：路由有 template_card（{enabled, templates 非空}）且无 tgt_cards 映射 → 生成一个实体，
     该路由所有 targets 的 tgt_cards[umo]=新 id（「一个模板卡连多目标」）。已有 tgt_cards 不重复生成。
-    template_card 保留（转发仍读它，步骤 B 切 tgt_cards 后再删，避免中间态转发失效）。"""
+    config 的旧 template_card 字段保留（仅作迁移源，转发已切 tgt_cards）。"""
     routes_cfg = config.get("routes")
     if not isinstance(routes_cfg, list):
         return
@@ -120,16 +118,6 @@ class RouteResolver:
             if not targets:
                 continue
             match = item.get("match") or {}
-            tc = item.get("template_card")
-            # 防御式解析：非 dict 或未含有效模板列表 → None（不替换）
-            template_card = None
-            if isinstance(tc, dict):
-                templates = tc.get("templates")
-                if isinstance(templates, list) and templates:
-                    template_card = {
-                        "enabled": bool(tc.get("enabled", True)),
-                        "templates": templates,
-                    }
             # tgt_cards 防御解析：非 dict → {}；引用的 tcard_id 不在 template_cards → 该目标直连（跳过）
             tgt_cards: dict[str, str] = {}
             raw_tc = item.get("tgt_cards")
@@ -146,7 +134,6 @@ class RouteResolver:
                     types=_type_set(match.get("types")),
                     senders_include=_str_set(match.get("senders_include")),
                     groups_include=_str_set(match.get("groups_include")),
-                    template_card=template_card,
                     tgt_cards=tgt_cards,
                 )
             )
@@ -156,7 +143,7 @@ class RouteResolver:
 
     def resolve(self, msg: InboundMessage) -> list[tuple[Route, str]]:
         """按序命中路由，返回 [(Route, target)]；每命中路由产出全部 targets；未命中返回空。
-        Route 携带 template_card（命中时替换模板卡），供转发链路取用。"""
+        Route 携带 tgt_cards（目标→模板卡实体 id），供转发链路按目标取模板卡。"""
         hits: list[tuple[Route, str]] = []
         for r in self.routes:
             if r.matches(msg):
