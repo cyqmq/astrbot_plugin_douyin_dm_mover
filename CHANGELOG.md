@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.46.1] - 2026-11-16
+
+### Fixed
+- **`loadConfig` 加载 `template_cards`**：`store.templateCards = d.config.template_cards || []`（此前仅 `scheduleLiveSave` 保存载荷含 `template_cards`，加载未填充——页面刷新后 `store.templateCards` 空）。迁移落盘链路完整：后端 `_migrate_tgt_cards` 写 config 内存 → `scheduleLiveSave`（含 `template_cards` + routes 含 `tgt_cards`）落盘 → 重启后端读到 → 迁移跳过（已有映射）。
+
 ## [1.46.0] - 2026-11-16
 
 ### Added

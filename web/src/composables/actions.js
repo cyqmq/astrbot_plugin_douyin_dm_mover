@@ -49,6 +49,7 @@ export async function loadConfig() {
   }))
   store.customTargets = JSON.parse(JSON.stringify(d.config.custom_targets || []))
   store.simpleTargets = JSON.parse(JSON.stringify(d.config.simple_targets || []))
+  store.templateCards = JSON.parse(JSON.stringify(d.config.template_cards || []))
   store.advancedTargets = !!d.config.advanced_target_cards
   store.floatLog.enabled = !!d.config.float_log_enabled
 }
