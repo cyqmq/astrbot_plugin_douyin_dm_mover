@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.45.1] - 2026-11-16
+
+### Fixed
+- **模板卡节点下拉刷新**：`loadTemplateOptions` 异步拉取完成后加 `build()` 重建——页面加载时已持久化的模板卡节点在 `build()`（templateOptions 仍空）已渲染，`data.templates` 指向空；拉取完成后重建使已渲染节点下拉选项生效（无需手动 addTC/连接触发）。
+
 ## [1.45.0] - 2026-11-16
 
 ### Added

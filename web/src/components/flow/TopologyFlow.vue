@@ -322,6 +322,7 @@ async function loadTemplateOptions() {
   } catch (_) {
     templateOptions.value = []
   }
+  build()   // 刷新已渲染模板卡节点的下拉选项（异步拉取完成后重建）
 }
 onMounted(() => {
   build()
