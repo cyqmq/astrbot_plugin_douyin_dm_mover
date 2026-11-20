@@ -76,6 +76,7 @@ export function scheduleLiveSave(delay = 1200) {
       custom_sources: JSON.parse(JSON.stringify(store.customSources)),
       custom_targets: JSON.parse(JSON.stringify(store.customTargets)),
       simple_targets: JSON.parse(JSON.stringify(store.simpleTargets)),
+      template_cards: JSON.parse(JSON.stringify(store.templateCards)),
       advanced_target_cards: !!store.advancedTargets }, { no_reload: true, silent: true })
     store.liveSavedAt = new Date().toLocaleTimeString('zh-CN', { hour12: false })
   }, delay)

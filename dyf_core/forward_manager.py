@@ -17,7 +17,7 @@ from dyf_core.message_sender import MessageSender, is_qq_official_group_target
 from dyf_core.model import InboundMessage, MessageType
 from dyf_core.ratelimit import RateLimiter
 from dyf_core.retry_manager import RetryManager
-from dyf_core.router import Route, RouteResolver
+from dyf_core.router import Route, RouteResolver, _migrate_tgt_cards
 from dyf_core.rules import ComposeRule, KeywordFilterRule
 from dyf_core.tracker import RecentStore
 
@@ -48,7 +48,8 @@ class ForwardManager:
             sender_enabled=config.get("rate_limit_sender_enabled", True),
             sender_max_per_min=config.get("rate_limit_sender_max_per_min", 10),
         )
-        self.router = RouteResolver(config.get("routes"))
+        _migrate_tgt_cards(config)   # 路由级 template_card → 连接级 tgt_cards + 实体（幂等，写回 config）
+        self.router = RouteResolver(config.get("routes"), config.get("template_cards"))
         # qq_official 仅群聊（私聊主动消息受限）：配置加载时剔除非群聊 UMO
         for k in ("default_target_group", "alert_target"):
             v = str(config.get(k, "") or "")

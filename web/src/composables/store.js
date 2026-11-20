@@ -179,6 +179,7 @@ export const store = reactive({
   cfg: {},
   schema: {},
   routes: [],
+  templateCards: [],          // 独立模板卡实体 [{id, enabled, templates:[模板名]}]（连接级：tgt_cards[umo]=id）
   liveSavedAt: '',
   floatLog: { enabled: false, open: false, logs: [], loading: false },
   auto: true,

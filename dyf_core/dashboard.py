@@ -481,9 +481,10 @@ class DashboardApi:
                     f"groups={_m.get('groups_include')} targets={_rt.get('targets') or ([_rt.get('target')] if _rt.get('target') else [])}"
                 )
             # 路由即时生效：router 只在 __init__ 建一次，更新 routes 后需重建
-            from dyf_core.router import RouteResolver
+            from dyf_core.router import RouteResolver, _migrate_tgt_cards
 
-            self.fm.router = RouteResolver(updates.get("routes") or [])
+            _migrate_tgt_cards(updates)   # 路由级 → 连接级迁移（幂等，写回 updates → 本体同步）
+            self.fm.router = RouteResolver(updates.get("routes") or [], updates.get("template_cards"))
         logger.info(f"[dyf] 配置已更新: {sorted(str(k) for k in updates)}")
         if self._config_obj is not None:
             # 同步写本体（AstrBotConfig 是 dict 子类）：cfg=dict(config) 是副本，

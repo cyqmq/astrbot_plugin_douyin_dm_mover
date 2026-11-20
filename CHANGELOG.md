@@ -4,6 +4,17 @@
 
 ## [Unreleased]
 
+## [1.46.0] - 2026-11-16
+
+### Added
+- **连接级模板卡数据结构（需求 5.1 步骤 A）**：独立模板卡实体表 `template_cards`（`[{id, enabled, templates:[模板名]}]`）+ 路由-目标映射 `route.tgt_cards = {[umo]: tcard_id}`（缺项=该目标直连）。
+  - 前端：`store.templateCards`；`scheduleLiveSave` 保存载荷加 `template_cards`。
+  - 后端：`Route.tgt_cards`（防御解析：非 dict / 引用的 tcard_id 不在 `template_cards` → 该目标直连）；`RouteResolver` 读 `config.template_cards`（`self.template_cards` 实体表）；`ForwardManager`/`dashboard config_set` 重建 router 传 `template_cards`。
+- **迁移（幂等，写回 config）**：`_migrate_tgt_cards(config)`——旧路由级 `route.template_card`（`{enabled, templates 非空}`）且无 `tgt_cards` → 生成一个实体（新 id），该路由全部 `targets` 的 `tgt_cards[umo]=新 id`（「一个模板卡连多目标」）；已有 `tgt_cards` 不重复生成。`template_card` 保留（转发仍读它，步骤 B 切 `tgt_cards` 后再删）。
+
+### Notes
+- 本步不切转发（`handle` 仍读 `route.template_card`）；连接级 `tgt_cards` 解析/迁移已就绪，转发切换留步骤 B。
+
 ## [1.45.1] - 2026-11-16
 
 ### Fixed
