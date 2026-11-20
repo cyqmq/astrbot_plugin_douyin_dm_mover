@@ -330,7 +330,8 @@ watch(() => JSON.stringify(store.routes.map(r => ((r.match && r.match.types) || 
 
 // 实时保存
 let liveReady = false
-watch(() => JSON.stringify({ r: store.routes, c: store.customSources, t: targetList.value, a: store.advancedTargets }),
+watch(() => JSON.stringify({ r: store.routes, c: store.customSources, t: targetList.value,
+  a: store.advancedTargets, tc: store.templateCards }),
   () => { if (liveReady) scheduleLiveSave() })
 async function loadTemplateOptions() {
   try {

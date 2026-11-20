@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.48.1] - 2026-11-16
+
+### Fixed
+- 模板卡节点内编辑模板序列 / 启停（`addTpl`/`toggleEnabled`/`moveTpl`/`delTpl`）未触发生成实时保存：`TopologyFlow` 的保存 watch 监听键补 `tc: store.templateCards`（此前仅 routes/customSources/targetList/advancedTargets），模板卡改动现在与其他对象一样自动保存。
+
 ## [1.48.0] - 2026-11-16
 
 ### Changed
