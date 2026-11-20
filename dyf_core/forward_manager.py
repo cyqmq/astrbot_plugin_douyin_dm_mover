@@ -5,6 +5,8 @@ import hashlib
 import time
 
 from astrbot.api import logger
+from astrbot.api.event import MessageChain
+from astrbot.api.message_components import Plain
 
 from dyf_config import DEFAULT_DATA_DIR
 from dyf_core.alert import AlertService
@@ -187,6 +189,28 @@ class ForwardManager:
                 return [(None, origin)]   # 默认组：无路由（无 template_card 替换）
         return []
 
+    def _template_chains(self, route: Route | None, msg: InboundMessage) -> list[MessageChain]:
+        """模板卡替换（需求 5.1）：route.template_card 启用 → 逐模板按 name 查 config.templates，
+        render_blocks(真实上下文) → MessageChain；模板缺失/空 → 跳过+告警（不中断其他模板）。"""
+        tc = route.template_card if route else None
+        if not tc or not tc.get("enabled") or not (tc.get("templates") or []):
+            return []
+        ctx = self.builder._context(msg)
+        chains: list[MessageChain] = []
+        for name in tc["templates"]:
+            tpl = next(
+                (t for t in (self.config.get("templates") or []) if t.get("name") == name),
+                None,
+            )
+            blocks = (tpl or {}).get("blocks")
+            if not tpl or not isinstance(blocks, list) or not blocks:
+                logger.warning(f"[dyf] 模板卡「{name}」缺失或空，跳过")
+                continue
+            rendered = self.builder.render_blocks(blocks, ctx, markdown=True)
+            if rendered.strip():
+                chains.append(MessageChain([Plain(rendered)]))
+        return chains
+
     async def handle(self, msg: InboundMessage) -> None:
         if msg.is_outgoing:
             return
@@ -250,36 +274,44 @@ class ForwardManager:
             target_fail = 0
             target_errors: list[str] = []
             try:
-                for media_slice, is_first in batches:
-                    chains = self.builder.build_chain(
-                        msg,
-                        card_image if is_first else None,
-                        media_slice,
-                        with_text=is_first,
-                    )
-                    if chains is None:
-                        continue
-                    for chain in (chains if isinstance(chains, list) else [chains]):
-                        if chain is None:
-                            continue
-                        ok, err = await self.sender.send(target, chain)
-                        if ok:
-                            ok_count += 1
-                            target_ok += 1
-                            logger.info(
-                                f"[dyf] 转发成功 -> {target} ({msg.type.value})"
-                            )
-                        else:
-                            fail_count += 1
-                            target_fail += 1
-                            target_errors.append(err)
-                            fail_errors.append(f"{target}: {err}")
-                            self.cache.add_failed(target, msg.to_dict())
-                        logger.warning(
-                            f"[dyf] 转发失败入缓存 -> {target}: {err}"
+                # B023：嵌套函数绑定循环变量（target/target_errors/fail_errors）→ 默认参数绑定
+                async def _send_one(chain: MessageChain, _t=target, _errs=target_errors, _ferrs=fail_errors) -> bool:
+                    ok, err = await self.sender.send(_t, chain)
+                    if ok:
+                        nonlocal ok_count, target_ok
+                        ok_count += 1
+                        target_ok += 1
+                        logger.info(f"[dyf] 转发成功 -> {_t} ({msg.type.value})")
+                    else:
+                        nonlocal fail_count, target_fail
+                        fail_count += 1
+                        target_fail += 1
+                        _errs.append(err)
+                        _ferrs.append(f"{_t}: {err}")
+                        self.cache.add_failed(_t, msg.to_dict())
+                        logger.warning(f"[dyf] 转发失败入缓存 -> {_t}: {err}")
+                    return ok
+
+                # 模板卡替换（需求 5.1）：路由启用 template_card → 逐模板渲染发送（替代 build_chain 批次）
+                tc = route.template_card if route else None
+                if tc and tc.get("enabled") and (tc.get("templates") or []):
+                    for chain in self._template_chains(route, msg):
+                        await _send_one(chain)
+                else:
+                    for media_slice, is_first in batches:
+                        chains = self.builder.build_chain(
+                            msg,
+                            card_image if is_first else None,
+                            media_slice,
+                            with_text=is_first,
                         )
-                    if not ok:
-                        break  # 本批失败，后续批次不再发（避免重发部分成功）
+                        if chains is None:
+                            continue
+                        for chain in (chains if isinstance(chains, list) else [chains]):
+                            if chain is None:
+                                continue
+                            if not await _send_one(chain):
+                                break  # 本批失败，后续批次不再发（避免重发部分成功）
                 # 每 target 一条搬运记录（合并批结果；图集分批不产生多条）
                 self.tracker.add_record(
                     ts=int(time.time()),

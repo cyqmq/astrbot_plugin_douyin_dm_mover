@@ -4,6 +4,14 @@
 
 ## [Unreleased]
 
+## [1.44.0] - 2026-11-16
+
+### Added
+- **模板卡替换发送（需求 5.1 启用）**：`handle` 对每个 `(route, target)`——路由启用 `template_card`（`enabled` 且 `templates` 非空）→ `_template_chains` 逐模板按 name 查 `config.templates` → `render_blocks(blocks, _context(msg))`（真实上下文替换 `{title}`/`{desc}` 等）→ `MessageChain([Plain])` → `sender.send`；模板缺失/空 → 跳过+告警（不中断其他模板）；否则走现有 `build_chain` 批次（含 `if not ok: break` 语义不变）。`_send_one` 提取统一统计（成功/失败/入缓存），B023 默认参数绑定。
+
+### Fixed
+- **`enabled=False` 直连**：`handle` 判断 `tc.get("enabled")`——`enabled=False` 不按模板发送，走 `build_chain` 直连（需求 5.1 语义）。
+
 ## [1.43.0] - 2026-11-16
 
 ### Added
