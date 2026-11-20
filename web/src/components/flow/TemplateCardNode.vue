@@ -2,28 +2,32 @@
 import { ref, computed } from 'vue'
 import { Handle, Position } from '@vue-flow/core'
 
-// 模板卡节点：路由的模板卡替换配置（需求 5.1）。
-// 左 target 接路由（启用 templateCard），右 source 接目标（模板卡替换发送到目标）。
-// 顶部 enabled 开关；模板序列列表（从已保存模板下拉添加 + 上移/下移/移除），写回 route.templateCard。
+// 模板卡节点：独立实体（需求 5.1 连接级）。
+// 左 target 接路由（归属：card.routeIndex），右 source 接目标（写 route.tgt_cards[umo]=card.id）。
+// 顶部 enabled 开关；模板序列列表（从已保存模板下拉添加 + 上移/下移/移除），写回实体。
 const props = defineProps({ data: { type: Object, required: true } })
 const d = props.data
-const r = d.route
-const tc = computed(() => r.templateCard || { enabled: true, templates: [] })
+const card = d.card
+const tc = computed(() => card || { id: '', enabled: true, templates: [], routeIndex: null })
 const addSel = ref('')
+const routeLabel = computed(() => {
+  const ri = tc.value.routeIndex
+  return ri == null || ri === '' ? '未归属路由' : ('路由 ' + (Number(ri) + 1))
+})
 
-function toggleEnabled() { r.templateCard.enabled = !r.templateCard.enabled }
+function toggleEnabled() { card.enabled = !card.enabled }
 function addTpl() {
   const v = addSel.value
-  if (v && !tc.value.templates.includes(v)) tc.value.templates.push(v)
+  if (v && !card.templates.includes(v)) card.templates.push(v)
   addSel.value = ''
 }
 function moveTpl(i, dir) {
-  const a = tc.value.templates
+  const a = card.templates
   const j = i + dir
   if (i < 0 || j < 0 || j >= a.length) return
   const t = a[i]; a[i] = a[j]; a[j] = t
 }
-function delTpl(i) { tc.value.templates.splice(i, 1) }
+function delTpl(i) { card.templates.splice(i, 1) }
 </script>
 
 <template>
@@ -34,9 +38,10 @@ function delTpl(i) { tc.value.templates.splice(i, 1) }
         <span>启用</span>
       </label>
       <span class="tc-btns">
-        <button class="danger nodrag" title="删除模板卡节点" @click="d.del(r)">×</button>
+        <button class="danger nodrag" title="删除模板卡实体（并清除相关路由-目标映射）" @click="d.del(card)">×</button>
       </span>
     </div>
+    <div class="tc-route" :title="'归属路由决定模板卡作用于哪条路由；删除路由→模板卡边即断开归属'">归属：{{ routeLabel }}</div>
     <div class="tc-row">
       <select v-model="addSel" class="nodrag" title="从已保存模板添加" @change="addTpl">
         <option value="">+ 添加模板</option>
@@ -54,8 +59,8 @@ function delTpl(i) { tc.value.templates.splice(i, 1) }
       </div>
       <div v-if="!tc.templates.length" class="tc-empty">未选择模板（直连）</div>
     </div>
-    <Handle type="target" :position="Position.Left" title="接收路由连接（启用模板卡）" />
-    <Handle type="source" :position="Position.Right" title="连向目标（模板卡替换发送）" />
+    <Handle type="target" :position="Position.Left" title="接路由（归属该路由）" />
+    <Handle type="source" :position="Position.Right" title="连向目标（写该路由 tgt_cards 映射）" />
   </div>
 </template>
 
@@ -96,6 +101,7 @@ function delTpl(i) { tc.value.templates.splice(i, 1) }
 }
 .tc-btns button.danger { color: #dc2626; }
 .tc-btns button:hover { opacity: 0.8; }
+.tc-route { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
 .tc-row { margin-bottom: 6px; }
 .tc-row select {
   width: 100%;

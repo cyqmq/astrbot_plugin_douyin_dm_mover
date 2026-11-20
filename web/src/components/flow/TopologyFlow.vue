@@ -91,14 +91,26 @@ function delRoute(route) {
   if (i >= 0) store.routes.splice(i, 1)
   scheduleLiveSave(); build()
 }
-// 模板卡节点（需求 5.1）：路由启用模板卡替换（{enabled, templates: [模板名]}）；空且 enabled=false → 未配置（直连）
+// 模板卡实体（需求 5.1 连接级）：{id, enabled, templates:[模板名], routeIndex, pos}
+// route 非空（路由卡按钮）→ 实体归属该路由；空（工具条）→ 用户自行连路由归属
+let tcSeq = 0
 function addTemplateCard(route) {
-  if (route.templateCard) return
-  route.templateCard = { enabled: true, templates: [] }
+  const card = {
+    id: 'tc' + Date.now().toString(36) + '_' + (++tcSeq),
+    enabled: true, templates: [], routeIndex: null, pos: null
+  }
+  if (route) card.routeIndex = store.routes.indexOf(route)
+  store.templateCards.push(card)
   scheduleLiveSave(); build()
 }
-function delTemplateCard(route) {
-  route.templateCard = null
+function delTemplateCard(card) {
+  const i = store.templateCards.indexOf(card)
+  if (i >= 0) store.templateCards.splice(i, 1)
+  // 清引用：各路由 tgt_cards[umo]=card.id 的映射项移除（该目标回归直连）
+  store.routes.forEach(r => {
+    if (!r.tgt_cards) return
+    for (const k of Object.keys(r.tgt_cards)) if (r.tgt_cards[k] === card.id) delete r.tgt_cards[k]
+  })
   scheduleLiveSave(); build()
 }
 
@@ -134,26 +146,26 @@ function onConnect(c) {
       scheduleLiveSave(); buildEdges()
     }
   } else if (s.startsWith('route|') && t.startsWith('tcard|')) {
-    // 路由→模板卡：启用模板卡（templateCard 存在 + enabled）
-    const r = store.routes[+s.split('|')[1]]
-    if (r) {
-      if (!r.templateCard) r.templateCard = { enabled: true, templates: [] }
-      r.templateCard.enabled = true
+    // 路由→模板卡：实体归属该路由（routeIndex）
+    const card = store.templateCards.find(x => x.id === t.split('|')[1])
+    if (card) {
+      card.routeIndex = +s.split('|')[1]
       scheduleLiveSave(); buildEdges()
     }
   } else if (s.startsWith('tcard|') && t.startsWith('tgt|')) {
-    // 模板卡→目标：写 route.targets（同 路由→目标，目标边起点随模板卡启用切换）
-    const tid = t.split('|')[1]
-    const r = store.routes[+s.split('|')[1]]
-    const tgt = targetList.value.find(x => x.id === tid)
-    if (r && tgt) {
-      const umo = umoOf(tgt)
-      const sess = String(umo).split(':')[2] || ''
-      if (!sess) { toast('目标未填写群号/OpenID，请先填写目标再连接'); return }
-      if (!r.targets) r.targets = []
-      if (!r.targets.includes(umo)) r.targets.push(umo)
-      scheduleLiveSave(); buildEdges()
-    }
+    // 模板卡→目标：写 route.targets + route.tgt_cards[umo]=card.id（该目标经此模板卡替换发送）
+    const card = store.templateCards.find(x => x.id === s.split('|')[1])
+    const r = card && store.routes[card.routeIndex]
+    const tgt = targetList.value.find(x => x.id === t.split('|')[1])
+    if (!r || !tgt) { toast('请先把模板卡连接到路由，再连向目标'); return }
+    const umo = umoOf(tgt)
+    const sess = String(umo).split(':')[2] || ''
+    if (!sess) { toast('目标未填写群号/OpenID，请先填写目标再连接'); return }
+    if (!r.targets) r.targets = []
+    if (!r.targets.includes(umo)) r.targets.push(umo)
+    if (!r.tgt_cards) r.tgt_cards = {}
+    r.tgt_cards[umo] = card.id
+    scheduleLiveSave(); buildEdges()
   }
 }
 function onEdgesChange(changes) {
@@ -188,8 +200,9 @@ function onEdgesChange(changes) {
       if (i >= 0) ts.splice(i, 1)
       if (r.target === umo) r.target = ''  // 兼容旧单 target
     } else if (p[1] === 'tcard') {
-      // e|tcard|{ri}|{k}|{ti}：模板卡→目标，清 targets（同 route→目标）
-      const r = store.routes[+p[2]]
+      // e|tcard|{tid}|{k}|{ti}：模板卡→目标，清 targets + tgt_cards[umo]
+      const card = store.templateCards.find(x => x.id === p[2])
+      const r = card && store.routes[card.routeIndex]
       if (!r) return
       const t = targetList.value[+p[4]]
       if (!t) return
@@ -198,10 +211,11 @@ function onEdgesChange(changes) {
       const i = ts.indexOf(umo)
       if (i >= 0) ts.splice(i, 1)
       if (r.target === umo) r.target = ''
+      if (r.tgt_cards && r.tgt_cards[umo] === card.id) delete r.tgt_cards[umo]
     } else if (p[1] === 'r2tc') {
-      // e|r2tc|{ri}：路由→模板卡，禁用模板卡（清 templateCard）
-      const r = store.routes[+p[2]]
-      if (r && r.templateCard) r.templateCard.enabled = false
+      // e|r2tc|{ri}|{tid}：路由→模板卡，断开归属（routeIndex 置空，实体保留）
+      const card = store.templateCards.find(x => x.id === p[3])
+      if (card) card.routeIndex = null
     }
   })
   scheduleLiveSave()
@@ -221,8 +235,8 @@ function onDragStop({ node }) {
     if (r) r.pos = p
   } else if (id.startsWith('tcard|')) {
     const rn = getNodes.value.find(n => n.id === id)
-    const r = rn && rn.data && rn.data.route
-    if (r) r.tcardPos = p
+    const card = rn && rn.data && rn.data.card
+    if (card) card.pos = p
   } else if (id.startsWith('tgt|')) {
     const t = targetList.value.find(x => x.id === id.split('|')[1])
     if (t) t.pos = p
@@ -253,19 +267,17 @@ function edgeTo(id, s, t, cls, data) {
     markerEnd: { type: MarkerType.ArrowClosed, width: 14, height: 14 },
     style: { stroke: '#0969da', strokeWidth: 2.2 } }
 }
-function tcardNode(r, i) {
-  const n = { id: 'tcard|' + i, type: 'template-card',
-    data: { route: r, index: i, templates: templateOptions.value, del: delTemplateCard } }
-  n.position = r.tcardPos || posOf(n.id) || { x: X[1] + 240, y: i * 230 }
+function tcardNode(card, i) {
+  const n = { id: 'tcard|' + card.id, type: 'template-card',
+    data: { card, templates: templateOptions.value, del: delTemplateCard } }
+  n.position = card.pos || posOf(n.id) || { x: X[1] + 260, y: 40 + i * 160 }
   return n
 }
 function buildNodes() {
   const ns = []
   sources.value.forEach((s, i) => ns.push(sourceNode(s, i)))
-  store.routes.forEach((r, i) => {
-    ns.push(routeNode(r, i))
-    if (r.templateCard) ns.push(tcardNode(r, i))   // 模板卡节点：route.templateCard 存在才渲染
-  })
+  store.routes.forEach((r, i) => ns.push(routeNode(r, i)))
+  store.templateCards.forEach((card, i) => ns.push(tcardNode(card, i)))   // 模板卡实体节点
   targetList.value.forEach((t, i) => ns.push(targetNode(t, i)))
   nodes.value = ns
 }
@@ -284,20 +296,25 @@ function buildEdges() {
           { kind: 'src-route', uid, gid, route: r }))
     })
   })
+  // 路由→模板卡：实体归属路由（routeIndex）
+  store.templateCards.forEach(card => {
+    const ri = card.routeIndex
+    if (ri == null || ri === '' || !store.routes[ri]) return
+    es.push(edgeTo(`e|r2tc|${ri}|${card.id}`, 'route|' + ri, 'tcard|' + card.id, 'hit',
+      { kind: 'route-tcard', route: store.routes[ri] }))
+  })
   store.routes.forEach((r, ri) => {
-    // 模板卡启用（templateCard 且 enabled）→ 路由→模板卡边 + 目标边从模板卡 source 连
-    const tc = r.templateCard
-    const tcActive = tc && tc.enabled
-    if (tcActive) {
-      es.push(edgeTo(`e|r2tc|${ri}`, 'route|' + ri, 'tcard|' + ri, 'hit', { kind: 'route-tcard', route: r }))
-    }
     const ts = r.targets && r.targets.length ? r.targets : (r.target ? [r.target] : [])
     ts.forEach((umo, k) => {
       const ti = targetList.value.findIndex(t => umoOf(t) === umo)
       if (ti >= 0) {
-        const src = tcActive ? 'tcard|' + ri : 'route|' + ri
-        const pre = tcActive ? 'e|tcard|' : 'e|route|'
-        es.push(edgeTo(pre + ri + '|' + k + '|' + ti, src, 'tgt|' + targetList.value[ti].id, 'hit',
+        // 目标边起点：该目标映射到启用模板卡 → 从模板卡 source 连；否则路由直连
+        const tid = (r.tgt_cards || {})[umo]
+        const card = tid && store.templateCards.find(x => x.id === tid)
+        const tcActive = !!(card && card.enabled)
+        const src = tcActive ? 'tcard|' + card.id : 'route|' + ri
+        const pre = tcActive ? 'e|tcard|' + card.id + '|' : 'e|route|' + ri + '|'
+        es.push(edgeTo(pre + k + '|' + ti, src, 'tgt|' + targetList.value[ti].id, 'hit',
           { kind: 'route-tgt', umo, route: r }))
       }
     })
@@ -336,12 +353,13 @@ onMounted(() => {
     <div class="bar" style="margin-bottom:10px">
       <button class="ghost" @click="addSource">+ 添加来源</button>
       <button class="ghost" @click="addRoute">+ 添加路由</button>
+      <button class="ghost" @click="addTemplateCard()">+ 添加模板卡</button>
       <button class="ghost" @click="addTarget">+ 添加目标</button>
-      <span class="muted">{{ store.routes.length }} 条路由 · {{ targetList.length }} 个目标 · 拖拽节点布局</span>
+      <span class="muted">{{ store.routes.length }} 条路由 · {{ store.templateCards.length }} 张模板卡 · {{ targetList.length }} 个目标 · 拖拽节点布局</span>
       <span v-if="store.liveSavedAt" class="muted save-state">已保存 {{ store.liveSavedAt }}</span>
     </div>
     <div class="bar" style="margin-bottom:10px">
-      <span class="muted">从连接桩拖动到另一个连接桩建立连接：来源 <strong>→</strong> 路由 <strong>→</strong> 目标。选中连线按 <kbd>Delete</kbd> 断开。</span>
+      <span class="muted">从连接桩拖动到另一个连接桩建立连接：来源 <strong>→</strong> 路由 <strong>→</strong> 目标；模板卡插在路由与目标之间（路由 <strong>→</strong> 模板卡 <strong>→</strong> 目标，该目标按模板卡渲染）。选中连线按 <kbd>Delete</kbd> 断开。</span>
     </div>
 
     <div class="topo tall">

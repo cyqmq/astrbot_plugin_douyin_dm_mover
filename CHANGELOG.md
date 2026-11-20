@@ -4,6 +4,20 @@
 
 ## [Unreleased]
 
+## [1.48.0] - 2026-11-16
+
+### Changed
+- **模板卡改独立实体节点（需求 5.1 步骤 C）**：`store.templateCards` 渲染 `tcard|{id}` 节点（`data.card`），链路 `route|ri → tcard|{id} → tgt|{ti}`：
+  - `route|ri → tcard|{id}` 写 `card.routeIndex = ri`（实体归属路由）；`tcard|{id} → tgt|{ti}` 写 `route.targets` + `route.tgt_cards[umo] = card.id`（一模多目标 = 多目标指向同一 id）
+  - 删除实体清所有 `route.tgt_cards[umo]` 引用（目标回归直连）；删路由→模板卡边断归属（实体保留）；删模板卡→目标边清 `tgt_cards[umo]` + `targets`
+  - `TemplateCardNode` 实体化（显示归属路由、enabled 开关、模板序列上移/下移/移除、位置持久化 `card.pos`）
+
+### Added
+- 工具条「+ 添加模板卡」入口（新增实体，用户连路由归属）；路由卡「模板卡」按钮保留（新增并归属该路由，该路由已有 `tgt_cards` 映射时隐藏）；布局计数显示模板卡数。
+
+### Notes
+- 目标边起点判定按 `route.tgt_cards[umo]` 映射到的启用实体（`card.enabled`）→ 从模板卡 source 连，否则路由直连；与后端 `1.47.0` `_route_tcard` 语义一致。
+
 ## [1.47.0] - 2026-11-16
 
 ### Changed
