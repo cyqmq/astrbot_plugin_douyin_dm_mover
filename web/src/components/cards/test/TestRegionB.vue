@@ -61,8 +61,8 @@ const KIND_INFO = {
   video:    { type: 'image', label: '转发的视频',   props: [{ key: 'label', label: '说明文字', type: 'text', ph: '可选' }] },
   video_url:{ type: 'image', label: '自定义地址视频', props: [{ key: 'url', label: '视频地址', type: 'text', ph: 'https://…' }] },
   gif:      { type: 'image', label: 'GIF动图',     props: [{ key: 'url', label: '动图地址', type: 'text', ph: 'https://…' }] },
-  button:  { type: 'button',  label: '按钮',     props: [{ key: 'label', label: '按钮文字', type: 'text', ph: '请输入按钮文字' }, { key: 'url', label: '跳转链接', type: 'text', ph: '可选' }] },
-  link:    { type: 'button',  label: '链接按钮', props: [{ key: 'label', label: '链接文字', type: 'text', ph: '请输入链接文字' }, { key: 'url', label: '跳转链接', type: 'text', ph: '可选' }] },
+  button:  { type: 'button',  label: '按钮',     props: [{ key: 'label', label: '按钮文字', type: 'text', ph: '请输入按钮文字' }, { key: 'url', label: '跳转链接', type: 'text', ph: '可选' }, { key: 'style', label: '按钮颜色', type: 'select', options: [{ value: 'primary', label: '主题色' }, { value: 'default', label: '灰色' }, { value: 'success', label: '绿色' }, { value: 'danger', label: '红色' }] }] },
+  link:    { type: 'button',  label: '链接按钮', props: [{ key: 'label', label: '链接文字', type: 'text', ph: '请输入链接文字' }, { key: 'url', label: '跳转链接', type: 'text', ph: '可选' }, { key: 'style', label: '按钮颜色', type: 'select', options: [{ value: 'primary', label: '主题色' }, { value: 'default', label: '灰色' }, { value: 'success', label: '绿色' }, { value: 'danger', label: '红色' }] }] },
   divider: { type: 'divider', label: '分割线',   props: [] },
   gap:     { type: 'divider', label: '间距',     props: [{ key: 'value', label: '间距(px)', type: 'number', ph: '' }] },
 }
@@ -545,7 +545,7 @@ function openEdit() {
   const c = menuCard()
   if (!c) return closeMenu()
   const f = {}
-  for (const p of KIND_INFO[kindOf(c)].props) f[p.key] = c[p.key] ?? ''
+  for (const p of KIND_INFO[kindOf(c)].props) f[p.key] = c[p.key] ?? (p.type === 'select' ? (p.options[0]?.value ?? '') : '')
   editForm.value = f
   editing.value = true
 }
@@ -555,6 +555,7 @@ function confirmEdit() {
   for (const p of KIND_INFO[kindOf(c)].props) {
     const v = editForm.value[p.key]
     if (p.type === 'number') c[p.key] = Number(v) || 0
+    else if (p.type === 'select') c[p.key] = String(v || p.options[0]?.value || '').trim()
     else c[p.key] = String(v ?? '').trim()
   }
   syncWidths()
@@ -615,7 +616,7 @@ function exportContent(c) {
   if (k === 'text' || k === 'title' || k === 'desc') return c.label || ''
   if (k === 'image' || k === 'image_url' || k === 'video' || k === 'video_url' || k === 'gif')
     return '[' + KIND_INFO[k].label + ':' + (c.url || c.label || '') + ']'
-  if (k === 'button' || k === 'link') return '[' + (k === 'link' ? '链接按钮' : '按钮') + ':' + (c.label || '') + ']'
+  if (k === 'button' || k === 'link') return '[' + (k === 'link' ? '链接按钮' : '按钮') + ':' + (c.label || '') + (c.style ? '·' + c.style : '') + ']'
   if (k === 'divider') return '[分割线]'
   if (k === 'gap') return '[间距:' + (c.value || '') + ']'
   return '[' + k + ':' + (c.label || '') + ']'
@@ -730,7 +731,10 @@ onBeforeUnmount(() => {
             <div class="menu-form">
               <template v-for="p in curProps()" :key="p.key">
                 <label>{{ p.label }}</label>
-                <input v-model="editForm[p.key]" class="menu-input"
+                <select v-if="p.type === 'select'" v-model="editForm[p.key]" class="menu-input">
+                  <option v-for="o in p.options" :key="o.value" :value="o.value">{{ o.label }}</option>
+                </select>
+                <input v-else v-model="editForm[p.key]" class="menu-input"
                   :type="p.type === 'number' ? 'number' : 'text'" min="0" :placeholder="p.ph || ''" />
               </template>
               <div v-if="!curProps().length" class="menu-empty">无内容属性</div>

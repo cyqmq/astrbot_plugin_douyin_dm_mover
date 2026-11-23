@@ -4,6 +4,9 @@
 
 import { placeholderToken } from './blockTypes.js'
 
+// 按钮预设色（与后端 model.BUTTON_STYLES 一致；仅白名单可下发，任意 hex 无法被 AstrBot 渲染）
+export const BUTTON_STYLES = ['primary', 'default', 'success', 'danger']
+
 // 渲染积木序列为消息内容（与后端 _render_blocks 同规则：media 用 \n\n 连接、空块跳过）
 export function renderBlocks(blocks, ctx = {}, markdown = true) {
   if (!Array.isArray(blocks)) return ''
@@ -95,10 +98,11 @@ function renderFlatSingle(b, markdown = true) {
     const alt = label || '动图'
     return markdown ? `![${alt}](${url})` : alt
   }
-  if (kind === 'button' || kind === 'link') {   // 自定义文字+跳转链接（url 空回退 {link}）
+  if (kind === 'button' || kind === 'link') {   // 自定义文字+跳转链接（url 空回退 {link}）；style 预设色（非法回退 primary）
     const btn = label || '按钮'
     const btnUrl = url || '{link}'
-    return markdown ? `[[button:${btn}|${btnUrl}]]` : btn
+    const style = (BUTTON_STYLES.includes(b.style) ? b.style : 'primary')
+    return markdown ? `[[button:${btn}|${btnUrl}|${style}]]` : btn
   }
   if (kind === 'divider') return markdown ? '***' : '—'
   if (kind === 'gap') return ''    // 间距：纵向占位，无文本输出
@@ -127,7 +131,10 @@ export function mdToHtml(s) {
   let h = esc(s)
   // 视频/按钮标记 → 组件 HTML（esc 后替换，标记内 url 已转义 &amp; 正确进 href）
   h = h.replace(/\[\[video:[^\])]*\]\]/g, '<div class="video-chip"><span class="vc-play">▶</span> 视频</div>')
-  h = h.replace(/\[\[button:([^\]|]*)\|([^)\]]*)\]\]/g, '<a class="btn" href="$2">$1</a>')
+  h = h.replace(/\[\[button:([^\]|]*)\|([^\]|]*)(?:\|([^\]|]*))?\]\]/g, (_, label, url, style) => {
+    const s = BUTTON_STYLES.includes(style) ? style : 'primary'
+    return `<a class="btn btn--${s}" href="${url}">${label}</a>`
+  })
   h = h.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" style="max-width:100%;border-radius:6px;display:block">')
   h = h.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
   h = h.replace(/^# (.+)$/gm, '<h3 style="margin:4px 0">$1</h3>')

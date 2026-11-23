@@ -8,7 +8,7 @@ from datetime import datetime
 from astrbot.api.event import MessageChain
 from astrbot.api.message_components import Image, Plain, Video
 
-from dyf_core.model import InboundMessage, MessageType
+from dyf_core.model import BUTTON_STYLES, InboundMessage, MessageType
 
 _SANITIZE_CHARS = ["**", "`", "~~", "*"]
 _SOURCE_LABEL = {"douyin": "抖音"}
@@ -239,10 +239,13 @@ class MessageBuilder:
         if kind == "gif":
             alt = label or "动图"
             return f"![{alt}]({url})" if markdown else alt
-        if kind in ("button", "link"):   # 自定义文字+跳转链接（url 空回退 {link}）
+        if kind in ("button", "link"):   # 自定义文字+跳转链接（url 空回退 {link}）；style 预设色（非法回退 primary）
             btn = label or "按钮"
             btn_url = url or "{link}"
-            return f"[[button:{btn}|{btn_url}]]" if markdown else btn
+            style = str(b.get("style") or "primary").strip()
+            if style not in BUTTON_STYLES:
+                style = "primary"
+            return f"[[button:{btn}|{btn_url}|{style}]]" if markdown else btn
         if kind == "divider":
             return "***" if markdown else "—"
         if kind == "gap":          # 间距：纵向占位，无文本输出
@@ -538,7 +541,7 @@ class MessageBuilder:
     def _markdown_chain_only(self, content: str, btn_ys: list | None = None) -> MessageChain | None:
         """Markdown 链：按钮 [[button:文案|地址]] → ActionRow（btn_ys 按 y 分组连续同 y 按钮成一行多钮）；
         图片 ![..](..) 全链保持 markdown 文本（qq_official 用 msg_type:2 渲染），不转 Image 组件。"""
-        btn_pattern = r"\[\[button:([^\]|]*)\|([^)\]]*)\]\]"
+        btn_pattern = r"\[\[button:([^\]|]*)\|([^\]|]*)(?:\|([^\]|]*))?\]\]"
         btn_m = list(re.finditer(btn_pattern, content))
         parts: list = []
         if btn_m:
@@ -560,11 +563,17 @@ class MessageBuilder:
                         for j in group:
                             m = btn_m[j]
                             label, url = m.group(1).strip(), m.group(2).strip()
+                            # 第三段预设色（primary/default/success/danger），缺省/非法 → PRIMARY
+                            style = (m.group(3) or "").strip().lower()
+                            try:
+                                btn_style = getattr(Button.Style, style.upper())
+                            except Exception:
+                                btn_style = Button.Style.PRIMARY
                             btns.append(Button(
                                 id=f"dyf:open:{j}",
                                 label=label,
                                 action=Button.UrlAction(url=url),
-                                style=Button.Style.PRIMARY,
+                                style=btn_style,
                             ))
                         # 裸 URL 纯文本（非 markdown 语法）：支持 ActionRow 的平台同时渲染按钮，
                         # fallback_text 若带 [label](url) 会被当 markdown 一起发出 → 每钮重复。

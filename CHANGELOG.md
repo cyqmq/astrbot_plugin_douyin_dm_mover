@@ -4,6 +4,17 @@
 
 ## [Unreleased]
 
+## [1.49.0] - 2026-11-16
+
+### Added
+- **按钮卡 `style` 预设色（需求：`[[button:label|url|style]]` 第三段）**：按钮/链接积木可选 `style`（`primary`/`default`/`success`/`danger`），控制 AstrBot 富媒体按钮预设色。
+  - 语法 `[[button:label|url|style]]`：`_markdown_chain_only` 解析第三段 → `Button.Style[STYLE.upper()]`；缺省/非法 → `PRIMARY`（旧语法 `[[button:label|url]]` 不变）。
+  - 扁平卡 `button`/`link`：`_render_flat_block` 输出第三段；`model.BUTTON_STYLES` 白名单，`validate_block` 非法 style 报错（缺省合法）。
+  - 前端：按钮卡属性面板加「按钮颜色」下拉（4 预设）；`renderBlocks` 同步输出第三段，预览 `mdToHtml` 映射 `.btn--primary/default/success/danger` 四色（`pv-bubble`）。
+
+### Notes
+- 使用 AstrBot `Button.Style` 预设枚举而非任意 hex：富媒体按钮仅支持预设色，任意色值会被忽略/报错。按钮每行 ≤5 规则不变。
+
 ## [1.48.1] - 2026-11-16
 
 ### Fixed

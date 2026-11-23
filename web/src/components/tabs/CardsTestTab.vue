@@ -342,12 +342,16 @@ onMounted(loadTemplates)
   margin: 6px 0;
   padding: 8px 10px;
   text-align: center;
-  background: var(--accent);
   color: #fff;
   border-radius: 8px;
   text-decoration: none;
   font-size: 13px;
+  background: var(--accent);
 }
+.pv-bubble a.btn--primary { background: var(--accent); }
+.pv-bubble a.btn--default { background: #6b7280; }
+.pv-bubble a.btn--success { background: #16a34a; }
+.pv-bubble a.btn--danger  { background: #dc2626; }
 .pv-bubble .video-chip {
   display: flex;
   align-items: center;

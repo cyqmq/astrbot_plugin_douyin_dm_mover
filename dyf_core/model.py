@@ -115,11 +115,14 @@ FLAT_KIND_INFO = {
     "video":     {"type": "image",   "required": []},        # 转发视频：说明可选
     "video_url": {"type": "image",   "required": ["url"]},   # 自定义地址视频
     "gif":       {"type": "image",   "required": ["url"]},
-    "button":    {"type": "button",  "required": ["label"]}, # 跳转链接可选
+    "button":    {"type": "button",  "required": ["label"]}, # 跳转链接可选；style 可选（4 预设色）
     "link":      {"type": "button",  "required": ["label"]},
     "divider":   {"type": "divider", "required": []},
     "gap":       {"type": "divider", "required": []},        # value(px) 可选，有默认
 }
+
+# 按钮预设色（AstrBot 富媒体按钮 Button.Style 预设；任意 hex 无法下发，仅接受白名单）
+BUTTON_STYLES = ("primary", "default", "success", "danger")
 
 
 def _validate_flat_block(b: dict) -> str | None:
@@ -134,6 +137,10 @@ def _validate_flat_block(b: dict) -> str | None:
         v = b.get(k)
         if v is None or not str(v).strip():
             return f"{kind} 积木缺少 {k}"
+    if kind in ("button", "link"):
+        st = b.get("style")
+        if st is not None and str(st) not in BUTTON_STYLES:
+            return f"{kind} 积木 style 非法: {st!r}（允许: {', '.join(BUTTON_STYLES)}）"
     return None
 
 
